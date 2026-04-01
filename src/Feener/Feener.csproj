@@ -1,0 +1,70 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFrameworks>net9.0-android</TargetFrameworks>
+
+		<OutputType>Exe</OutputType>
+		<RootNamespace>Feener</RootNamespace>
+		<UseMaui>true</UseMaui>
+		<SingleProject>true</SingleProject>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+
+		<!-- Display name -->
+		<ApplicationTitle>Feener</ApplicationTitle>
+
+		<!-- App Identifier -->
+		<ApplicationId>com.fen.loid</ApplicationId>
+
+		<!-- Versions — fallback for local builds only. CI always overrides these from the release tag via -p:ApplicationVersion and -p:ApplicationDisplayVersion -->
+		<ApplicationDisplayVersion>1.6.8</ApplicationDisplayVersion>
+		<ApplicationVersion>168</ApplicationVersion>
+
+		<!-- To develop, package, and publish an app to the Microsoft Store, see: https://aka.ms/MauiTemplateUnpackaged -->
+		<WindowsPackageType>None</WindowsPackageType>
+
+		<!-- Android Minimum API Version -->
+		<SupportedOSPlatformVersion>24.0</SupportedOSPlatformVersion>
+
+		<!-- Suppress CA1416: all affected API calls are runtime-guarded with Build.VERSION.SdkInt checks -->
+		<!-- Suppress CS8602/CS8603: AndroidX NotificationCompat.Builder bindings over-annotate fluent Set*() returns as nullable -->
+		<NoWarn>$(NoWarn);CA1416;CS8602;CS8603</NoWarn>
+	</PropertyGroup>
+
+	<!-- Android Release Signing Configuration -->
+	<PropertyGroup Condition="$(TargetFramework.Contains('-android')) and '$(Configuration)' == 'Release'">
+		<AndroidKeyStore>true</AndroidKeyStore>
+		<AndroidSigningKeyStore>feener.keystore</AndroidSigningKeyStore>
+		<AndroidSigningKeyAlias>streaksaver</AndroidSigningKeyAlias>
+		<AndroidSigningKeyPass>$(ANDROID_SIGNING_PASSWORD)</AndroidSigningKeyPass>
+		<AndroidSigningStorePass>$(ANDROID_SIGNING_PASSWORD)</AndroidSigningStorePass>
+		<AndroidPackageFormat>apk</AndroidPackageFormat>
+		<AndroidLinkTool>r8</AndroidLinkTool>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- App Icon - Dark variant via transparent compositing -->
+		<MauiIcon Include="Resources\AppIcon\appicon.png" Color="#121212" BaseSize="1024,1024" ForegroundScale="0.65" />
+
+		<!-- Splash Screen - Generic fallback for pre-Android 12 systems and iOS -->
+		<MauiSplashScreen Include="Resources\AppIcon\appicon.png" Color="#121212" BaseSize="1024,1024" />
+
+		<!-- Images -->
+		<MauiImage Include="Resources\Images\*" />
+		<MauiImage Update="Resources\Images\dotnet_bot.png" Resize="True" BaseSize="300,185" />
+		
+		<!-- Custom Fonts -->
+		<MauiFont Include="Resources\Fonts\*" />
+
+		<!-- Raw Assets (also remove the "Resources\Raw" prefix) -->
+		<MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="asyncawaitbestpractices" Version="10.0.0" />
+		<PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.8" />
+		<PackageReference Include="RandomUserAgent" Version="1.1.2" />
+	</ItemGroup>
+
+</Project>

@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Feener.LoginPage"
+             Title="Login to TikTok"
+             Shell.NavBarIsVisible="False"
+             NavigationPage.HasNavigationBar="False"
+             BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource OffBlack}}">
+    
+    <Grid RowDefinitions="Auto, *, Auto">
+        
+        <!-- Header -->
+        <Border Grid.Row="0" 
+                BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}"
+                Stroke="{AppThemeBinding Light={StaticResource BorderColorLightBrush}, Dark={StaticResource BorderColorDarkBrush}}"
+                StrokeThickness="1"
+                StrokeShape="Rectangle"
+                Padding="16">
+            <VerticalStackLayout Spacing="4">
+                <Label Text="Login to TikTok" 
+                       TextColor="{AppThemeBinding Light={StaticResource Gray950}, Dark={StaticResource White}}"
+                       FontAttributes="Bold"
+                       FontSize="20"/>
+                <Label Text="Login to your TikTok account. Your session will be saved for background messaging."
+                       TextColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray400}}"
+                       FontSize="12"
+                       LineBreakMode="WordWrap"/>
+            </VerticalStackLayout>
+        </Border>
+        
+        <!-- WebView -->
+        <WebView x:Name="TikTokWebView"
+                 Grid.Row="1"
+                 Navigated="OnWebViewNavigated"/>
+        
+        <!-- Loading Overlay -->
+        <Grid x:Name="LoadingOverlay" 
+              Grid.Row="1" 
+              IsVisible="True"
+              BackgroundColor="{AppThemeBinding Light={StaticResource OverlayLight}, Dark={StaticResource OverlayDark}}">
+            <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="16">
+                <ActivityIndicator IsRunning="True" 
+                                   Color="{StaticResource Primary}"
+                                   HeightRequest="48"
+                                   WidthRequest="48"/>
+                <Label Text="Loading TikTok..."
+                       TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray200}}"
+                       FontSize="12"
+                       HorizontalOptions="Center"/>
+            </VerticalStackLayout>
+        </Grid>
+        
+        <!-- Footer Actions -->
+        <Border Grid.Row="2" Style="{StaticResource BottomActionBorder}">
+            <Grid ColumnDefinitions="*, *" ColumnSpacing="12">
+                <Button Text="Back"
+                        Style="{StaticResource TextButton}"
+                        HeightRequest="44"
+                        Clicked="OnBackClicked"/>
+                <Button Grid.Column="1"
+                        Text="Refresh"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource Primary}}"
+                        TextColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource White}}"
+                        FontAttributes="Bold"
+                        CornerRadius="12"
+                        HeightRequest="44"
+                        Clicked="OnRefreshClicked"/>
+            </Grid>
+        </Border>
+    </Grid>
+</ContentPage>
+
+
+
+
+
+
+
+

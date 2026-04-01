@@ -1,0 +1,17 @@
+﻿using Android.App;
+using Android.Runtime;
+
+namespace Feener
+{
+    [Application]
+    [Microsoft.Maui.Controls.Internals.Preserve(AllMembers = true)]
+    public class MainApplication : MauiApplication
+    {
+        public MainApplication(IntPtr handle, JniHandleOwnership ownership)
+            : base(handle, ownership)
+        {
+        }
+
+        protected override MauiApp CreateMauiApp() => MauiProgram.CreateMauiApp();
+    }
+}

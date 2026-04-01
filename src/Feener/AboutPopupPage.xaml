@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Feener.AboutPopupPage"
+             BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource OffBlack}}"
+             Shell.PresentationMode="ModalAnimated">
+
+    <Grid RowDefinitions="Auto, *, Auto" Padding="24" RowSpacing="24">
+        
+        <!-- Header -->
+        <VerticalStackLayout Grid.Row="0" Spacing="4" HorizontalOptions="Center" Margin="0, 16, 0, 0">
+            <Label x:Name="HeaderTitle" 
+                   Text="Welcome to Feener" 
+                   Style="{StaticResource PageTitleLabel}" 
+                   HorizontalOptions="Center"
+                   HorizontalTextAlignment="Center"/>
+            <Label x:Name="SubHeaderLabel" 
+                   Text="Keep your streaks alive, automatically." 
+                   Style="{StaticResource DataLabel}" 
+                   HorizontalOptions="Center"
+                   HorizontalTextAlignment="Center"/>
+        </VerticalStackLayout>
+
+        <!-- Scrollable content area -->
+        <ScrollView Grid.Row="1" VerticalScrollBarVisibility="Never">
+            <VerticalStackLayout Spacing="24">
+                
+                <Border Style="{StaticResource SectionCard}" 
+                        BackgroundColor="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray800}}"
+                        StrokeThickness="0"
+                        x:Name="ChangelogBorder">
+                    <VerticalStackLayout Spacing="12">
+                        <Grid ColumnDefinitions="*, Auto">
+                            <Label Text="Changelog" Style="{StaticResource SectionLabel}" VerticalOptions="Center"/>
+                            <Label x:Name="VersionLabel" Grid.Column="1" Text="v1.0.0" Style="{StaticResource DataLabel}" VerticalOptions="Center"/>
+                        </Grid>
+                        <Label x:Name="ChangelogLabel" 
+                               Text="Starting up..." 
+                               Style="{StaticResource ValueLabel}" 
+                               LineBreakMode="WordWrap"
+                               Opacity="0.9"/>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- App Information -->
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="About this app" Style="{StaticResource SectionLabel}"/>
+                    <Label Text="Feener is designed to automate and protect your TikTok streaks. It runs natively in the background over 23-hour intervals, finding and messaging your mapped friends to ensure you never miss a day." 
+                           Style="{StaticResource ValueLabel}" 
+                           LineBreakMode="WordWrap"/>
+                </VerticalStackLayout>
+
+                <!-- Creator Credits -->
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="Creator &amp; Support" Style="{StaticResource SectionLabel}" Margin="0, 0, 0, 4"/>
+                    
+                    <Label Text="Original base app created by Jon2G" 
+                           Style="{StaticResource ValueLabel}" />
+                    <Label Text="https://github.com/Jon2G" 
+                           TextColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray400}}"
+                           FontSize="12" />
+
+                    <Label Text="Modified and maintained by @eulfen" 
+                           Style="{StaticResource ValueLabel}" 
+                           Margin="0, 8, 0, 0"/>
+                    <Label Text="Support me by following me on TikTok (@eulfen)!" 
+                           Style="{StaticResource ValueLabel}" 
+                           LineBreakMode="WordWrap"/>
+                </VerticalStackLayout>
+
+                <!-- Data & Permissions Notice -->
+                <VerticalStackLayout Spacing="8" Margin="0, 0, 0, 12">
+                    <Label Text="Privacy &amp; System Permissions" 
+                           Style="{StaticResource SectionLabel}" 
+                           TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray400}}" 
+                           FontSize="12"/>
+                    <Label Text="All operations execute locally on your device. Zero credentials or messaging session keys are extracted or broadcasted remotely. Background automations require battery exemptions and exact-alarm scheduling to function reliably." 
+                           Style="{StaticResource DataLabel}" 
+                           LineBreakMode="WordWrap" 
+                           FontSize="12"/>
+                </VerticalStackLayout>
+                
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- Sticky Footer -->
+        <VerticalStackLayout Grid.Row="2" Spacing="8">
+
+            <!-- Download progress — hidden unless download is active -->
+            <Label x:Name="ProgressLabel"
+                   IsVisible="False"
+                   HorizontalTextAlignment="Center"
+                   TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray400}}"
+                   FontSize="13"/>
+
+            <!-- Update buttons: Install + Later (shown only for update popups) -->
+            <Grid x:Name="UpdateButtonGrid"
+                  ColumnDefinitions="*, 12, *"
+                  IsVisible="False">
+                <Button x:Name="LaterButton"
+                        Grid.Column="0"
+                        Text="Later"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray800}}"
+                        TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray200}}"
+                        CornerRadius="12"
+                        HeightRequest="56"
+                        Clicked="OnLaterClicked"/>
+                <Button x:Name="InstallButton"
+                        Grid.Column="2"
+                        Text="Install"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource Primary}}"
+                        TextColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource White}}"
+                        FontAttributes="Bold"
+                        CornerRadius="12"
+                        HeightRequest="56"
+                        Clicked="OnInstallClicked"/>
+            </Grid>
+
+            <!-- Continue button: shown only for onboarding (non-update) popups -->
+            <Button x:Name="CloseButton"
+                    Text="Continue"
+                    BackgroundColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource Primary}}"
+                    TextColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource White}}"
+                    FontAttributes="Bold"
+                    CornerRadius="12"
+                    HeightRequest="56"
+                    Clicked="OnCloseClicked"/>
+
+        </VerticalStackLayout>
+    </Grid>
+</ContentPage>

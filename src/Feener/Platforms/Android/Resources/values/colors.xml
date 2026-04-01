@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- TikTok-inspired colors -->
+    <color name="colorPrimary">#FE2C55</color>
+    <color name="colorPrimaryDark">#D41442</color>
+    <color name="colorAccent">#25F4EE</color>
+    <color name="splash_bg">#FFFFFF</color>
+</resources>

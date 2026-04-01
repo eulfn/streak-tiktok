@@ -1,20 +1,29 @@
-What's new in this release (v1.7.1)
+## What's new in this release (v1.7.1)
 
-Critical Bug Fixes
+### 🐛 Stability & Logic Fixes
+This update focuses on deep stability improvements and resolving runtime bugs identified during static analysis:
 
-This update addresses several stability and reliability issues found during a deep static analysis of the codebase:
+- **🚀 Automation Reliability**: Fixed a critical bug in `StreakService` where the automation chain could fire multiple times on a single page load, potentially skipping friends or sending duplicate messages.
+- **📱 UI Fixes**: Resolved an issue where the update popup would appear multiple times during pull-to-refresh.
+- **🔄 Improved Startup flow**: Fixed a race condition that caused the silent update check to be skipped whenever the welcome screen was dismissed.
+- **🔐 Session Validation**: Improved the reliability of the "Login to TikTok" status check by properly cleaning up background timers during rapid navigation.
+- **🛠️ Crash Prevention**: Fixed a potential `NullReferenceException` in the background service that could occur on slow networks.
+- **🧹 Resource Management**: Cleaned up "zombie" event handlers and orphan timers that were leaking memory on download failures.
 
-- Fixed Startup Update Check: Resolved a deadlock that caused the automatic update check on app startup to never trigger.
-- Improved UI Stability: Fixed a race condition that could cause the update popup to appear multiple times or open the GitHub page multiple times on failure.
-- Automation Reliability: Added guards to prevent the streak service from processing the same friend multiple times or skipping friends due to duplicate page events.
-- Crash Prevention: Fixed a NullReferenceException in the background service that could occur on slow networks.
-- Log Export Thread-Safety: Switched to thread-safe logging to prevent intermittent crashes when exporting system logs while the service is active.
-- Resource Leak Fix: Removed an orphaned background timer that was leaking resources on download failures.
+---
 
-Installation
-1. Download the Feener APK file below
-2. Enable "Install from unknown sources" on your Android device
+### Previous core fixes (v1.7.0)
+
+### 🔐 Fixed: In-app updates now work correctly
+The release signing now always uses the permanent production keystore, so all future releases will update seamlessly without requiring an uninstall.
+> **Note:** If you have a version older than v1.7.0 installed, you need to uninstall it once before installing this release.
+
+---
+
+### Installation
+1. Download `Feener-v{{ VERSION }}.apk` below
+2. Enable **Install from unknown sources** on your Android device
 3. Install the APK
 
-Requirements
+### Requirements
 - Android 7.0 (API 24) or higher

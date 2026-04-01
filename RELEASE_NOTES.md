@@ -1,25 +1,20 @@
-## What's new in this release
+What's new in this release (v1.7.1)
 
-### 🔐 Fixed: In-app updates now work correctly
-Every previous release was signed with a different temporary debug certificate, making it impossible for the Android installer to accept updates (showing *"App not installed as package conflicts with an existing package"*). The release signing now always uses the permanent production keystore, so all future releases will update seamlessly without requiring an uninstall.
+Critical Bug Fixes
 
-> **One-time action required:** If you have a version older than v1.7.0 installed, you need to uninstall it once before installing this release. After that, all future in-app updates will work automatically.
+This update addresses several stability and reliability issues found during a deep static analysis of the codebase:
 
-### 🧹 Fixed: Only one APK published per release
-Previous releases accidentally attached two APK files — the in-app updater would sometimes download the wrong one and show *"package is not valid"*. Now exactly one correctly named APK is published per release.
+- Fixed Startup Update Check: Resolved a deadlock that caused the automatic update check on app startup to never trigger.
+- Improved UI Stability: Fixed a race condition that could cause the update popup to appear multiple times or open the GitHub page multiple times on failure.
+- Automation Reliability: Added guards to prevent the streak service from processing the same friend multiple times or skipping friends due to duplicate page events.
+- Crash Prevention: Fixed a NullReferenceException in the background service that could occur on slow networks.
+- Log Export Thread-Safety: Switched to thread-safe logging to prevent intermittent crashes when exporting system logs while the service is active.
+- Resource Leak Fix: Removed an orphaned background timer that was leaking resources on download failures.
 
-### ✨ Improved: Cleaner first-launch experience
-The welcome screen on first install no longer shows the app changelog. It now shows a simple introduction to the app instead.
-
-### ⚙️ Improved: Version number always matches release tag
-The app version (shown in the About screen) is now automatically derived from the release tag during the build. Manual version bumps in the project file are no longer needed.
-
----
-
-### Installation
-1. Download `Feener-v{{ VERSION }}.apk` below
-2. Enable **Install from unknown sources** on your Android device
+Installation
+1. Download the Feener APK file below
+2. Enable "Install from unknown sources" on your Android device
 3. Install the APK
 
-### Requirements
+Requirements
 - Android 7.0 (API 24) or higher

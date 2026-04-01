@@ -135,21 +135,26 @@ public partial class AboutPopupPage : ContentPage
         ProgressLabel.Text = "Download failed. Please try again.";
         ProgressLabel.TextColor = Color.FromArgb("#F44336");
 
-        // Show the GitHub fallback option inside progress label temporarily
-        Dispatcher.CreateTimer().Start();
         _ = ShowFallbackButtonAsync();
+    }
+
+    private void SwitchToFallbackButton()
+    {
+        InstallButton.Text = "Open GitHub Page";
+        InstallButton.Clicked -= OnInstallClicked;
+        InstallButton.Clicked -= OnFallbackClicked;
+        InstallButton.Clicked += OnFallbackClicked;
+    }
+
+    private async void OnFallbackClicked(object? sender, EventArgs e)
+    {
+        await FallbackToGitHubAsync();
     }
 
     private async Task ShowFallbackButtonAsync()
     {
         await Task.Delay(400);
-        MainThread.BeginInvokeOnMainThread(() =>
-        {
-            // Repurpose the Install button as a fallback GitHub link
-            InstallButton.Text = "Open GitHub Page";
-            InstallButton.Clicked -= OnInstallClicked;
-            InstallButton.Clicked += async (s, e) => await FallbackToGitHubAsync();
-        });
+        MainThread.BeginInvokeOnMainThread(SwitchToFallbackButton);
     }
 
     private async Task FallbackToGitHubAsync()
@@ -198,9 +203,7 @@ public partial class AboutPopupPage : ContentPage
                 _isDownloading = false;
                 InstallButton.IsEnabled = true;
                 LaterButton.IsEnabled = true;
-                InstallButton.Text = "Open GitHub Page";
-                InstallButton.Clicked -= OnInstallClicked;
-                InstallButton.Clicked += async (s, e) => await FallbackToGitHubAsync();
+                SwitchToFallbackButton();
             });
         }
 #endif

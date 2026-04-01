@@ -79,6 +79,8 @@ public partial class MainPage : ContentPage
                 Preferences.Default.Remove("UpdateJustInstalled");
                 Preferences.Default.Set("LastAppVersionSeen", currentVersion);
                 // Skip Welcome — go straight to update check in case there's already a newer one
+                // Release flag before calling CheckUpdateOnlyAsync, which manages its own flag
+                _isCheckingForUpdates = false;
                 await CheckUpdateOnlyAsync();
                 return;
             }
@@ -99,6 +101,8 @@ public partial class MainPage : ContentPage
             }
 
             // ── Step 2: Silent update check ────────────────────────────────────────
+            // Release flag before calling CheckUpdateOnlyAsync, which manages its own flag
+            _isCheckingForUpdates = false;
             await CheckUpdateOnlyAsync();
         }
         catch

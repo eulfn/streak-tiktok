@@ -34,12 +34,13 @@ public class StreakService : Service
     private StreakRunResult? _runResult;
     private PowerManager.WakeLock? _wakeLock;
     private string _baseScript = string.Empty;
+    private bool _automationStarted = false;
 
-    private static List<string> _logs = new();
+    private static System.Collections.Concurrent.ConcurrentBag<string> _logs = new();
 
     public static List<string> GetLogs()
     {
-        return _logs ?? new List<string>();
+        return _logs?.ToList() ?? new List<string>();
     }
 
     private static void AppLog(string phase, string username, string message)
@@ -196,7 +197,7 @@ public class StreakService : Service
             _friendsToProcess = _settingsService?.GetEnabledFriends() ?? new List<FriendConfig>();
             _currentFriendIndex = 0;
             _runResult = new StreakRunResult();
-            _logs.Clear();
+            _logs = new System.Collections.Concurrent.ConcurrentBag<string>();
             AppLog("SYSTEM", "-", $"Starting automation run with {_friendsToProcess.Count} friends");
 
             if (_friendsToProcess.Count == 0)
@@ -243,12 +244,12 @@ public class StreakService : Service
 
             _mainHandler!.PostDelayed(() =>
             {
-                if (!_webView.Url!.Contains("tiktok.com/messages"))
+                if (_webView?.Url?.Contains("tiktok.com/messages") != true)
                 {
-                    _webView.LoadUrl("https://www.tiktok.com/messages?lang=en");
+                    _webView?.LoadUrl("https://www.tiktok.com/messages?lang=en");
                     _mainHandler.PostDelayed(() =>
                     {
-                        if (!_webView.Url.Contains("tiktok.com/messages"))
+                        if (_webView?.Url?.Contains("tiktok.com/messages") != true)
                         {
                             CompleteService(false, "Could not navigate to tiktok.com/messages");
                         }
@@ -277,6 +278,10 @@ public class StreakService : Service
         // Check if we're on the messages page
         if (url.Contains("tiktok.com/messages"))
         {
+            // Guard against duplicate OnPageFinished calls
+            if (_automationStarted) return;
+            _automationStarted = true;
+
             UpdateNotification("Connecting to TikTok...");
             AppLog("NAVIGATION", "-", "Messages page ready");
             // Wait a bit for the page to fully render, then start automation

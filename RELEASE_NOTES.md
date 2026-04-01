@@ -1,4 +1,4 @@
-## What's new in this release (v1.7.1)
+## What's new in this release (v1.7.2)
 
 ### 🐛 Stability & Logic Fixes
 This update focuses on deep stability improvements and resolving runtime bugs identified during static analysis:

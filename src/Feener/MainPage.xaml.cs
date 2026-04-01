@@ -114,6 +114,9 @@ public partial class MainPage : ContentPage
     // ─── Update-only check (used by pull-to-refresh, never shows Welcome) ────────────
     private async Task CheckUpdateOnlyAsync()
     {
+        if (_isCheckingForUpdates) return;
+        _isCheckingForUpdates = true;
+
         try
         {
             if (!_isAppInForeground) return;
@@ -130,6 +133,9 @@ public partial class MainPage : ContentPage
             // Show only if this exact remote version hasn't been dismissed already
             if (remoteVersion == lastRemoteSeen || remoteVersion == currentVersion) return;
 
+            // Final guard: re-check modal stack after async HTTP call completes
+            if (Navigation.ModalStack.Any(p => p is AboutPopupPage)) return;
+
             await MainThread.InvokeOnMainThreadAsync(async () =>
                 await Navigation.PushModalAsync(new AboutPopupPage(
                     "Update Available!",
@@ -141,6 +147,10 @@ public partial class MainPage : ContentPage
         catch
         {
             // Silent failure — network unavailable, etc.
+        }
+        finally
+        {
+            _isCheckingForUpdates = false;
         }
     }
 
@@ -987,9 +997,9 @@ public partial class MainPage : ContentPage
         await EvaluatePermissionsAsync();
         
         // Passively check for updates only (never shows Welcome on refresh)
-        _ = CheckUpdateOnlyAsync();
+        // CheckUpdateOnlyAsync owns the _isCheckingForUpdates guard — safe to call directly
+        await CheckUpdateOnlyAsync();
         
-        await Task.Delay(500);
         MainRefreshView.IsRefreshing = false;
     }
 

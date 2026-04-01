@@ -175,21 +175,7 @@ jobs:
       with:
         tag_name: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', github.event.inputs.version) || github.ref_name }}
         name: Feener v${{ steps.get_version.outputs.VERSION }}
-        body: |
-          ## Feener v${{ steps.get_version.outputs.VERSION }}
-          
-          ### Installation
-          1. Download the APK file below
-          2. Enable "Install from unknown sources" on your Android device
-          3. Install the APK
-          
-          ### Features
-          - Automatic TikTok streak messages every 23 hours
-          - Configurable friend list
-          - Background service with reliable scheduling
-          
-          ### Requirements
-          - Android 7.0 (API 24) or higher
+        body_path: RELEASE_NOTES.md
         files: ./artifacts/*.apk
         draft: false
         prerelease: false

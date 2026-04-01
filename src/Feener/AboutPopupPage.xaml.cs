@@ -23,23 +23,24 @@ public partial class AboutPopupPage : ContentPage
         HeaderTitle.Text = title;
         VersionLabel.Text = $"v{version}";
 
-        if (string.IsNullOrWhiteSpace(changelog))
-        {
-            ChangelogBorder.IsVisible = false;
-        }
-        else
-        {
-            ChangelogLabel.Text = changelog;
-        }
-
-        // Show appropriate buttons based on popup type
         if (isUpdate)
         {
+            // Update popup: show changelog, hide the tagline subtitle
+            SubHeaderLabel.IsVisible = false;
+            if (string.IsNullOrWhiteSpace(changelog))
+                ChangelogBorder.IsVisible = false;
+            else
+                ChangelogLabel.Text = changelog;
+
             CloseButton.IsVisible = false;
             UpdateButtonGrid.IsVisible = true;
         }
         else
         {
+            // Welcome popup: hide changelog entirely, show tagline subtitle
+            ChangelogBorder.IsVisible = false;
+            SubHeaderLabel.IsVisible = true;
+
             CloseButton.IsVisible = true;
             UpdateButtonGrid.IsVisible = false;
         }

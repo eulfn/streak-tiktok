@@ -14,6 +14,11 @@
                    Style="{StaticResource PageTitleLabel}" 
                    HorizontalOptions="Center"
                    HorizontalTextAlignment="Center"/>
+            <Label x:Name="VersionLabel" 
+                   Text="v1.0.0" 
+                   Style="{StaticResource DataLabel}" 
+                   HorizontalOptions="Center"
+                   HorizontalTextAlignment="Center"/>
             <Label x:Name="SubHeaderLabel" 
                    Text="Keep your streaks alive, automatically." 
                    Style="{StaticResource DataLabel}" 
@@ -30,10 +35,7 @@
                         StrokeThickness="0"
                         x:Name="ChangelogBorder">
                     <VerticalStackLayout Spacing="12">
-                        <Grid ColumnDefinitions="*, Auto">
-                            <Label Text="Changelog" Style="{StaticResource SectionLabel}" VerticalOptions="Center"/>
-                            <Label x:Name="VersionLabel" Grid.Column="1" Text="v1.0.0" Style="{StaticResource DataLabel}" VerticalOptions="Center"/>
-                        </Grid>
+                        <Label Text="What's new" Style="{StaticResource SectionLabel}"/>
                         <Label x:Name="ChangelogLabel" 
                                Text="Starting up..." 
                                Style="{StaticResource ValueLabel}" 

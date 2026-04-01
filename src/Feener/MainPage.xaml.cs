@@ -88,15 +88,11 @@ public partial class MainPage : ContentPage
             // ── Step 1: First-launch / new-install onboarding ──────────────────────
             if (string.IsNullOrEmpty(lastAppSeen) || lastAppSeen != currentVersion)
             {
-                // Fetch live changelog for this installed version; fall back to local text
-                string changelog = await _updateService.GetChangelogForVersionAsync(currentVersion)
-                    ?? "Thank you for installing Feener! Streaks are maintained seamlessly in the background once you schedule them.";
-
                 await MainThread.InvokeOnMainThreadAsync(async () =>
                     await Navigation.PushModalAsync(new AboutPopupPage(
                         "Welcome to Feener",
                         currentVersion,
-                        changelog,
+                        string.Empty,   // changelog not shown on welcome screen
                         false)));
                 // Popup's OnCloseClicked saves LastAppVersionSeen; do not run update check yet.
                 return;

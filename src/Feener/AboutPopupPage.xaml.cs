@@ -11,6 +11,7 @@ public partial class AboutPopupPage : ContentPage
     private bool _isClosing = false;
     private bool _isDownloading = false;
     private CancellationTokenSource? _downloadCts;
+    private bool _isFallbackMode = false;
 
     public AboutPopupPage(string title, string version, string changelog, bool isUpdate, string? apkDownloadUrl = null)
     {
@@ -135,26 +136,22 @@ public partial class AboutPopupPage : ContentPage
         ProgressLabel.Text = "Download failed. Please try again.";
         ProgressLabel.TextColor = Color.FromArgb("#F44336");
 
-        _ = ShowFallbackButtonAsync();
+        SwitchToFallbackMode();
     }
 
-    private void SwitchToFallbackButton()
+    private void SwitchToFallbackMode()
     {
+        if (_isFallbackMode) return;
+        _isFallbackMode = true;
+
         InstallButton.Text = "Open GitHub Page";
         InstallButton.Clicked -= OnInstallClicked;
-        InstallButton.Clicked -= OnFallbackClicked;
         InstallButton.Clicked += OnFallbackClicked;
     }
 
     private async void OnFallbackClicked(object? sender, EventArgs e)
     {
         await FallbackToGitHubAsync();
-    }
-
-    private async Task ShowFallbackButtonAsync()
-    {
-        await Task.Delay(400);
-        MainThread.BeginInvokeOnMainThread(SwitchToFallbackButton);
     }
 
     private async Task FallbackToGitHubAsync()
@@ -203,7 +200,7 @@ public partial class AboutPopupPage : ContentPage
                 _isDownloading = false;
                 InstallButton.IsEnabled = true;
                 LaterButton.IsEnabled = true;
-                SwitchToFallbackButton();
+                SwitchToFallbackMode();
             });
         }
 #endif

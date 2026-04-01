@@ -78,8 +78,7 @@ public partial class MainPage : ContentPage
             {
                 Preferences.Default.Remove("UpdateJustInstalled");
                 Preferences.Default.Set("LastAppVersionSeen", currentVersion);
-                // Skip Welcome — go straight to update check in case there's already a newer one
-                // Release flag before calling CheckUpdateOnlyAsync, which manages its own flag
+                // Release flag so CheckUpdateOnlyAsync's own guard can pass
                 _isCheckingForUpdates = false;
                 await CheckUpdateOnlyAsync();
                 return;
@@ -101,7 +100,6 @@ public partial class MainPage : ContentPage
             }
 
             // ── Step 2: Silent update check ────────────────────────────────────────
-            // Release flag before calling CheckUpdateOnlyAsync, which manages its own flag
             _isCheckingForUpdates = false;
             await CheckUpdateOnlyAsync();
         }
@@ -225,6 +223,13 @@ public partial class MainPage : ContentPage
         // Load messages page to check if we're logged in
         SessionCheckWebView.Source = TikTokWebViewHelper.MessagesUrl;
         
+        // Stop previous timer if still running (prevents stale fire)
+        if (_sessionCheckTimeout != null)
+        {
+            _sessionCheckTimeout.Stop();
+            _sessionCheckTimeout.Tick -= OnSessionCheckTimeout;
+        }
+
         // Set a timeout - if no redirect after 10 seconds, check current state
         _sessionCheckTimeout = Dispatcher.CreateTimer();
         _sessionCheckTimeout.Interval = TimeSpan.FromSeconds(10);

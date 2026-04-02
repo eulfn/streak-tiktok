@@ -311,7 +311,10 @@ public class StreakService : Service
         {
             // All friends processed — mark success only if every friend succeeded
             var allSucceeded = _runResult?.FriendResults.All(r => r.Success) ?? false;
-            CompleteService(allSucceeded, "All messages sent successfully");
+            var completionMessage = allSucceeded
+                ? "All messages sent successfully"
+                : $"{_runResult?.FriendResults.Count(r => r.Success) ?? 0} of {_runResult?.FriendResults.Count ?? 0} sent";
+            CompleteService(allSucceeded, completionMessage);
             return;
         }
 
@@ -426,7 +429,12 @@ public class StreakService : Service
             else
             {
                 // Fatal error or all failed
-                finalText = $"Stopped \u2022 {message}";
+                if (_disabledUsernames.Count > 0)
+                    finalText = $"Done \u2014 0/{totalSent} sent, {_disabledUsernames.Count} disabled ({string.Join(", ", _disabledUsernames)})";
+                else if (totalSent > 0)
+                    finalText = $"Done \u2014 0/{totalSent} sent, {skippedCount} failed";
+                else
+                    finalText = $"Stopped \u2022 {message}";
             }
 
             var finalNotification = new NotificationCompat.Builder(this, ChannelId)

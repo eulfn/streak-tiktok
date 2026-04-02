@@ -230,6 +230,18 @@
                         Toggled="OnScheduleToggled"/>
             </Grid>
 
+            <!-- Skip Unreachable Users Toggle -->
+            <Grid ColumnDefinitions="*, Auto" ColumnSpacing="12">
+                <VerticalStackLayout VerticalOptions="Center" Spacing="4">
+                    <Label Text="Skip Unreachable Users" Style="{StaticResource SectionLabel}"/>
+                    <Label Text="Continue sending to remaining users when one is not found" Style="{StaticResource DataLabel}" LineBreakMode="WordWrap"/>
+                </VerticalStackLayout>
+                <Switch x:Name="SkipUnreachableSwitch" 
+                        Grid.Column="1"
+                        VerticalOptions="Center"
+                        Toggled="OnSkipUnreachableToggled"/>
+            </Grid>
+
             <!-- Dynamic Permissions Panel -->
             <VerticalStackLayout x:Name="PermissionsPanel" IsVisible="False" Spacing="8">
                 <Label Text="To automate streaks reliably in the background, your device requires the following:" 

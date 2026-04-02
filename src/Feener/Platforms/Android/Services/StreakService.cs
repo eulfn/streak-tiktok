@@ -297,15 +297,19 @@ public class StreakService : Service
 
     private void ProcessNextFriend()
     {
-        if (_runResult is not null && _runResult.Failed)
+        // When "Skip Unreachable Users" is OFF, abort the entire run on any per-user failure
+        bool skipUnreachable = _settingsService?.GetSkipUnreachableUsers() ?? false;
+        if (!skipUnreachable && _runResult is not null && _runResult.Failed)
         {
-            CompleteService(false, $"Previous run failed: {_runResult.ErrorMessage ?? _runResult.FriendsErrorMessage}");
+            CompleteService(false, $"Run stopped: {_runResult.ErrorMessage ?? _runResult.FriendsErrorMessage}");
             return;
         }
+
         if (_friendsToProcess == null || _currentFriendIndex >= _friendsToProcess.Count)
         {
-            // All friends processed
-            CompleteService(true, "All messages sent successfully");
+            // All friends processed — mark success only if every friend succeeded
+            var allSucceeded = _runResult?.FriendResults.All(r => r.Success) ?? false;
+            CompleteService(allSucceeded, "All messages sent successfully");
             return;
         }
 

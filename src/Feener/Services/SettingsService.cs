@@ -15,6 +15,7 @@ public class SettingsService
     private const string IsScheduledKey = "is_scheduled";
     private const string RunHistoryKey = "run_history";
     private const string IntervalHoursKey = "interval_hours";
+    private const string SkipUnreachableUsersKey = "skip_unreachable_users";
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -175,6 +176,22 @@ public class SettingsService
     public void SetScheduled(bool scheduled)
     {
         Preferences.Set(IsScheduledKey, scheduled);
+    }
+
+    /// <summary>
+    /// Get whether to skip unreachable users and continue the run
+    /// </summary>
+    public bool GetSkipUnreachableUsers()
+    {
+        return Preferences.Get(SkipUnreachableUsersKey, false);
+    }
+
+    /// <summary>
+    /// Set whether to skip unreachable users and continue the run
+    /// </summary>
+    public void SetSkipUnreachableUsers(bool skip)
+    {
+        Preferences.Set(SkipUnreachableUsersKey, skip);
     }
 
     /// <summary>

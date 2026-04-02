@@ -358,6 +358,9 @@ public partial class MainPage : ContentPage
 
         // Load schedule state
         ScheduleSwitch.IsToggled = _settingsService.IsScheduled();
+
+        // Load skip unreachable users setting
+        SkipUnreachableSwitch.IsToggled = _settingsService.GetSkipUnreachableUsers();
     }
 
     private void UpdateStatus()
@@ -662,6 +665,11 @@ public partial class MainPage : ContentPage
             Feener.Platforms.Android.StreakScheduler.CancelSchedule(context);
 #endif
         UpdateStatus();
+    }
+
+    private void OnSkipUnreachableToggled(object? sender, ToggledEventArgs e)
+    {
+        _settingsService.SetSkipUnreachableUsers(e.Value);
     }
 
     private void OnMessageChanged(object? sender, TextChangedEventArgs e)

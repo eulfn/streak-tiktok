@@ -396,9 +396,24 @@ public class StreakService : Service
             // Show completion notification
             var successCount = _runResult?.FriendResults.Count(r => r.Success) ?? 0;
             var totalSent = _runResult?.FriendResults.Count ?? 0;
-            var finalText = success
-                ? $"Done \u2014 {successCount}/{totalSent} sent successfully"
-                : $"Stopped \u2022 {message}";
+            var skippedCount = totalSent - successCount;
+
+            string finalText;
+            if (success)
+            {
+                // All friends succeeded
+                finalText = $"Done \u2014 {successCount}/{totalSent} sent successfully";
+            }
+            else if (totalSent > 0 && successCount > 0)
+            {
+                // Partial success — some friends were skipped/failed but run completed
+                finalText = $"Done \u2014 {successCount}/{totalSent} sent, {skippedCount} skipped";
+            }
+            else
+            {
+                // Fatal error or all failed
+                finalText = $"Stopped \u2022 {message}";
+            }
 
             var finalNotification = new NotificationCompat.Builder(this, ChannelId)
                 .SetContentTitle("Feener")

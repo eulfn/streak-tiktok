@@ -35,6 +35,8 @@ public class StreakService : Service
     private PowerManager.WakeLock? _wakeLock;
     private string _baseScript = string.Empty;
     private bool _automationStarted = false;
+    private readonly List<string> _disabledUsernames = new();
+    private const string UserNotFoundError = "User not found in chat list";
 
     private static List<string> _logs = new();
 
@@ -356,6 +358,15 @@ public class StreakService : Service
             {
                 friend.FailureCount++;
                 AppLog("FAIL", $"@{username}", error);
+
+                // Auto-disable users not found in chat list when skip is enabled
+                bool skipUnreachable = _settingsService.GetSkipUnreachableUsers();
+                if (skipUnreachable && error == UserNotFoundError)
+                {
+                    friend.IsEnabled = false;
+                    _disabledUsernames.Add($"@{username}");
+                    AppLog("DISABLED", $"@{username}", "Auto-disabled — not found in chat list");
+                }
             }
             _settingsService.UpdateFriend(friend);
 
@@ -407,7 +418,10 @@ public class StreakService : Service
             else if (totalSent > 0 && successCount > 0)
             {
                 // Partial success — some friends were skipped/failed but run completed
-                finalText = $"Done \u2014 {successCount}/{totalSent} sent, {skippedCount} skipped";
+                if (_disabledUsernames.Count > 0)
+                    finalText = $"Done \u2014 {successCount}/{totalSent} sent, {_disabledUsernames.Count} disabled ({string.Join(", ", _disabledUsernames)})";
+                else
+                    finalText = $"Done \u2014 {successCount}/{totalSent} sent, {skippedCount} skipped";
             }
             else
             {

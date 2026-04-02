@@ -628,9 +628,12 @@ public partial class MainPage : ContentPage
         
         if (totalCount > 0)
         {
+            var skippedCount = totalCount - successCount;
             var infoLabel = new Label
             {
-                Text = $"{successCount}/{totalCount} messages sent",
+                Text = skippedCount > 0
+                    ? $"{successCount}/{totalCount} sent, {skippedCount} skipped"
+                    : $"{successCount}/{totalCount} messages sent",
                 FontSize = 12
             };
             infoLabel.SetAppThemeColor(Label.TextColorProperty,

@@ -17,8 +17,8 @@
 		<ApplicationId>com.fen.loid</ApplicationId>
 
 		<!-- Versions — fallback for local builds only. CI always overrides these from the release tag via -p:ApplicationVersion and -p:ApplicationDisplayVersion -->
-		<ApplicationDisplayVersion>1.6.8</ApplicationDisplayVersion>
-		<ApplicationVersion>168</ApplicationVersion>
+		<ApplicationDisplayVersion>1.8.1</ApplicationDisplayVersion>
+		<ApplicationVersion>181</ApplicationVersion>
 
 		<!-- To develop, package, and publish an app to the Microsoft Store, see: https://aka.ms/MauiTemplateUnpackaged -->
 		<WindowsPackageType>None</WindowsPackageType>

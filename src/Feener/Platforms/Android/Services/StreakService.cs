@@ -75,7 +75,7 @@ public class StreakService : Service
         // Start the WebView automation on main thread
         _mainHandler?.Post(StartWebViewAutomation);
 
-        return StartCommandResult.Sticky;
+        return StartCommandResult.NotSticky;
     }
 
     private void StartForegroundServiceImmediate()

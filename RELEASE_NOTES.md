@@ -1,3 +1,18 @@
+## What's new in this release (v1.8.1)
+
+### Fixed: Idle Battery Drain
+- Optimized background service lifecycle by preventing unnecessary automatic restarts after task completion.
+- Removed redundant WakeLock and WebView re-initialization cycles that occurred while the app was idle.
+
+---
+
+## What's new in this release (v1.8.0)
+
+### Improved UI Feedback
+- Updated notification logic to accurately reflect run outcome when all users fail to send.
+
+---
+
 ## What's new in this release (v1.7.2)
 
 ### 🐛 Stability & Logic Fixes

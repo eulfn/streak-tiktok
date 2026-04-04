@@ -31,7 +31,7 @@ public partial class AboutPopupPage : ContentPage
             if (string.IsNullOrWhiteSpace(changelog))
                 ChangelogBorder.IsVisible = false;
             else
-                ChangelogLabel.Text = changelog;
+                LoadChangelogHtml(changelog);
 
             CloseButton.IsVisible = false;
             UpdateButtonGrid.IsVisible = true;
@@ -45,6 +45,159 @@ public partial class AboutPopupPage : ContentPage
             CloseButton.IsVisible = true;
             UpdateButtonGrid.IsVisible = false;
         }
+    }
+
+    private void LoadChangelogHtml(string markdown)
+    {
+        bool isDark = Application.Current?.RequestedTheme == AppTheme.Dark;
+        string bg = isDark ? "#1C1C1E" : "#E5E5EA";
+        string fg = isDark ? "#E5E5EA" : "#1C1C1E";
+        string fgMuted = isDark ? "#AEAEB2" : "#636366";
+        string hrColor = isDark ? "#3A3A3C" : "#C7C7CC";
+
+        string bodyHtml = ConvertMarkdownToHtml(markdown);
+
+        string html = $@"<!DOCTYPE html>
+<html><head><meta name='viewport' content='width=device-width,initial-scale=1,maximum-scale=1'>
+<style>
+* {{ margin:0; padding:0; box-sizing:border-box; }}
+body {{ background:{bg}; color:{fg}; font-family:-apple-system,Roboto,sans-serif; font-size:14px; line-height:1.55; padding:4px 0; }}
+h1 {{ font-size:18px; font-weight:700; margin:12px 0 6px 0; }}
+h2 {{ font-size:16px; font-weight:700; margin:10px 0 4px 0; }}
+h3 {{ font-size:14px; font-weight:600; margin:8px 0 4px 0; }}
+p {{ margin:4px 0; }}
+strong {{ font-weight:600; }}
+ul, ol {{ padding-left:20px; margin:4px 0; }}
+li {{ margin:3px 0; }}
+hr {{ border:none; border-top:1px solid {hrColor}; margin:12px 0; }}
+blockquote {{ border-left:3px solid {hrColor}; padding-left:10px; color:{fgMuted}; margin:6px 0; }}
+code {{ background:{hrColor}; padding:1px 4px; border-radius:3px; font-size:13px; }}
+</style></head><body>{bodyHtml}</body></html>";
+
+        ChangelogWebView.Source = new HtmlWebViewSource { Html = html };
+
+        // Auto-size WebView height after content loads
+        ChangelogWebView.Navigated += (s, e) =>
+        {
+            ChangelogWebView.EvaluateJavaScriptAsync("document.body.scrollHeight")
+                .ContinueWith(t =>
+                {
+                    if (t.Result is string result && double.TryParse(result, out double height) && height > 0)
+                    {
+                        MainThread.BeginInvokeOnMainThread(() =>
+                        {
+                            ChangelogWebView.HeightRequest = height + 16;
+                        });
+                    }
+                });
+        };
+    }
+
+    /// <summary>
+    /// Lightweight Markdown-to-HTML converter. Handles headings, bold, italic,
+    /// inline code, bullet lists, numbered lists, horizontal rules, and blockquotes.
+    /// </summary>
+    private static string ConvertMarkdownToHtml(string markdown)
+    {
+        var lines = markdown.Split('\n');
+        var sb = new System.Text.StringBuilder();
+        bool inUl = false;
+        bool inOl = false;
+
+        foreach (var rawLine in lines)
+        {
+            string line = rawLine.TrimEnd('\r');
+
+            // Horizontal rules
+            if (System.Text.RegularExpressions.Regex.IsMatch(line.Trim(), @"^-{3,}$|^\*{3,}$|^_{3,}$"))
+            {
+                CloseList(sb, ref inUl, ref inOl);
+                sb.AppendLine("<hr/>");
+                continue;
+            }
+
+            // Headings
+            if (line.StartsWith("### "))
+            {
+                CloseList(sb, ref inUl, ref inOl);
+                sb.AppendLine($"<h3>{FormatInline(line[4..])}</h3>");
+                continue;
+            }
+            if (line.StartsWith("## "))
+            {
+                CloseList(sb, ref inUl, ref inOl);
+                sb.AppendLine($"<h2>{FormatInline(line[3..])}</h2>");
+                continue;
+            }
+            if (line.StartsWith("# "))
+            {
+                CloseList(sb, ref inUl, ref inOl);
+                sb.AppendLine($"<h1>{FormatInline(line[2..])}</h1>");
+                continue;
+            }
+
+            // Blockquote
+            if (line.StartsWith("> "))
+            {
+                CloseList(sb, ref inUl, ref inOl);
+                sb.AppendLine($"<blockquote>{FormatInline(line[2..])}</blockquote>");
+                continue;
+            }
+
+            // Unordered list items (- or *)
+            var ulMatch = System.Text.RegularExpressions.Regex.Match(line, @"^\s*[-*]\s+(.+)");
+            if (ulMatch.Success)
+            {
+                if (inOl) { sb.AppendLine("</ol>"); inOl = false; }
+                if (!inUl) { sb.AppendLine("<ul>"); inUl = true; }
+                sb.AppendLine($"<li>{FormatInline(ulMatch.Groups[1].Value)}</li>");
+                continue;
+            }
+
+            // Ordered list items
+            var olMatch = System.Text.RegularExpressions.Regex.Match(line, @"^\s*\d+\.\s+(.+)");
+            if (olMatch.Success)
+            {
+                if (inUl) { sb.AppendLine("</ul>"); inUl = false; }
+                if (!inOl) { sb.AppendLine("<ol>"); inOl = true; }
+                sb.AppendLine($"<li>{FormatInline(olMatch.Groups[1].Value)}</li>");
+                continue;
+            }
+
+            // Empty line
+            if (string.IsNullOrWhiteSpace(line))
+            {
+                CloseList(sb, ref inUl, ref inOl);
+                continue;
+            }
+
+            // Plain paragraph
+            CloseList(sb, ref inUl, ref inOl);
+            sb.AppendLine($"<p>{FormatInline(line)}</p>");
+        }
+
+        CloseList(sb, ref inUl, ref inOl);
+        return sb.ToString();
+    }
+
+    private static void CloseList(System.Text.StringBuilder sb, ref bool inUl, ref bool inOl)
+    {
+        if (inUl) { sb.AppendLine("</ul>"); inUl = false; }
+        if (inOl) { sb.AppendLine("</ol>"); inOl = false; }
+    }
+
+    /// <summary>Formats inline Markdown: bold, italic, inline code.</summary>
+    private static string FormatInline(string text)
+    {
+        // Inline code: `code`
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"`([^`]+)`", "<code>$1</code>");
+        // Bold: **text** or __text__
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"\*\*(.+?)\*\*", "<strong>$1</strong>");
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"__(.+?)__", "<strong>$1</strong>");
+        // Italic: *text* or _text_
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"\*(.+?)\*", "<em>$1</em>");
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"(?<!\w)_(.+?)_(?!\w)", "<em>$1</em>");
+        return text;
     }
 
     // ── Onboarding / Welcome: Continue button ──────────────────────────────

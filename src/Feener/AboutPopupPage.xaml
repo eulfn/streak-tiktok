@@ -36,11 +36,10 @@
                         x:Name="ChangelogBorder">
                     <VerticalStackLayout Spacing="12">
                         <Label Text="What's new" Style="{StaticResource SectionLabel}"/>
-                        <Label x:Name="ChangelogLabel" 
-                               Text="Starting up..." 
-                               Style="{StaticResource ValueLabel}" 
-                               LineBreakMode="WordWrap"
-                               Opacity="0.9"/>
+                        <WebView x:Name="ChangelogWebView"
+                                 HeightRequest="300"
+                                 BackgroundColor="Transparent"
+                                 VerticalOptions="FillAndExpand"/>
                     </VerticalStackLayout>
                 </Border>
 

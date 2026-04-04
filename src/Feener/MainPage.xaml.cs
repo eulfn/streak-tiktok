@@ -422,7 +422,20 @@ public partial class MainPage : ContentPage
 
     private void LoadFriendsList()
     {
-        var friends = _settingsService.GetFriendsList();
+        var allFriends = _settingsService.GetFriendsList();
+
+        SearchAndBulkRow.IsVisible = allFriends.Count > 0;
+        
+        var searchText = SearchFriendEntry.Text?.Trim() ?? string.Empty;
+        var displayFriends = allFriends;
+
+        if (!string.IsNullOrEmpty(searchText))
+        {
+            displayFriends = allFriends.Where(f => 
+                (f.Username != null && f.Username.Contains(searchText, StringComparison.OrdinalIgnoreCase)) ||
+                (f.DisplayName != null && f.DisplayName.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            ).ToList();
+        }
 
         // Clear existing friend items (except NoFriendsLabel)
         var itemsToRemove = FriendsListContainer.Children
@@ -434,10 +447,22 @@ public partial class MainPage : ContentPage
             FriendsListContainer.Children.Remove(item);
         }
 
-        NoFriendsLabel.IsVisible = friends.Count == 0;
-        BulkToggleRow.IsVisible = friends.Count > 0;
+        if (allFriends.Count == 0)
+        {
+            NoFriendsLabel.Text = "No friends added. Tap 'Add' to begin.";
+            NoFriendsLabel.IsVisible = true;
+        }
+        else if (displayFriends.Count == 0 && !string.IsNullOrEmpty(searchText))
+        {
+            NoFriendsLabel.Text = $"No friends found matching '{searchText}'";
+            NoFriendsLabel.IsVisible = true;
+        }
+        else
+        {
+            NoFriendsLabel.IsVisible = false;
+        }
 
-        foreach (var friend in friends)
+        foreach (var friend in displayFriends)
         {
             var friendView = CreateFriendView(friend);
             FriendsListContainer.Children.Add(friendView);
@@ -682,6 +707,11 @@ public partial class MainPage : ContentPage
         {
             _settingsService.SetMessageText(e.NewTextValue);
         }
+    }
+
+    private void OnSearchFriendTextChanged(object? sender, TextChangedEventArgs e)
+    {
+        LoadFriendsList();
     }
 
     private async void OnLoginClicked(object? sender, EventArgs e)

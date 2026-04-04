@@ -128,18 +128,37 @@
                                     Clicked="OnAddFriendClicked"/>
                         </Grid>
                         
-                        <!-- Bulk toggle row (visible when friends exist) -->
-                        <Grid x:Name="BulkToggleRow" IsVisible="False"
-                              ColumnDefinitions="Auto, 8, Auto, *" Margin="0,-4,0,0">
-                            <Button Grid.Column="0"
+                        <!-- Search & Bulk toggle row (visible when friends exist) -->
+                        <Grid x:Name="SearchAndBulkRow" IsVisible="False"
+                              ColumnDefinitions="*, Auto, Auto" ColumnSpacing="8" Margin="0,4,0,0">
+                            
+                            <!-- Search Bar -->
+                            <Border Grid.Column="0" 
+                                    Stroke="{AppThemeBinding Light={StaticResource BorderColorLight}, Dark={StaticResource BorderColorDark}}" 
+                                    StrokeThickness="1" 
+                                    StrokeShape="RoundRectangle 8">
+                                <Entry x:Name="SearchFriendEntry"
+                                       Placeholder="Search friends..."
+                                       Margin="8,0"
+                                       VerticalOptions="Center"
+                                       ClearButtonVisibility="WhileEditing"
+                                       TextChanged="OnSearchFriendTextChanged"/>
+                            </Border>
+                            
+                            <!-- Bulk Buttons -->
+                            <Button Grid.Column="1"
                                     Text="Enable All"
                                     Style="{StaticResource TextButton}"
                                     FontSize="12"
+                                    Padding="8,0"
+                                    HeightRequest="40"
                                     Clicked="OnEnableAllClicked"/>
                             <Button Grid.Column="2"
                                     Text="Disable All"
                                     Style="{StaticResource TextButton}"
                                     FontSize="12"
+                                    Padding="8,0"
+                                    HeightRequest="40"
                                     TextColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray400}}"
                                     Clicked="OnDisableAllClicked"/>
                         </Grid>

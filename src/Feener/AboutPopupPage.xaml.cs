@@ -50,33 +50,156 @@ public partial class AboutPopupPage : ContentPage
     private void LoadChangelogHtml(string markdown)
     {
         bool isDark = Application.Current?.RequestedTheme == AppTheme.Dark;
-        string bg = isDark ? "#1C1C1E" : "#E5E5EA";
-        string fg = isDark ? "#E5E5EA" : "#1C1C1E";
-        string fgMuted = isDark ? "#AEAEB2" : "#636366";
-        string hrColor = isDark ? "#3A3A3C" : "#C7C7CC";
 
-        string bodyHtml = ConvertMarkdownToHtml(markdown);
+        // ── Color palette ──────────────────────────────────────────────────
+        string bg        = isDark ? "#1C1C1E" : "#E5E5EA";
+        string fg        = isDark ? "#E5E5EA" : "#1C1C1E";
+        string fgMuted   = isDark ? "#AEAEB2" : "#636366";
+        string accent    = isDark ? "#FF6B7F" : "#FE2C55";
+        string cardBg    = isDark ? "#2C2C2E" : "#F2F2F7";
+        string divider   = isDark ? "#3A3A3C" : "#D1D1D6";
+        string utilBg    = isDark ? "#252527" : "#EAEAEF";
+        string bulletCol = isDark ? "#48484A" : "#C7C7CC";
+
+        string bodyHtml = ConvertMarkdownToStructuredHtml(markdown);
 
         string html = $@"<!DOCTYPE html>
 <html><head><meta name='viewport' content='width=device-width,initial-scale=1,maximum-scale=1'>
 <style>
-* {{ margin:0; padding:0; box-sizing:border-box; }}
-body {{ background:{bg}; color:{fg}; font-family:-apple-system,Roboto,sans-serif; font-size:14px; line-height:1.55; padding:4px 0; }}
-h1 {{ font-size:18px; font-weight:700; margin:12px 0 6px 0; }}
-h2 {{ font-size:16px; font-weight:700; margin:10px 0 4px 0; }}
-h3 {{ font-size:14px; font-weight:600; margin:8px 0 4px 0; }}
-p {{ margin:4px 0; }}
-strong {{ font-weight:600; }}
-ul, ol {{ padding-left:20px; margin:4px 0; }}
-li {{ margin:3px 0; }}
-hr {{ border:none; border-top:1px solid {hrColor}; margin:12px 0; }}
-blockquote {{ border-left:3px solid {hrColor}; padding-left:10px; color:{fgMuted}; margin:6px 0; }}
-code {{ background:{hrColor}; padding:1px 4px; border-radius:3px; font-size:13px; }}
+*{{margin:0;padding:0;box-sizing:border-box;}}
+body{{
+  background:{bg};color:{fg};
+  font-family:-apple-system,'SF Pro Text',Roboto,'Segoe UI',sans-serif;
+  font-size:14px;line-height:1.6;
+  padding:16px;
+  -webkit-text-size-adjust:100%;
+}}
+
+/* ── Section cards ── */
+.section{{
+  margin-bottom:16px;
+}}
+.section:last-child{{margin-bottom:0;}}
+
+.section-title{{
+  font-size:15px;font-weight:700;
+  color:{fg};
+  margin:0 0 10px 0;
+  padding-bottom:8px;
+  border-bottom:1px solid {divider};
+  letter-spacing:-0.2px;
+}}
+
+.section-body p{{
+  margin:6px 0;
+  color:{fgMuted};
+  font-size:13px;
+  line-height:1.55;
+}}
+
+/* ── Bullet lists ── */
+.section-body ul,.section-body ol{{
+  list-style:none;
+  padding:0;margin:0;
+}}
+.section-body ul li{{
+  position:relative;
+  padding:8px 0 8px 18px;
+  font-size:13.5px;
+  line-height:1.5;
+  border-bottom:1px solid {(isDark ? "#2A2A2C" : "#E8E8ED")};
+}}
+.section-body ul li:last-child{{border-bottom:none;}}
+.section-body ul li::before{{
+  content:'';
+  position:absolute;left:0;top:15px;
+  width:6px;height:6px;
+  border-radius:50%;
+  background:{accent};
+}}
+.section-body ol{{
+  counter-reset:step;
+}}
+.section-body ol li{{
+  position:relative;
+  padding:8px 0 8px 24px;
+  font-size:13.5px;
+  line-height:1.5;
+  border-bottom:1px solid {(isDark ? "#2A2A2C" : "#E8E8ED")};
+  counter-increment:step;
+}}
+.section-body ol li:last-child{{border-bottom:none;}}
+.section-body ol li::before{{
+  content:counter(step);
+  position:absolute;left:0;top:8px;
+  width:18px;height:18px;
+  border-radius:50%;
+  background:{accent};
+  color:#fff;
+  font-size:11px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+}}
+
+/* ── Inline elements ── */
+strong{{font-weight:600;color:{fg};}}
+em{{font-style:italic;}}
+code{{
+  background:{(isDark ? "#3A3A3C" : "#D1D1D6")};
+  padding:1px 5px;
+  border-radius:4px;
+  font-size:12px;
+  font-family:'SF Mono',Menlo,monospace;
+}}
+
+/* ── Utility sections (Installation, Requirements) ── */
+.util-section{{
+  background:{utilBg};
+  border-radius:10px;
+  padding:12px 14px;
+  margin-bottom:10px;
+}}
+.util-section:last-child{{margin-bottom:0;}}
+.util-title{{
+  font-size:13px;font-weight:700;
+  color:{fgMuted};
+  text-transform:uppercase;
+  letter-spacing:0.5px;
+  margin:0 0 8px 0;
+}}
+.util-section ul li,.util-section ol li{{
+  font-size:13px;
+  color:{fgMuted};
+  border-bottom-color:{(isDark ? "#333335" : "#DDDDE2")};
+}}
+.util-section ul li::before{{
+  background:{bulletCol};
+}}
+.util-section ol li::before{{
+  background:{(isDark ? "#48484A" : "#AEAEB2")};
+}}
+
+/* ── Divider ── */
+.section-divider{{
+  border:none;
+  border-top:1px solid {divider};
+  margin:4px 0;
+}}
+
+/* ── Blockquote ── */
+blockquote{{
+  border-left:3px solid {accent};
+  padding:6px 12px;
+  margin:8px 0;
+  color:{fgMuted};
+  font-size:13px;
+  background:{(isDark ? "#252527" : "#F0F0F5")};
+  border-radius:0 6px 6px 0;
+}}
 </style></head><body>{bodyHtml}</body></html>";
 
         ChangelogWebView.Source = new HtmlWebViewSource { Html = html };
 
-        // Auto-size WebView height after content loads
+        // Auto-size WebView to content
         ChangelogWebView.Navigated += (s, e) =>
         {
             ChangelogWebView.EvaluateJavaScriptAsync("document.body.scrollHeight")
@@ -93,50 +216,115 @@ code {{ background:{hrColor}; padding:1px 4px; border-radius:3px; font-size:13px
         };
     }
 
+    // ── Section-aware Markdown-to-HTML converter ────────────────────────────
+
     /// <summary>
-    /// Lightweight Markdown-to-HTML converter. Handles headings, bold, italic,
-    /// inline code, bullet lists, numbered lists, horizontal rules, and blockquotes.
+    /// Utility sections (Installation, Requirements) get distinct styling.
     /// </summary>
-    private static string ConvertMarkdownToHtml(string markdown)
+    private static readonly HashSet<string> UtilitySections = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Installation", "Requirements", "About"
+    };
+
+    /// <summary>
+    /// Converts Markdown into structured HTML with section grouping.
+    /// H2 and H3 headers start new sections; lists and paragraphs fill sections.
+    /// The first H2 matching "What's new in this release" is stripped because
+    /// the dialog header already shows the title and version.
+    /// </summary>
+    private static string ConvertMarkdownToStructuredHtml(string markdown)
     {
         var lines = markdown.Split('\n');
         var sb = new System.Text.StringBuilder();
+        bool inSection = false;
+        bool inSectionBody = false;
         bool inUl = false;
         bool inOl = false;
+        bool firstH2Stripped = false;
 
         foreach (var rawLine in lines)
         {
             string line = rawLine.TrimEnd('\r');
 
-            // Horizontal rules
+            // ── Horizontal rules → divider ──
             if (System.Text.RegularExpressions.Regex.IsMatch(line.Trim(), @"^-{3,}$|^\*{3,}$|^_{3,}$"))
             {
                 CloseList(sb, ref inUl, ref inOl);
-                sb.AppendLine("<hr/>");
+                CloseSectionBody(sb, ref inSectionBody);
+                CloseSection(sb, ref inSection);
+                sb.AppendLine("<hr class='section-divider'/>");
                 continue;
             }
 
-            // Headings
-            if (line.StartsWith("### "))
-            {
-                CloseList(sb, ref inUl, ref inOl);
-                sb.AppendLine($"<h3>{FormatInline(line[4..])}</h3>");
-                continue;
-            }
+            // ── H2 headers → new top-level section ──
             if (line.StartsWith("## "))
             {
+                string title = line[3..].Trim();
+
+                // Strip "What's new in this release (vX.X.X)" — redundant with dialog header
+                if (!firstH2Stripped && title.StartsWith("What", StringComparison.OrdinalIgnoreCase))
+                {
+                    firstH2Stripped = true;
+                    continue;
+                }
+
                 CloseList(sb, ref inUl, ref inOl);
-                sb.AppendLine($"<h2>{FormatInline(line[3..])}</h2>");
+                CloseSectionBody(sb, ref inSectionBody);
+                CloseSection(sb, ref inSection);
+
+                bool isUtil = UtilitySections.Contains(title.Trim());
+                sb.AppendLine(isUtil ? "<div class='section util-section'>" : "<div class='section'>");
+                sb.AppendLine(isUtil
+                    ? $"<div class='util-title'>{FormatInline(title)}</div>"
+                    : $"<div class='section-title'>{FormatInline(title)}</div>");
+                inSection = true;
+
+                sb.AppendLine("<div class='section-body'>");
+                inSectionBody = true;
                 continue;
             }
+
+            // ── H3 headers → new sub-section ──
+            if (line.StartsWith("### "))
+            {
+                string title = line[4..].Trim();
+
+                CloseList(sb, ref inUl, ref inOl);
+                CloseSectionBody(sb, ref inSectionBody);
+                CloseSection(sb, ref inSection);
+
+                bool isUtil = UtilitySections.Contains(title.Trim());
+                sb.AppendLine(isUtil ? "<div class='section util-section'>" : "<div class='section'>");
+                sb.AppendLine(isUtil
+                    ? $"<div class='util-title'>{FormatInline(title)}</div>"
+                    : $"<div class='section-title'>{FormatInline(title)}</div>");
+                inSection = true;
+
+                sb.AppendLine("<div class='section-body'>");
+                inSectionBody = true;
+                continue;
+            }
+
+            // ── H1 headers (rare, treat as section title) ──
             if (line.StartsWith("# "))
             {
                 CloseList(sb, ref inUl, ref inOl);
-                sb.AppendLine($"<h1>{FormatInline(line[2..])}</h1>");
+                CloseSectionBody(sb, ref inSectionBody);
+                CloseSection(sb, ref inSection);
+                // Skip — redundant top-level title
                 continue;
             }
 
-            // Blockquote
+            // ── Ensure content is inside a section ──
+            if (!inSection)
+            {
+                sb.AppendLine("<div class='section'>");
+                inSection = true;
+                sb.AppendLine("<div class='section-body'>");
+                inSectionBody = true;
+            }
+
+            // ── Blockquote ──
             if (line.StartsWith("> "))
             {
                 CloseList(sb, ref inUl, ref inOl);
@@ -144,7 +332,7 @@ code {{ background:{hrColor}; padding:1px 4px; border-radius:3px; font-size:13px
                 continue;
             }
 
-            // Unordered list items (- or *)
+            // ── Unordered list ──
             var ulMatch = System.Text.RegularExpressions.Regex.Match(line, @"^\s*[-*]\s+(.+)");
             if (ulMatch.Success)
             {
@@ -154,7 +342,7 @@ code {{ background:{hrColor}; padding:1px 4px; border-radius:3px; font-size:13px
                 continue;
             }
 
-            // Ordered list items
+            // ── Ordered list ──
             var olMatch = System.Text.RegularExpressions.Regex.Match(line, @"^\s*\d+\.\s+(.+)");
             if (olMatch.Success)
             {
@@ -164,19 +352,21 @@ code {{ background:{hrColor}; padding:1px 4px; border-radius:3px; font-size:13px
                 continue;
             }
 
-            // Empty line
+            // ── Empty line ──
             if (string.IsNullOrWhiteSpace(line))
             {
                 CloseList(sb, ref inUl, ref inOl);
                 continue;
             }
 
-            // Plain paragraph
+            // ── Plain paragraph ──
             CloseList(sb, ref inUl, ref inOl);
             sb.AppendLine($"<p>{FormatInline(line)}</p>");
         }
 
         CloseList(sb, ref inUl, ref inOl);
+        CloseSectionBody(sb, ref inSectionBody);
+        CloseSection(sb, ref inSection);
         return sb.ToString();
     }
 
@@ -184,6 +374,16 @@ code {{ background:{hrColor}; padding:1px 4px; border-radius:3px; font-size:13px
     {
         if (inUl) { sb.AppendLine("</ul>"); inUl = false; }
         if (inOl) { sb.AppendLine("</ol>"); inOl = false; }
+    }
+
+    private static void CloseSectionBody(System.Text.StringBuilder sb, ref bool inSectionBody)
+    {
+        if (inSectionBody) { sb.AppendLine("</div>"); inSectionBody = false; }
+    }
+
+    private static void CloseSection(System.Text.StringBuilder sb, ref bool inSection)
+    {
+        if (inSection) { sb.AppendLine("</div>"); inSection = false; }
     }
 
     /// <summary>Formats inline Markdown: bold, italic, inline code.</summary>

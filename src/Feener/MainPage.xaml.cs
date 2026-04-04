@@ -435,6 +435,7 @@ public partial class MainPage : ContentPage
         }
 
         NoFriendsLabel.IsVisible = friends.Count == 0;
+        BulkToggleRow.IsVisible = friends.Count > 0;
 
         foreach (var friend in friends)
         {
@@ -1021,6 +1022,32 @@ public partial class MainPage : ContentPage
         await CheckUpdateOnlyAsync();
         
         MainRefreshView.IsRefreshing = false;
+    }
+
+    private void OnEnableAllClicked(object? sender, EventArgs e)
+    {
+        var friends = _settingsService.GetFriendsList();
+        if (friends.Count == 0) return;
+
+        foreach (var friend in friends)
+            friend.IsEnabled = true;
+
+        _settingsService.SaveFriendsList(friends);
+        LoadFriendsList();
+        UpdateStatus();
+    }
+
+    private void OnDisableAllClicked(object? sender, EventArgs e)
+    {
+        var friends = _settingsService.GetFriendsList();
+        if (friends.Count == 0) return;
+
+        foreach (var friend in friends)
+            friend.IsEnabled = false;
+
+        _settingsService.SaveFriendsList(friends);
+        LoadFriendsList();
+        UpdateStatus();
     }
 
     private async void OnDeleteAllFriendsClicked(object? sender, EventArgs e)

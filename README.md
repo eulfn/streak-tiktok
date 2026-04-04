@@ -1,22 +1,52 @@
 # Feener
 
-**Automatically send TikTok messages to keep your streaks alive.**
+Feener is a fork of [TiktokStreakSaver](https://github.com/Jon2G/TiktokStreakSaver) by Jon2G, rebranded and extended with additional features, stability fixes, and a redesigned UI.
+It runs as a background service on Android, sending messages to TikTok friends on a 23-hour cycle to maintain streaks.
 
-Feener is an open-source Android application that runs in the background and automatically sends messages to your TikTok friends every 23 hours, ensuring you never lose your streaks.
+## Changes from the original
 
-## Features
+### Rebranding
+- Renamed from TiktokStreakSaver to Feener
+- Changed package ID to `com.fen.loid`
+- Default message changed from `Hey! Keeping our streak alive!` to `Streak`
+- Custom app icon with adaptive background and dark mode variant
+- Custom notification icon (PNG, replacing the original XML drawable)
+- Custom splash screen with theme-aware styling
 
-- **Dynamic Theming** - Full support for Light and Dark modes with native Android status bar integration.
-- **Modern UI** - Clean, professional card-based interface built with standardized semantic tokens.
-- **Automatic Scheduling** - Sends messages every 23 hours automatically.
-- **Multiple Friends** - Configure and manage multiple friends to maintain streaks with.
-- **Management Tools** - Easily edit friend display names, clear friend lists, or wipe activity history.
-- **Pull-to-Refresh** - Instantly update schedule status and friend lists with a simple gesture.
-- **Background Service** - Works reliably even when the application is closed.
-- **Smart Notifications** - Shows progress only while sending, then disappears.
-- **Boot Persistence** - Automatically reschedules after device restart.
-- **Session Management** - Secure TikTok session handling with visual validation status.
-- **Battery Optimized** - Integrated battery optimization management for maximum reliability.
+### New features
+- **In-app updater** with APK download, install intent, and GitHub fallback
+- **Skip Unreachable Users toggle** that continues the run when a user is not found, instead of aborting
+- **Auto-disable missing users** when skip is enabled, preventing repeated failures
+- **Formatted release notes** in the update dialog using a built-in Markdown-to-HTML renderer
+- **Pull-to-refresh** for schedule status and friend list
+- **Friend management tools**: edit display names, clear friend lists, wipe activity history
+- **Import/Export** of friend configuration
+
+### UI
+- Full dark and light mode with semantic theme tokens
+- Card-based layout with standardized spacing and typography
+- Inter font family across all text elements
+- Dynamic Android status bar color integration
+- Live notification progress per friend during automation runs
+- Sticky automation controls anchored to the bottom of the viewport
+
+### Stability fixes
+- Changed `StartCommandResult.Sticky` to `NotSticky` to prevent idle battery drain from automatic service restarts
+- Added alarm cancellation in `RunNow` to prevent duplicate scheduled runs after a manual execution
+- Guarded `ScheduleNextRun` in `CompleteService` to only re-arm when the scheduling toggle is ON
+- Fixed automation chain firing multiple times on a single page load
+- Fixed duplicate update popup on pull-to-refresh
+- Fixed race condition in silent update check after welcome screen dismissal
+- Fixed timer and handler leaks in session validation and download failure paths
+- Fixed `NullReferenceException` in background service on slow networks
+- Removed duplicate event handler registrations across page navigations
+
+### Build and CI
+- Automated release pipeline triggered by Git tags (`v*`)
+- Signed APK output with keystore validation
+- APK identity report step (package name, version code, signing fingerprint)
+- Version derived from Git tag, not hardcoded in csproj
+- Auto-generated release notes from commit history
 
 ## Requirements
 
@@ -26,130 +56,91 @@ Feener is an open-source Android application that runs in the background and aut
 
 ## Installation
 
-### Option 1: Download APK (Recommended)
+### Download APK
 
-1. Go to the [Releases](../../releases) page
-2. Download the latest `Feener-vX.X.X.apk`
-3. Enable "Install from unknown sources" on your Android device
-4. Install the APK
+1. Download the APK from the [latest release](https://github.com/eulfn/streak-tiktok/releases/latest)
+2. Enable "Install from unknown sources" on your Android device
+3. Install the APK
 
-### Option 2: Build from Source
+### Build from source
 
 ```bash
-# Clone the repository
 git clone https://github.com/eulfn/streak-tiktok.git
-cd streak-tiktok
-
-# Build for Android
-cd src/Feener
+cd streak-tiktok/src/Feener
+dotnet workload install maui-android
+dotnet restore
 dotnet build -f net9.0-android -c Release
 ```
 
-## Getting Started
+## Usage
 
-1. **Open the app** and tap "Login to TikTok"
-2. **Sign in** to your TikTok account in the secure WebView
-3. **Add friends** by tapping "Add" and entering their TikTok username
-4. **Set your message** in the "Message to Send" field
-5. **Enable scheduling** by toggling the "Schedule Status" switch
-6. **Grant permissions** by tapping "Permissions" and allowing:
+1. Open the app and tap "Login to TikTok"
+2. Sign in to your TikTok account in the WebView
+3. Add friends by tapping "Add" and entering their TikTok username
+4. Set your message in the "Message to Send" field
+5. Toggle scheduling ON
+6. Grant permissions when prompted:
    - Battery optimization exemption
    - Exact alarm permission
    - Notification permission
 
-## How It Works
+## How it works
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                           Feener                            │
-│                       Logic Flow                            │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  [App Start] -> Schedule 23hr Alarm                         │
-│        |                                                    │
-│  [Every 23hrs] -> AlarmReceiver triggers                     │
-│        |                                                    │
-│  [StreakService] -> Start Foreground Service                 │
-│        |                                                    │
-│  [WebView] -> Load TikTok Messages                           │
-│        |                                                    │
-│  [For each friend] -> Find chat -> Send message               │
-│        |                                                    │
-│  [Complete] -> Schedule next run -> Stop service              │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
-
-## Tech Stack
-
-- **.NET 9 MAUI** - Modern cross-platform framework
-- **Android WebView** - TikTok web automation interface
-- **AlarmManager** - Precise 23-hour background scheduling
-- **Foreground Service** - Reliable background execution on Android
-- **JavaScript Injection** - Interaction with TikTok web elements
-- **Semantic Theming** - Centralized theme tokens for consistent design
-
-## Project Structure
-
-```
-Feener/
-├── src/Feener/
-│   ├── Models/                    # Data models
-│   ├── Services/                  # Business logic services
-│   ├── Platforms/Android/
-│   │   ├── Services/              # Android foreground service
-│   │   ├── Receivers/             # Alarm & boot receivers
-│   │   └── Resources/             # Android resources & themes
-│   ├── Resources/                 # MAUI resources (icons, fonts, styles)
-│   ├── MainPage.xaml              # Modern main UI
-│   └── LoginPage.xaml             # TikTok login interface
-├── .github/workflows/             # CI/CD pipelines
-└── docs/                          # Documentation & screenshots
+[App Start] -> Schedule 23hr alarm
+      |
+[AlarmReceiver] -> Start foreground service
+      |
+[StreakService] -> Load TikTok in WebView
+      |
+[For each friend] -> Find chat -> Send message
+      |
+[Complete] -> Schedule next run (if toggle ON) -> Stop service
 ```
 
 ## Configuration
 
-### Changing the Interval
+### Interval
 
-The default interval is 23 hours. To modify, update the `DefaultIntervalHours` constant in `Services/SettingsService.cs`:
+Default is 23 hours. Change `DefaultIntervalHours` in `Services/SettingsService.cs`:
 
 ```csharp
 public const int DefaultIntervalHours = 23;
 ```
 
-### Custom Message
+### Message
 
-You can set any message in the app's UI. The default message is:
+Configurable in the app UI. Default: `Streak`
+
+## Project structure
+
 ```
-Streak
+src/Feener/
+  Models/                          Data models
+  Services/
+    SettingsService.cs             Preferences and friend persistence
+    SessionService.cs              TikTok session validation
+    UpdateService.cs               In-app update check and APK download
+    TikTokWebViewHelper.cs         WebView cookie and session management
+  Platforms/Android/
+    Services/StreakService.cs       Foreground service and automation logic
+    StreakScheduler.cs              AlarmManager scheduling and manual run
+    Receivers/AlarmReceiver.cs      Alarm broadcast receiver
+    Receivers/BootReceiver.cs       Boot-completed receiver
+  Resources/Raw/
+    tiktok_automation.js           JS injected into TikTok WebView
+  AboutPopupPage.xaml              Update dialog and welcome screen
+  MainPage.xaml                    Main UI
+  LoginPage.xaml                   TikTok login WebView
+.github/workflows/
+  android-release.yml              CI/CD pipeline
 ```
 
-## Contributing
+## Credits
 
-Contributions are welcome. Here is how you can help:
+Original project: [TiktokStreakSaver](https://github.com/Jon2G/TiktokStreakSaver) by [Jon2G](https://github.com/Jon2G)
 
-1. **Fork** the repository
-2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
-3. **Commit** your changes (`git commit -m 'Add amazing feature'`)
-4. **Push** to the branch (`git push origin feature/amazing-feature`)
-5. **Open** a Pull Request
-
-### Development Setup
-
-```bash
-# Prerequisites
-- .NET 9 SDK
-- Visual Studio 2022 or VS Code with C# extension
-- Android SDK (API 24+)
-
-# Install MAUI workload
-dotnet workload install maui-android
-
-# Restore and build
-cd src/Feener
-dotnet restore
-dotnet build -f net9.0-android
-```
+Modified and maintained by [@eulfen](https://github.com/eulfn)
 
 ## Disclaimer
 
@@ -157,19 +148,4 @@ This application is for educational purposes only. Use responsibly and in accord
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Acknowledgments
-
-This project is built upon an existing open-source foundation originally created as TiktokStreakSaver. 
-
-A huge thank you to the original creator for providing the base implementation that made this project possible. Your work significantly accelerated development and helped shape this project. 
-
-- Built with [.NET MAUI](https://dotnet.microsoft.com/apps/maui)
-- Inspired by the need for reliable streak maintenance
-
----
-
-<p align="center">
-  Built with precision and reliability.
-</p>
+MIT License. See [LICENSE](LICENSE).

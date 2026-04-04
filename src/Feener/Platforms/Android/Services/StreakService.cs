@@ -448,8 +448,9 @@ public class StreakService : Service
             var notificationManager = (NotificationManager?)GetSystemService(NotificationService);
             notificationManager?.Notify(NotificationId + 1, finalNotification);
 
-            // Schedule next run
-            StreakScheduler.ScheduleNextRun(this);
+            // Only re-arm the scheduler if scheduling is enabled
+            if (_settingsService?.IsScheduled() == true)
+                StreakScheduler.ScheduleNextRun(this);
             AppLog("SYSTEM", "-", $"Run complete: {(success ? "Success" : message)}");
         }
         finally

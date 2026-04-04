@@ -131,16 +131,24 @@ public static class StreakScheduler
     /// </summary>
     public static void RunNow(Context context)
     {
-        var serviceIntent = new Intent(context, typeof(Services.StreakService));
+        // Cancel any pending alarm so it cannot fire during or after this manual run
+        var alarmManager = (AlarmManager?)context.GetSystemService(Context.AlarmService);
+        if (alarmManager != null)
+        {
+            var alarmIntent = new Intent(context, typeof(AlarmReceiver));
+            alarmIntent.SetAction(AlarmReceiver.ActionStreakAlarm);
+            var pendingIntent = PendingIntent.GetBroadcast(
+                context, AlarmRequestCode, alarmIntent,
+                PendingIntentFlags.UpdateCurrent | PendingIntentFlags.Immutable);
+            if (pendingIntent != null)
+                alarmManager.Cancel(pendingIntent);
+        }
 
+        var serviceIntent = new Intent(context, typeof(Services.StreakService));
         if (Build.VERSION.SdkInt >= BuildVersionCodes.O)
-        {
             context.StartForegroundService(serviceIntent);
-        }
         else
-        {
             context.StartService(serviceIntent);
-        }
     }
 
     /// <summary>

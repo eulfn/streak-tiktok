@@ -1,3 +1,16 @@
+## What's new in this release (v1.8.2)
+
+### Stability & Logic Fixes
+
+* **Fixed Manual Run Conflicts**: Tapping "Run Now" now explicitly cancels any previously scheduled alarms, preventing redundant background executions.
+* **Service Lifecycle Guard**: Modified the background service to only re-schedule the next run if the user's "Scheduled" toggle is currently enabled.
+
+### Behavior Adjustments
+
+* **Username Not Found Handling**: Confirmed that the automation correctly handles missing users by either stopping the run or skipping based on user settings, without erroneously resetting the entire processing queue.
+
+---
+
 ## What's new in this release (v1.8.1)
 
 ### Fixed: Idle Battery Drain

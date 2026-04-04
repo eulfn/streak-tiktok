@@ -1,3 +1,17 @@
+## What's new in this release (v1.8.3)
+
+### UI Improvements
+
+- **Formatted Release Notes**: The update dialog now renders release notes as rich formatted text instead of displaying raw Markdown syntax. Headings, bold text, bullet lists, numbered lists, and horizontal rules are all properly rendered.
+- **Theme-Aware Rendering**: Release notes automatically adapt to the system's dark or light theme with matching colors and typography.
+- **Auto-Sizing Content**: The changelog area dynamically adjusts its height to fit the content without clipping or excessive whitespace.
+
+### Build Pipeline Fix
+
+- **Version Placeholder Substitution**: Fixed the CI workflow so the `{{ VERSION }}` placeholder in the Installation section is correctly replaced with the actual release version before publishing.
+
+---
+
 ## What's new in this release (v1.8.2)
 
 ### Stability & Logic Fixes

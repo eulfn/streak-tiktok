@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Neutral grayscale -->
-    <color name="colorPrimary">#2C2C2C</color>
-    <color name="colorPrimaryDark">#1A1A1A</color>
-    <color name="colorAccent">#888888</color>
+    <!-- TikTok Brand Colors -->
+    <color name="colorPrimary">#FE2C55</color>
+    <color name="colorPrimaryDark">#161823</color>
+    <color name="colorAccent">#25F4EE</color>
     <color name="splash_bg">#FFFFFF</color>
 </resources>

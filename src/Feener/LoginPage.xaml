@@ -19,7 +19,7 @@
             <VerticalStackLayout Spacing="4">
                 <Label Text="Login to TikTok" 
                        TextColor="{AppThemeBinding Light={StaticResource Gray950}, Dark={StaticResource White}}"
-                       FontAttributes="Bold"
+                       FontFamily="InterSemiBold"
                        FontSize="20"/>
                 <Label Text="Login to your TikTok account. Your session will be saved for background messaging."
                        TextColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray400}}"
@@ -40,6 +40,7 @@
               BackgroundColor="{AppThemeBinding Light={StaticResource OverlayLight}, Dark={StaticResource OverlayDark}}">
             <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="16">
                 <ActivityIndicator IsRunning="True" 
+                                   Color="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource White}}"
                                    HeightRequest="48"
                                    WidthRequest="48"/>
                 <Label Text="Loading TikTok..."
@@ -60,7 +61,7 @@
                         Text="Refresh"
                         BackgroundColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}"
                         TextColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource PrimaryDarkText}}"
-                        FontAttributes="Bold"
+                        FontFamily="InterSemiBold"
                         CornerRadius="12"
                         HeightRequest="44"
                         Clicked="OnRefreshClicked"/>

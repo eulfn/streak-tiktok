@@ -109,7 +109,7 @@
                         Text="Install"
                         BackgroundColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}"
                         TextColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource PrimaryDarkText}}"
-                        FontAttributes="Bold"
+                        FontFamily="InterSemiBold"
                         CornerRadius="12"
                         HeightRequest="56"
                         Clicked="OnInstallClicked"/>
@@ -120,7 +120,7 @@
                     Text="Continue"
                     BackgroundColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}"
                     TextColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource PrimaryDarkText}}"
-                    FontAttributes="Bold"
+                    FontFamily="InterSemiBold"
                     CornerRadius="12"
                     HeightRequest="56"
                     Clicked="OnCloseClicked"/>

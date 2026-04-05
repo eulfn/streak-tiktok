@@ -52,14 +52,14 @@ public partial class AboutPopupPage : ContentPage
         bool isDark = Application.Current?.RequestedTheme == AppTheme.Dark;
 
         // ── Color palette ──────────────────────────────────────────────────
-        string bg        = isDark ? "#1C1C1E" : "#E5E5EA";
-        string fg        = isDark ? "#E5E5EA" : "#1C1C1E";
-        string fgMuted   = isDark ? "#AEAEB2" : "#636366";
+        string bg        = isDark ? "#121212" : "#F2F2F2";
+        string fg        = isDark ? "#FFFFFF" : "#000000";
+        string fgMuted   = isDark ? "#92979E" : "#666666";
         string accent    = isDark ? "#FF6B7F" : "#FE2C55";
-        string cardBg    = isDark ? "#2C2C2E" : "#F2F2F7";
-        string divider   = isDark ? "#3A3A3C" : "#D1D1D6";
-        string utilBg    = isDark ? "#252527" : "#EAEAEF";
-        string bulletCol = isDark ? "#48484A" : "#C7C7CC";
+        string cardBg    = isDark ? "#282828" : "#FFFFFF";
+        string divider   = isDark ? "#3F3F3F" : "#E1E8ED";
+        string utilBg    = isDark ? "#1E1E1E" : "#F4F4F4";
+        string bulletCol = isDark ? "#3F3F3F" : "#E1E8ED";
 
         string bodyHtml = ConvertMarkdownToStructuredHtml(markdown);
 
@@ -107,7 +107,7 @@ body{{
   padding:8px 0 8px 18px;
   font-size:13.5px;
   line-height:1.5;
-  border-bottom:1px solid {(isDark ? "#2A2A2C" : "#E8E8ED")};
+  border-bottom:1px solid {divider};
 }}
 .section-body ul li:last-child{{border-bottom:none;}}
 .section-body ul li::before{{
@@ -125,7 +125,7 @@ body{{
   padding:8px 0 8px 24px;
   font-size:13.5px;
   line-height:1.5;
-  border-bottom:1px solid {(isDark ? "#2A2A2C" : "#E8E8ED")};
+  border-bottom:1px solid {divider};
   counter-increment:step;
 }}
 .section-body ol li:last-child{{border-bottom:none;}}
@@ -144,7 +144,7 @@ body{{
 strong{{font-weight:600;color:{fg};}}
 em{{font-style:italic;}}
 code{{
-  background:{(isDark ? "#3A3A3C" : "#D1D1D6")};
+  background:{divider};
   padding:1px 5px;
   border-radius:4px;
   font-size:12px;
@@ -169,13 +169,13 @@ code{{
 .util-section ul li,.util-section ol li{{
   font-size:13px;
   color:{fgMuted};
-  border-bottom-color:{(isDark ? "#333335" : "#DDDDE2")};
+  border-bottom-color:{divider};
 }}
 .util-section ul li::before{{
   background:{bulletCol};
 }}
 .util-section ol li::before{{
-  background:{(isDark ? "#48484A" : "#AEAEB2")};
+  background:{bulletCol};
 }}
 
 /* ── Divider ── */
@@ -192,7 +192,7 @@ blockquote{{
   margin:8px 0;
   color:{fgMuted};
   font-size:13px;
-  background:{(isDark ? "#252527" : "#F0F0F5")};
+  background:{utilBg};
   border-radius:0 6px 6px 0;
 }}
 </style></head><body>{bodyHtml}</body></html>";
@@ -487,7 +487,7 @@ blockquote{{
         InstallButton.Text = "Install";
         ProgressLabel.IsVisible = true;
         ProgressLabel.Text = "Download failed. Please try again.";
-        ProgressLabel.TextColor = Color.FromArgb("#F44336");
+        ProgressLabel.TextColor = Color.FromArgb("#D94A4A");
 
         SwitchToFallbackMode();
     }
@@ -549,7 +549,7 @@ blockquote{{
                 ProgressLabel.IsVisible = true;
                 ProgressLabel.Text = "Install failed. If you see a 'conflicting package' error, " +
                                      "uninstall this app first, then reinstall from GitHub.";
-                ProgressLabel.TextColor = Color.FromArgb("#F44336");
+                ProgressLabel.TextColor = Color.FromArgb("#D94A4A");
                 _isDownloading = false;
                 InstallButton.IsEnabled = true;
                 LaterButton.IsEnabled = true;

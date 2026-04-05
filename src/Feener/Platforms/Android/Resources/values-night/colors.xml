@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- TikTok-inspired dark mode colors -->
-    <color name="colorPrimary">#FE2C55</color>
+    <!-- Neutral grayscale dark mode -->
+    <color name="colorPrimary">#E0E0E0</color>
     <color name="colorPrimaryDark">#121212</color>
-    <color name="colorAccent">#25F4EE</color>
+    <color name="colorAccent">#888888</color>
     <color name="splash_bg">#000000</color>
 </resources>

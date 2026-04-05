@@ -40,7 +40,6 @@
               BackgroundColor="{AppThemeBinding Light={StaticResource OverlayLight}, Dark={StaticResource OverlayDark}}">
             <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="16">
                 <ActivityIndicator IsRunning="True" 
-                                   Color="{StaticResource Primary}"
                                    HeightRequest="48"
                                    WidthRequest="48"/>
                 <Label Text="Loading TikTok..."
@@ -59,8 +58,8 @@
                         Clicked="OnBackClicked"/>
                 <Button Grid.Column="1"
                         Text="Refresh"
-                        BackgroundColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource Primary}}"
-                        TextColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource White}}"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}"
+                        TextColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource PrimaryDarkText}}"
                         FontAttributes="Bold"
                         CornerRadius="12"
                         HeightRequest="44"

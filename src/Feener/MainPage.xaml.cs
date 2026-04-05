@@ -334,7 +334,7 @@ public partial class MainPage : ContentPage
         else if (isSessionValid)
         {
             LoginButton.Text = "Session OK";
-            LoginButton.BackgroundColor = GetThemeColor("Success", "#4CAF50");
+            LoginButton.BackgroundColor = GetThemeColor("Success", "#555555");
             LoginButton.IsEnabled = false;
             SessionCheckingIndicator.IsVisible = false;
             RunNowButton.IsEnabled = true;
@@ -343,7 +343,7 @@ public partial class MainPage : ContentPage
         else
         {
             LoginButton.Text = "Login to TikTok";
-            LoginButton.BackgroundColor = GetThemeColor("Primary", "#FE2C55");
+            LoginButton.BackgroundColor = GetThemeColor("Primary", "#2C2C2C");
             LoginButton.IsEnabled = true;
             SessionCheckingIndicator.IsVisible = false;
             RunNowButton.IsEnabled = false;
@@ -373,7 +373,7 @@ public partial class MainPage : ContentPage
         if (isScheduled && friendsCount > 0)
         {
             StatusLabel.Text = $"Active • {friendsCount} friend{(friendsCount != 1 ? "s" : "")}";
-            StatusLabel.TextColor = GetThemeColor("Success", "#4CAF50");
+            StatusLabel.TextColor = GetThemeColor("Gray700", "#3A3A3A");
         }
         else if (friendsCount == 0)
         {
@@ -479,7 +479,7 @@ public partial class MainPage : ContentPage
         };
         border.SetAppThemeColor(Border.BackgroundColorProperty,
             GetThemeColor("ListItemLight", "#FFFFFF"),
-            GetThemeColor("ListItemDark", "#2A2A2A"));
+            GetThemeColor("ListItemDark", "#1E1E1E"));
 
         var grid = new Grid
         {
@@ -516,7 +516,7 @@ public partial class MainPage : ContentPage
             {
                 Text = $"Last sent: {friend.LastMessageSent.Value:MMM dd}",
                 FontSize = 11,
-                TextColor = Color.FromArgb("#4CAF50")
+                TextColor = GetThemeColor("Gray500", "#666666")
             });
         }
 
@@ -556,7 +556,7 @@ public partial class MainPage : ContentPage
             HeightRequest = 44,
             VerticalOptions = LayoutOptions.Center
         };
-        deleteButton.TextColor = GetThemeColor("DeleteColor", "#F44336");
+        deleteButton.TextColor = GetThemeColor("DeleteColor", "#999999");
         deleteButton.Clicked += async (s, e) =>
         {
             var confirm = await DisplayAlert("Remove Friend", 
@@ -580,8 +580,8 @@ public partial class MainPage : ContentPage
             GetThemeColor("White", "#FFFFFF"),
             GetThemeColor("White", "#FFFFFF"));
         toggleSwitch.SetAppThemeColor(Switch.OnColorProperty,
-            GetThemeColor("Primary", "#FE2C55"),
-            GetThemeColor("Primary", "#FE2C55"));
+            GetThemeColor("Primary", "#2C2C2C"),
+            GetThemeColor("Gray400", "#888888"));
         toggleSwitch.Toggled += (s, e) =>
         {
             friend.IsEnabled = e.Value;
@@ -623,7 +623,7 @@ public partial class MainPage : ContentPage
         var successCount = run.FriendResults.Count(r => r.Success);
         var totalCount = run.FriendResults.Count;
         var statusIcon = run.Success ? "OK" : "ERR";
-        var statusColor = run.Success ? GetThemeColor("Success", "#4CAF50") : GetThemeColor("DeleteColor", "#F44336");
+        var statusColor = run.Success ? GetThemeColor("Gray600", "#444444") : GetThemeColor("Gray400", "#888888");
 
         var grid = new Grid
         {

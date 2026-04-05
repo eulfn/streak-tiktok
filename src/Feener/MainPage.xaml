@@ -52,8 +52,8 @@
                         <Grid>
                             <Button x:Name="LoginButton"
                                     Text="Login to TikTok"
-                                    BackgroundColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource Primary}}"
-                                    TextColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource White}}"
+                                    BackgroundColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}"
+                                    TextColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource PrimaryDarkText}}"
                                     FontAttributes="Bold"
                                     CornerRadius="12"
                                     HeightRequest="50"
@@ -106,26 +106,26 @@
                 <!-- Friends List -->
                 <Border Style="{StaticResource SectionCard}">
                     <VerticalStackLayout Spacing="12">
-                        <Grid ColumnDefinitions="*, Auto, Auto, Auto, Auto" ColumnSpacing="8">
+                        <Grid ColumnDefinitions="*, Auto, Auto, Auto, Auto" ColumnSpacing="10">
                             <Label Text="Streaks" 
                                    Style="{StaticResource SectionLabel}" VerticalOptions="Center"/>
                             <Button Grid.Column="1"
+                                    Text="Import"
+                                    Style="{StaticResource TextButton}"
+                                    Clicked="OnImportFriendsClicked"/>
+                            <Button Grid.Column="2"
+                                    Text="Export"
+                                    Style="{StaticResource TextButton}"
+                                    Clicked="OnExportFriendsClicked"/>
+                            <Button Grid.Column="3"
+                                    Text="Add"
+                                    Style="{StaticResource TextButton}"
+                                    Clicked="OnAddFriendClicked"/>
+                            <Button Grid.Column="4"
                                     Text="Clear"
                                     Style="{StaticResource TextButton}"
                                     TextColor="{AppThemeBinding Light={StaticResource DeleteColor}, Dark={StaticResource DeleteColor}}"
                                     Clicked="OnDeleteAllFriendsClicked"/>
-                            <Button Grid.Column="2"
-                                    Text="Import"
-                                    Style="{StaticResource TextButton}"
-                                    Clicked="OnImportFriendsClicked"/>
-                            <Button Grid.Column="3"
-                                    Text="Export"
-                                    Style="{StaticResource TextButton}"
-                                    Clicked="OnExportFriendsClicked"/>
-                            <Button Grid.Column="4"
-                                    Text="Add"
-                                    Style="{StaticResource TextButton}"
-                                    Clicked="OnAddFriendClicked"/>
                         </Grid>
                         
                         <!-- Search & Bulk toggle row (visible when friends exist) -->
@@ -182,12 +182,15 @@
                             <Grid ColumnDefinitions="*, *" ColumnSpacing="8">
                                 <Button Text="Cancel"
                                         Style="{StaticResource TextButton}"
+                                        BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray800}}"
+                                        TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}"
+                                        CornerRadius="8"
                                         HeightRequest="40"
                                         Clicked="OnCancelAddFriend"/>
                                 <Button Grid.Column="1"
                                         Text="Save"
-                                        BackgroundColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource Primary}}"
-                                        TextColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource White}}"
+                                        BackgroundColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}"
+                                        TextColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource PrimaryDarkText}}"
                                         CornerRadius="8"
                                         HeightRequest="40"
                                         Clicked="OnSaveFriend"/>
@@ -232,11 +235,15 @@
                     </VerticalStackLayout>
                 </Border>
 
-                <!-- About & Updates -->
-                <VerticalStackLayout Spacing="8" Margin="0, 8, 0, 16" HorizontalOptions="Center">
+                <!-- App Footer -->
+                <VerticalStackLayout Spacing="6" Margin="0, 24, 0, 16" HorizontalOptions="Center">
+                    <BoxView HeightRequest="1" WidthRequest="48" HorizontalOptions="Center"
+                             Color="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray700}}"
+                             Margin="0,0,0,4"/>
                     <Button Text="Check for updates"
                             Style="{StaticResource TextButton}"
-                            TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray400}}"
+                            TextColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray400}}"
+                            FontSize="12"
                             Clicked="OnCheckUpdatesClicked"/>
                 </VerticalStackLayout>
 
@@ -305,8 +312,8 @@
             <!-- Execution Action -->
             <Button x:Name="RunNowButton"
                     Text="Run Now"
-                    BackgroundColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource Primary}}"
-                    TextColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource White}}"
+                    BackgroundColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}"
+                    TextColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource PrimaryDarkText}}"
                     FontAttributes="Bold"
                     CornerRadius="12"
                     HeightRequest="56"

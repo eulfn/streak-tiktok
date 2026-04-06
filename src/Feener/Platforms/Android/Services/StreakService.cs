@@ -34,7 +34,6 @@ public class StreakService : Service
     private StreakRunResult? _runResult;
     private PowerManager.WakeLock? _wakeLock;
     private string _baseScript = string.Empty;
-    private bool _automationStarted = false;
     private readonly List<string> _disabledUsernames = new();
     private const string UserNotFoundError = "User not found in chat list";
 
@@ -75,7 +74,7 @@ public class StreakService : Service
         // Start the WebView automation on main thread
         _mainHandler?.Post(StartWebViewAutomation);
 
-        return StartCommandResult.NotSticky;
+        return StartCommandResult.Sticky;
     }
 
     private void StartForegroundServiceImmediate()
@@ -280,10 +279,6 @@ public class StreakService : Service
         // Check if we're on the messages page
         if (url.Contains("tiktok.com/messages"))
         {
-            // Guard: only start the automation chain once
-            if (_automationStarted) return;
-            _automationStarted = true;
-
             UpdateNotification("Connecting to TikTok...");
             AppLog("NAVIGATION", "-", "Messages page ready");
             // Wait a bit for the page to fully render, then start automation

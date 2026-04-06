@@ -383,8 +383,8 @@ public class StreakService : Service
         var completedCount = _currentFriendIndex;
         var totalCount = _friendsToProcess?.Count ?? 0;
         var resultText = success
-            ? $"{completedCount}/{totalCount} \u2014 Sent to @{username}"
-            : $"{completedCount}/{totalCount} \u2014 Failed: @{username}";
+            ? $"{completedCount}/{totalCount} : Sent to @{username}"
+            : $"{completedCount}/{totalCount} : Failed: @{username}";
         UpdateNotification(resultText, completedCount, totalCount);
         _mainHandler?.PostDelayed(ProcessNextFriend, 3000);
     }
@@ -411,25 +411,25 @@ public class StreakService : Service
             if (success)
             {
                 // All friends succeeded
-                finalText = $"Done \u2014 {successCount}/{totalSent} sent successfully";
+                finalText = $"Done : {successCount}/{totalSent} sent successfully";
             }
             else if (totalSent > 0 && successCount > 0)
             {
                 // Partial success — some friends were skipped/failed but run completed
                 if (_disabledUsernames.Count > 0)
-                    finalText = $"Done \u2014 {successCount}/{totalSent} sent, {_disabledUsernames.Count} disabled ({string.Join(", ", _disabledUsernames)})";
+                    finalText = $"Done : {successCount}/{totalSent} sent, {_disabledUsernames.Count} disabled ({string.Join(", ", _disabledUsernames)})";
                 else
-                    finalText = $"Done \u2014 {successCount}/{totalSent} sent, {skippedCount} skipped";
+                    finalText = $"Done : {successCount}/{totalSent} sent, {skippedCount} skipped";
             }
             else
             {
                 // Fatal error or all failed
                 if (_disabledUsernames.Count > 0)
-                    finalText = $"Done \u2014 0/{totalSent} sent, {_disabledUsernames.Count} disabled ({string.Join(", ", _disabledUsernames)})";
+                    finalText = $"Done : 0/{totalSent} sent, {_disabledUsernames.Count} disabled ({string.Join(", ", _disabledUsernames)})";
                 else if (totalSent > 0)
-                    finalText = $"Done \u2014 0/{totalSent} sent, {skippedCount} failed";
+                    finalText = $"Done : 0/{totalSent} sent, {skippedCount} failed";
                 else
-                    finalText = $"Stopped \u2022 {message}";
+                    finalText = $"Stopped : {message}";
             }
 
             var finalNotification = new NotificationCompat.Builder(this, ChannelId)

@@ -127,15 +127,35 @@ public static class StreakScheduler
     }
 
     /// <summary>
-    /// Run the service immediately (for manual trigger)
+    /// Run the service immediately (for manual trigger).
+    /// Returns false if the service is already running.
     /// </summary>
-    public static void RunNow(Context context)
+    public static bool RunNow(Context context)
     {
+        // Reject if an automation session is already active
+        if (Services.StreakService.IsRunning)
+            return false;
+
+        // If scheduling is enabled, cancel the stale alarm and reschedule
+        // from now so the next scheduled run fires intervalHours after this
+        // manual run — not at the old alarm time.
+        var settingsService = new SettingsService();
+        if (settingsService.IsScheduled())
+        {
+            CancelSchedule(context);
+            settingsService.SetScheduled(true); // keep the schedule flag ON
+            // The alarm will be re-armed by CompleteService after the run finishes.
+            // We don't ScheduleNextRun here because last_run hasn't been set yet;
+            // CompleteService sets last_run and then calls ScheduleNextRun.
+        }
+
         var serviceIntent = new Intent(context, typeof(Services.StreakService));
         if (Build.VERSION.SdkInt >= BuildVersionCodes.O)
             context.StartForegroundService(serviceIntent);
         else
             context.StartService(serviceIntent);
+
+        return true;
     }
 
     /// <summary>

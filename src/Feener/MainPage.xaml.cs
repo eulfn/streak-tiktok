@@ -849,9 +849,17 @@ public partial class MainPage : ContentPage
         await RequestNotificationPermission();
 
         var context = Platform.CurrentActivity ?? Android.App.Application.Context;
-        Feener.Platforms.Android.StreakScheduler.RunNow(context);
+        bool started = Feener.Platforms.Android.StreakScheduler.RunNow(context);
         
-        await DisplayAlert("Started", "Streak service started. Check the notification for progress.", "OK");
+        if (started)
+        {
+            await DisplayAlert("Started", "Streak service started. Check the notification for progress.", "OK");
+            UpdateStatus(); // refresh next-run display after alarm reschedule
+        }
+        else
+        {
+            await DisplayAlert("Already Running", "A streak run is already in progress. Please wait for it to finish.", "OK");
+        }
 #else
         await DisplayAlert("Info", "This feature is only available on Android", "OK");
 #endif

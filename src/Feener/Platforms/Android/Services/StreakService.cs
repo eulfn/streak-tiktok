@@ -37,6 +37,18 @@ public class StreakService : Service
     private readonly List<string> _disabledUsernames = new();
     private const string UserNotFoundError = "User not found in chat list";
 
+    // ── Run-level mutex: prevents concurrent automation sessions ──
+    private static volatile bool _isRunning = false;
+    private static readonly object _runLock = new();
+
+    /// <summary>
+    /// True while an automation session is active. Checked by StreakScheduler.RunNow
+    /// and OnStartCommand to prevent overlapping runs.
+    /// </summary>
+    public static bool IsRunning => _isRunning;
+
+    private int _cooldownSkippedCount = 0;
+
     private static List<string> _logs = new();
 
     public static List<string> GetLogs()
@@ -70,6 +82,19 @@ public class StreakService : Service
     {
         // Ensure we're in foreground mode (in case OnCreate didn't complete it)
         StartForegroundServiceImmediate();
+
+        // ── Run-level mutex: reject if another automation session is already active ──
+        lock (_runLock)
+        {
+            if (_isRunning)
+            {
+                AppLog("SYSTEM", "-", "OnStartCommand rejected — automation already running");
+                StopForeground(StopForegroundFlags.Remove);
+                StopSelf();
+                return StartCommandResult.NotSticky;
+            }
+            _isRunning = true;
+        }
 
         // Start the WebView automation on main thread
         _mainHandler?.Post(StartWebViewAutomation);
@@ -195,15 +220,44 @@ public class StreakService : Service
     {
         try
         {
-            _friendsToProcess = _settingsService?.GetEnabledFriends() ?? new List<FriendConfig>();
+            var allEnabled = _settingsService?.GetEnabledFriends() ?? new List<FriendConfig>();
             _currentFriendIndex = 0;
             _runResult = new StreakRunResult();
+            _cooldownSkippedCount = 0;
             _logs.Clear();
-            AppLog("SYSTEM", "-", $"Starting automation run with {_friendsToProcess.Count} friends");
+
+            // ── Per-friend cooldown: skip friends messaged within (interval - 1) hours ──
+            var intervalHours = _settingsService?.GetIntervalHours() ?? SettingsService.DefaultIntervalHours;
+            var cooldownHours = Math.Max(intervalHours - 1, 1); // at least 1 hour
+            var cooldownThreshold = DateTime.Now.AddHours(-cooldownHours);
+
+            _friendsToProcess = new List<FriendConfig>();
+            foreach (var friend in allEnabled)
+            {
+                if (friend.LastMessageSent.HasValue && friend.LastMessageSent.Value > cooldownThreshold)
+                {
+                    // Friend was messaged recently — skip (do NOT add to FriendResults
+                    // to avoid inflating successCount in notifications and history)
+                    _cooldownSkippedCount++;
+                    var hoursAgo = (DateTime.Now - friend.LastMessageSent.Value).TotalHours;
+                    AppLog("SKIP", $"@{friend.Username}",
+                        $"Already messaged {hoursAgo:F1}h ago (cooldown: {cooldownHours}h)");
+                }
+                else
+                {
+                    _friendsToProcess.Add(friend);
+                }
+            }
+
+            AppLog("SYSTEM", "-",
+                $"Starting automation: {_friendsToProcess.Count} to process, {_cooldownSkippedCount} skipped (cooldown)");
 
             if (_friendsToProcess.Count == 0)
             {
-                CompleteService(false, "No friends configured");
+                var msg = _cooldownSkippedCount > 0
+                    ? $"All {_cooldownSkippedCount} friends already messaged within cooldown"
+                    : "No friends configured";
+                CompleteService(_cooldownSkippedCount > 0, msg);
                 return;
             }
 
@@ -407,27 +461,29 @@ public class StreakService : Service
             var totalSent = _runResult?.FriendResults.Count ?? 0;
             var skippedCount = totalSent - successCount;
 
+            // Build human-readable summary including cooldown-skipped friends
+            var cooldownNote = _cooldownSkippedCount > 0
+                ? $", {_cooldownSkippedCount} already sent"
+                : string.Empty;
+
             string finalText;
             if (success)
             {
-                // All friends succeeded
-                finalText = $"Done : {successCount}/{totalSent} sent successfully";
+                finalText = $"Done : {successCount}/{totalSent} sent successfully{cooldownNote}";
             }
             else if (totalSent > 0 && successCount > 0)
             {
-                // Partial success — some friends were skipped/failed but run completed
                 if (_disabledUsernames.Count > 0)
-                    finalText = $"Done : {successCount}/{totalSent} sent, {_disabledUsernames.Count} disabled ({string.Join(", ", _disabledUsernames)})";
+                    finalText = $"Done : {successCount}/{totalSent} sent, {_disabledUsernames.Count} disabled ({string.Join(", ", _disabledUsernames)}){cooldownNote}";
                 else
-                    finalText = $"Done : {successCount}/{totalSent} sent, {skippedCount} skipped";
+                    finalText = $"Done : {successCount}/{totalSent} sent, {skippedCount} skipped{cooldownNote}";
             }
             else
             {
-                // Fatal error or all failed
                 if (_disabledUsernames.Count > 0)
-                    finalText = $"Done : 0/{totalSent} sent, {_disabledUsernames.Count} disabled ({string.Join(", ", _disabledUsernames)})";
+                    finalText = $"Done : 0/{totalSent} sent, {_disabledUsernames.Count} disabled ({string.Join(", ", _disabledUsernames)}){cooldownNote}";
                 else if (totalSent > 0)
-                    finalText = $"Done : 0/{totalSent} sent, {skippedCount} failed";
+                    finalText = $"Done : 0/{totalSent} sent, {skippedCount} failed{cooldownNote}";
                 else
                     finalText = $"Stopped : {message}";
             }
@@ -450,6 +506,12 @@ public class StreakService : Service
         }
         finally
         {
+            // ── Clear the run-level mutex on ALL exit paths ──
+            lock (_runLock)
+            {
+                _isRunning = false;
+            }
+
             CleanupWebView();
             StopForeground(StopForegroundFlags.Remove);
             StopSelf();

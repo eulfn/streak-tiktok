@@ -226,22 +226,19 @@ public class StreakService : Service
             _cooldownSkippedCount = 0;
             _logs.Clear();
 
-            // ── Per-friend cooldown: skip friends messaged within (interval - 1) hours ──
-            var intervalHours = _settingsService?.GetIntervalHours() ?? SettingsService.DefaultIntervalHours;
-            var cooldownHours = Math.Max(intervalHours - 1, 1); // at least 1 hour
-            var cooldownThreshold = DateTime.Now.AddHours(-cooldownHours);
+            // ── Per-friend cooldown: skip friends already messaged today ──
+            var today = DateTime.Now.Date;
 
             _friendsToProcess = new List<FriendConfig>();
             foreach (var friend in allEnabled)
             {
-                if (friend.LastMessageSent.HasValue && friend.LastMessageSent.Value > cooldownThreshold)
+                if (friend.LastMessageSent.HasValue && friend.LastMessageSent.Value.Date == today)
                 {
-                    // Friend was messaged recently — skip (do NOT add to FriendResults
+                    // Friend was already messaged today — skip (do NOT add to FriendResults
                     // to avoid inflating successCount in notifications and history)
                     _cooldownSkippedCount++;
-                    var hoursAgo = (DateTime.Now - friend.LastMessageSent.Value).TotalHours;
                     AppLog("SKIP", $"@{friend.Username}",
-                        $"Already messaged {hoursAgo:F1}h ago (cooldown: {cooldownHours}h)");
+                        $"Already messaged today at {friend.LastMessageSent.Value:HH:mm}");
                 }
                 else
                 {
@@ -250,12 +247,12 @@ public class StreakService : Service
             }
 
             AppLog("SYSTEM", "-",
-                $"Starting automation: {_friendsToProcess.Count} to process, {_cooldownSkippedCount} skipped (cooldown)");
+                $"Starting automation: {_friendsToProcess.Count} to process, {_cooldownSkippedCount} skipped (already sent today)");
 
             if (_friendsToProcess.Count == 0)
             {
                 var msg = _cooldownSkippedCount > 0
-                    ? $"All {_cooldownSkippedCount} friends already messaged within cooldown"
+                    ? $"All {_cooldownSkippedCount} friends already messaged today"
                     : "No friends configured";
                 CompleteService(_cooldownSkippedCount > 0, msg);
                 return;

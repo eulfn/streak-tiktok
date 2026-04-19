@@ -284,6 +284,20 @@
                         Toggled="OnSkipUnreachableToggled"/>
             </Grid>
 
+            <!-- Burst Chat Mode Toggle -->
+            <Grid ColumnDefinitions="*, Auto" ColumnSpacing="12">
+                <VerticalStackLayout VerticalOptions="Center" Spacing="4">
+                    <Label Text="Burst Chat Mode" Style="{StaticResource SectionLabel}"/>
+                    <Label x:Name="BurstModeDescription"
+                           Text="Send multiple short messages per friend to simulate active chatting"
+                           Style="{StaticResource DataLabel}" LineBreakMode="WordWrap"/>
+                </VerticalStackLayout>
+                <Switch x:Name="BurstChatSwitch" 
+                        Grid.Column="1"
+                        VerticalOptions="Center"
+                        Toggled="OnBurstChatToggled"/>
+            </Grid>
+
             <!-- Dynamic Permissions Panel -->
             <VerticalStackLayout x:Name="PermissionsPanel" IsVisible="False" Spacing="8">
                 <Label Text="To automate streaks reliably in the background, your device requires the following:" 

@@ -9,6 +9,7 @@ public partial class MainPage : ContentPage
     private readonly SettingsService _settingsService;
     private readonly SessionService _sessionService;
     private readonly UpdateService _updateService;
+    private readonly BurstChatService _burstChatService;
     private bool _isCheckingSession = false;
     private bool _sessionCheckCompleted = false;
     private bool _isCheckingForUpdates = false;
@@ -20,6 +21,7 @@ public partial class MainPage : ContentPage
         _settingsService = new SettingsService();
         _sessionService = new SessionService();
         _updateService = new UpdateService();
+        _burstChatService = new BurstChatService();
     }
 
     private Color GetThemeColor(string key, string fallbackHex = "#92979E")
@@ -361,6 +363,10 @@ public partial class MainPage : ContentPage
 
         // Load skip unreachable users setting
         SkipUnreachableSwitch.IsToggled = _settingsService.GetSkipUnreachableUsers();
+
+        // Load burst chat mode setting
+        BurstChatSwitch.IsToggled = _burstChatService.IsEnabled();
+        UpdateBurstModeDescription(_burstChatService.IsEnabled());
     }
 
     private void UpdateStatus()
@@ -700,6 +706,27 @@ public partial class MainPage : ContentPage
     private void OnSkipUnreachableToggled(object? sender, ToggledEventArgs e)
     {
         _settingsService.SetSkipUnreachableUsers(e.Value);
+    }
+
+    private void OnBurstChatToggled(object? sender, ToggledEventArgs e)
+    {
+        _burstChatService.SetEnabled(e.Value);
+        UpdateBurstModeDescription(e.Value);
+    }
+
+    private void UpdateBurstModeDescription(bool isEnabled)
+    {
+        if (isEnabled)
+        {
+            var count = _burstChatService.GetBurstCount();
+            BurstModeDescription.Text = $"Active — sending {count} messages per friend with randomized delays";
+            BurstModeDescription.TextColor = GetThemeColor("Success", "#22946E");
+        }
+        else
+        {
+            BurstModeDescription.Text = "Send multiple short messages per friend to simulate active chatting";
+            BurstModeDescription.TextColor = GetThemeColor("Gray500", "#666666");
+        }
     }
 
     private void OnMessageChanged(object? sender, TextChangedEventArgs e)

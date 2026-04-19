@@ -130,7 +130,7 @@ public static class StreakScheduler
     /// Run the service immediately (for manual trigger).
     /// Returns false if the service is already running.
     /// </summary>
-    public static bool RunNow(Context context)
+    public static bool RunNow(Context context, bool isBurstMode = false)
     {
         // Reject if an automation session is already active
         if (Services.StreakService.IsRunning)
@@ -150,12 +150,28 @@ public static class StreakScheduler
         }
 
         var serviceIntent = new Intent(context, typeof(Services.StreakService));
+        serviceIntent.PutExtra("IsBurstMode", isBurstMode);
+
         if (Build.VERSION.SdkInt >= BuildVersionCodes.O)
             context.StartForegroundService(serviceIntent);
         else
             context.StartService(serviceIntent);
 
         return true;
+    }
+
+    /// <summary>
+    /// Stop the running StreakService gracefully
+    /// </summary>
+    public static void StopService(Context context)
+    {
+        var serviceIntent = new Intent(context, typeof(Services.StreakService));
+        serviceIntent.SetAction("STOP_SERVICE");
+        
+        if (Build.VERSION.SdkInt >= BuildVersionCodes.O)
+            context.StartForegroundService(serviceIntent);
+        else
+            context.StartService(serviceIntent);
     }
 
     /// <summary>

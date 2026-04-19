@@ -85,10 +85,40 @@
                          IsVisible="False"
                          Navigated="OnSessionCheckNavigated"/>
 
-                <!-- Message Configuration -->
+                <!-- Burst Mode Configuration -->
                 <Border Style="{StaticResource SectionCard}">
                     <VerticalStackLayout Spacing="12">
-                        <Label Text="Streak Message" 
+                        <Grid ColumnDefinitions="*, Auto" ColumnSpacing="16">
+                            <VerticalStackLayout VerticalOptions="Center" Spacing="4">
+                                <Label Text="Burst Mode" Style="{StaticResource SectionLabel}"/>
+                                <Label Text="Automated 1-5 chunked messages with natural delays" Style="{StaticResource DataLabel}" LineBreakMode="WordWrap"/>
+                            </VerticalStackLayout>
+                        </Grid>
+                        
+                        <Grid ColumnDefinitions="*, *" ColumnSpacing="16" Margin="0,4,0,8">
+                            <VerticalStackLayout Grid.Column="0" Spacing="4">
+                                <Label Text="Last Burst:" Style="{StaticResource DataLabel}"/>
+                                <Label x:Name="BurstLastRunLabel" Text="Never" Style="{StaticResource ValueLabel}"/>
+                            </VerticalStackLayout>
+                        </Grid>
+                        
+                        <Label Text="Burst Message Pattern" Style="{StaticResource DataLabel}"/>
+                        <Border Stroke="{AppThemeBinding Light={StaticResource BorderColorLight}, Dark={StaticResource BorderColorDark}}" 
+                                StrokeThickness="1" 
+                                StrokeShape="RoundRectangle 8">
+                            <Editor x:Name="BurstMessageEditor"
+                                    Placeholder="Enter your burst message..."
+                                    HeightRequest="80"
+                                    Margin="8"
+                                    TextChanged="OnBurstMessageChanged"/>
+                        </Border>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Normal Message Configuration -->
+                <Border Style="{StaticResource SectionCard}">
+                    <VerticalStackLayout Spacing="12">
+                        <Label Text="Normal Streak Message" 
                                Style="{StaticResource SectionLabel}"/>
                         
                         <Border Stroke="{AppThemeBinding Light={StaticResource BorderColorLight}, Dark={StaticResource BorderColorDark}}" 
@@ -324,14 +354,37 @@
             </VerticalStackLayout>
 
             <!-- Execution Action -->
-            <Button x:Name="RunNowButton"
-                    Text="Run Now"
-                    BackgroundColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}"
-                    TextColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource PrimaryDarkText}}"
+            <Grid ColumnDefinitions="*, *" ColumnSpacing="12" x:Name="RunButtonsContainer">
+                <Button x:Name="RunNowButton"
+                        Grid.Column="0"
+                        Text="Normal Run"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}"
+                        TextColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource PrimaryDarkText}}"
+                        FontFamily="InterSemiBold"
+                        CornerRadius="12"
+                        HeightRequest="56"
+                        Clicked="OnRunNowClicked"/>
+                        
+                <Button x:Name="RunBurstNowButton"
+                        Grid.Column="1"
+                        Text="Burst Run"
+                        BackgroundColor="{AppThemeBinding Light=#8B5CF6, Dark=#7C3AED}"
+                        TextColor="White"
+                        FontFamily="InterSemiBold"
+                        CornerRadius="12"
+                        HeightRequest="56"
+                        Clicked="OnRunBurstNowClicked"/>
+            </Grid>
+            
+            <Button x:Name="StopServiceButton"
+                    Text="Stop Processing"
+                    IsVisible="False"
+                    BackgroundColor="{AppThemeBinding Light={StaticResource DeleteColor}, Dark={StaticResource DeleteColor}}"
+                    TextColor="White"
                     FontFamily="InterSemiBold"
                     CornerRadius="12"
                     HeightRequest="56"
-                    Clicked="OnRunNowClicked"/>
+                    Clicked="OnStopServiceClicked"/>
         </VerticalStackLayout>
     </Border>
 </Grid>

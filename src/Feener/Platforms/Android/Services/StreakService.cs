@@ -37,12 +37,11 @@ public class StreakService : Service
     private readonly List<string> _disabledUsernames = new();
     private const string UserNotFoundError = "User not found in chat list";
 
-    // ── Burst Chat Mode state ──
-    private BurstChatService? _burstChatService;
-    private List<string>? _pendingBurstMessages;
-    private int _burstMessageIndex;
-    private string? _currentBurstUsername;
-    private volatile bool _burstCancelled = false;
+    private bool _isBurstMode = false;
+    private int _burstTargetChunks = 1;
+    private int _burstCurrentChunk = 0;
+    private bool _isCancelRequested = false;
+    private bool _automationStarted = false;
 
     // ── Run-level mutex: prevents concurrent automation sessions ──
     private static volatile bool _isRunning = false;
@@ -79,7 +78,6 @@ public class StreakService : Service
 
         _mainHandler = new Handler(Looper.MainLooper!);
         _settingsService = new SettingsService();
-        _burstChatService = new BurstChatService();
         AcquireWakeLock();
 
         // Start foreground IMMEDIATELY in OnCreate to avoid ANR
@@ -88,6 +86,17 @@ public class StreakService : Service
 
     public override StartCommandResult OnStartCommand(Intent? intent, StartCommandFlags flags, int startId)
     {
+        if (intent?.Action == "STOP_SERVICE")
+        {
+            _isCancelRequested = true;
+            AppLog("SYSTEM", "-", "Service stop requested by user");
+            CompleteService(false, "Run stopped by user.");
+            return StartCommandResult.NotSticky;
+        }
+
+        // Handle Burst Mode flag
+        _isBurstMode = intent?.GetBooleanExtra("IsBurstMode", false) ?? false;
+
         // Ensure we're in foreground mode (in case OnCreate didn't complete it)
         StartForegroundServiceImmediate();
 
@@ -338,6 +347,10 @@ public class StreakService : Service
         // Check if we're on the messages page
         if (url.Contains("tiktok.com/messages"))
         {
+            // Guard: only start the automation chain once
+            if (_automationStarted) return;
+            _automationStarted = true;
+
             UpdateNotification("Connecting to TikTok...");
             AppLog("NAVIGATION", "-", "Messages page ready");
             // Wait a bit for the page to fully render, then start automation
@@ -353,6 +366,8 @@ public class StreakService : Service
 
     private void ProcessNextFriend()
     {
+        if (_isCancelRequested) return;
+
         // When "Skip Unreachable Users" is OFF, abort the entire run on any per-user failure
         bool skipUnreachable = _settingsService?.GetSkipUnreachableUsers() ?? false;
         if (!skipUnreachable && _runResult is not null && _runResult.Failed)
@@ -373,28 +388,31 @@ public class StreakService : Service
         }
 
         var friend = _friendsToProcess[_currentFriendIndex];
-        AppLog("PROCESS", $"@{friend.Username}", "Starting");
-        UpdateNotification($"{_currentFriendIndex + 1}/{_friendsToProcess.Count} \u2014 Processing: @{friend.Username}",
-                          _currentFriendIndex, _friendsToProcess.Count);
+        
+        _burstCurrentChunk = 0;
+        _burstTargetChunks = _isBurstMode ? new Random().Next(1, 6) : 1;
+        
+        AppLog("PROCESS", $"@{friend.Username}", $"Starting ({_burstTargetChunks} chunks)");
+        
+        SendCurrentFriendMessage();
+    }
 
-        var message = _settingsService?.GetMessageText() ?? SettingsService.DefaultMessage;
+    private void SendCurrentFriendMessage()
+    {
+        if (_isCancelRequested) return;
+        
+        var friend = _friendsToProcess![_currentFriendIndex];
 
-        // ── Burst Chat Mode: prepare burst queue if enabled ──
-        bool burstEnabled = _burstChatService?.IsEnabled() ?? false;
-        if (burstEnabled)
+        // In Burst mode, only update main notification on the first chunk so we don't spam
+        if (_burstCurrentChunk == 0)
         {
-            _pendingBurstMessages = _burstChatService!.GenerateBurstMessages(message);
-            _burstMessageIndex = 1; // Index 0 is the primary message already sent by the automation script
-            _currentBurstUsername = friend.Username;
-            _burstCancelled = false;
-            AppLog("BURST", $"@{friend.Username}", $"Burst mode active: {_pendingBurstMessages.Count} messages queued");
+            UpdateNotification($"{_currentFriendIndex + 1}/{_friendsToProcess.Count} \u2014 Processing: @{friend.Username}",
+                              _currentFriendIndex, _friendsToProcess.Count);
         }
-        else
-        {
-            _pendingBurstMessages = null;
-            _burstMessageIndex = 0;
-            _currentBurstUsername = null;
-        }
+
+        var message = _isBurstMode 
+            ? _settingsService?.GetBurstMessageText() ?? "Burst Message"
+            : _settingsService?.GetMessageText() ?? SettingsService.DefaultMessage;
 
         // Inject JavaScript to find and message the friend
         var js = GetFriendMessageScript(friend.Username, message);
@@ -415,21 +433,16 @@ public class StreakService : Service
 
     internal void OnMessageResult(string username, bool success, string error)
     {
+        if (_isCancelRequested) return;
         if (_friendsToProcess == null || _settingsService == null) return;
 
         var friend = _friendsToProcess.FirstOrDefault(f => f.Username.Equals(username, StringComparison.OrdinalIgnoreCase));
 
         if (friend != null)
         {
-            // Update friend stats
-            if (success)
+            if (!success)
             {
-                friend.SuccessCount++;
-                friend.LastMessageSent = DateTime.Now;
-                AppLog("SUCCESS", $"@{username}", "Message sent");
-            }
-            else
-            {
+                // FAILED
                 friend.FailureCount++;
                 AppLog("FAIL", $"@{username}", error);
 
@@ -439,195 +452,67 @@ public class StreakService : Service
                 {
                     friend.IsEnabled = false;
                     _disabledUsernames.Add($"@{username}");
-                    AppLog("DISABLED", $"@{username}", "Auto-disabled — not found in chat list");
+                    AppLog("DISABLED", $"@{username}", "Auto-disabled \u2014 not found in chat list");
                 }
-            }
-            _settingsService.UpdateFriend(friend);
+                _settingsService.UpdateFriend(friend);
 
-            // Add to run result (only for primary message, not burst follow-ups)
-            bool isBurstFollowUp = _pendingBurstMessages != null && _burstMessageIndex > 1;
-            if (!isBurstFollowUp)
-            {
                 _runResult?.FriendResults.Add(new FriendMessageResult
                 {
                     FriendId = friend.Id,
                     Username = username,
-                    Success = success,
-                    ErrorMessage = success ? null : error
+                    Success = false,
+                    ErrorMessage = error
                 });
+                
+                _burstCurrentChunk = 0;
+                _currentFriendIndex++;
+                UpdateNotification($"{_currentFriendIndex}/{_friendsToProcess.Count} : Failed: @{username}", _currentFriendIndex, _friendsToProcess.Count);
+                _mainHandler?.PostDelayed(ProcessNextFriend, 3000);
+                return;
             }
-        }
 
-        // ── Burst Chat Mode: queue next burst message if applicable ──
-        if (success && !_burstCancelled && _pendingBurstMessages != null &&
-            _currentBurstUsername != null &&
-            _currentBurstUsername.Equals(username, StringComparison.OrdinalIgnoreCase) &&
-            _burstMessageIndex < _pendingBurstMessages.Count)
-        {
-            var nextBurstMsg = _pendingBurstMessages[_burstMessageIndex];
-            _burstMessageIndex++;
-            var delay = _burstChatService?.GenerateRandomDelay() ?? 5000;
-
-            AppLog("BURST", $"@{username}",
-                $"Sending burst chunk {_burstMessageIndex}/{_pendingBurstMessages.Count} in {delay}ms");
-
-            var totalCount = _friendsToProcess?.Count ?? 0;
-            UpdateNotification(
-                $"{_currentFriendIndex + 1}/{totalCount} \u2014 @{username} burst {_burstMessageIndex}/{_pendingBurstMessages.Count}",
-                _currentFriendIndex, totalCount);
-
-            _mainHandler?.PostDelayed(() =>
+            // SUCCESS chunk
+            _burstCurrentChunk++;
+            if (_burstCurrentChunk < _burstTargetChunks)
             {
-                if (_burstCancelled)
+                int delayMs = new Random().Next(3000, 10000);
+                AppLog("BURST", $"@{username}", $"Chunk {_burstCurrentChunk}/{_burstTargetChunks} sent, waiting {delayMs / 1000.0:F1}s");
+                
+                if (!_isCancelRequested)
                 {
-                    AppLog("BURST", $"@{username}", "Burst cancelled by user");
-                    AdvanceToNextFriend(username, true);
-                    return;
+                    _mainHandler?.PostDelayed(SendCurrentFriendMessage, delayMs);
                 }
-                // Send the next burst chunk using the direct send approach
-                // (the chat is already open from the first message)
-                var js = GetDirectMessageScript(nextBurstMsg);
-                _webView?.EvaluateJavascript(js, null);
-            }, delay);
-            return;
+                return; // Do not move to next friend yet
+            }
+
+            // Final chunk SUCCESS
+            friend.SuccessCount++;
+            friend.LastMessageSent = DateTime.Now;
+            AppLog("SUCCESS", $"@{username}", "Message sequence complete");
+            
+            _settingsService.UpdateFriend(friend);
+
+            // Add to run result
+            _runResult?.FriendResults.Add(new FriendMessageResult
+            {
+                FriendId = friend.Id,
+                Username = username,
+                Success = true,
+                ErrorMessage = null
+            });
         }
 
-        // ── Normal flow: advance to next friend ──
-        AdvanceToNextFriend(username, success);
-    }
-
-    /// <summary>
-    /// Advance the friend index and schedule the next friend processing.
-    /// Extracted to share between normal and burst completion paths.
-    /// </summary>
-    private void AdvanceToNextFriend(string username, bool success)
-    {
-        // Clear burst state
-        _pendingBurstMessages = null;
-        _burstMessageIndex = 0;
-        _currentBurstUsername = null;
-
-        // Move to next friend after a delay
+        // Move to next friend
+        _burstCurrentChunk = 0;
         _currentFriendIndex++;
         var completedCount = _currentFriendIndex;
         var totalCount = _friendsToProcess?.Count ?? 0;
-        var resultText = success
-            ? $"{completedCount}/{totalCount} : Sent to @{username}"
-            : $"{completedCount}/{totalCount} : Failed: @{username}";
+        var resultText = $"{completedCount}/{totalCount} : Sent to @{username}";
         UpdateNotification(resultText, completedCount, totalCount);
         _mainHandler?.PostDelayed(ProcessNextFriend, 3000);
     }
 
-    /// <summary>
-    /// Cancel any in-progress burst sequence. Remaining burst chunks will be halted
-    /// and the service will advance to the next friend on the next callback.
-    /// </summary>
-    public void CancelBurst()
-    {
-        _burstCancelled = true;
-        AppLog("BURST", _currentBurstUsername ?? "-", "Burst cancellation requested");
-    }
 
-    /// <summary>
-    /// Generate a JavaScript snippet that types and sends a message in an already-open chat.
-    /// Unlike GetFriendMessageScript, this does NOT search for the user — the chat is already focused.
-    /// </summary>
-    private string GetDirectMessageScript(string message)
-    {
-        var escapedMessage = message.Replace("\\", "\\\\").Replace("'", "\\'").Replace("\"", "\\\"").Replace("\n", "\\n");
-        var escapedUsername = _currentBurstUsername?.Replace("\\", "\\\\").Replace("'", "\\'").Replace("\"", "\\\"") ?? "";
-
-        return $@"(function() {{
-            var message = '{escapedMessage}';
-            var userName = '{escapedUsername}';
-
-            var log = function(msg) {{
-                if (typeof StreakApp === 'undefined') {{ console.log(msg); return; }}
-                StreakApp.log(msg);
-            }};
-
-            var findMessageInput = function() {{
-                return document.querySelector('[class*=""DraftEditor-editorContainer""] [contenteditable=""true""]') ||
-                    document.querySelector('[class*=""DraftEditor-root""] [contenteditable=""true""]') ||
-                    document.querySelector('div[contenteditable=""true""][role=""textbox""]') ||
-                    document.querySelector('div[contenteditable=""true""]');
-            }};
-
-            var findDraftEditor = function(messageInput) {{
-                var key = Object.keys(messageInput).find(function(k) {{
-                    return k.startsWith('__reactFiber$') || k.startsWith('__reactInternalInstance$');
-                }});
-                if (!key) return null;
-                var fiber = messageInput[key];
-                var current = fiber;
-                while (current) {{
-                    if (current.stateNode && current.stateNode.editor) return current.stateNode;
-                    current = current.return;
-                }}
-                return null;
-            }};
-
-            var sendMessage = function(messageInput) {{
-                var sendBtn = document.querySelector('[data-e2e*=""send""]') ||
-                              document.querySelector('[data-e2e*=""Send""]') ||
-                              document.querySelector('button[type=""submit""]');
-                if (sendBtn) {{
-                    sendBtn.dispatchEvent(new Event('click', {{ bubbles: true }}));
-                    return;
-                }}
-                messageInput.dispatchEvent(new KeyboardEvent('keydown', {{
-                    key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true, cancelable: true
-                }}));
-                messageInput.dispatchEvent(new KeyboardEvent('keyup', {{
-                    key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true
-                }}));
-            }};
-
-            var messageInput = findMessageInput();
-            if (!messageInput) {{
-                log('Burst: message input not found');
-                if (typeof StreakApp !== 'undefined') StreakApp.onMessageSent(userName, false, 'Message input not found during burst');
-                return;
-            }}
-
-            var draftEditor = findDraftEditor(messageInput);
-            if (draftEditor) {{
-                draftEditor.focus();
-                setTimeout(function() {{
-                    var dt = new DataTransfer();
-                    dt.setData('text/plain', message);
-                    var pe = new ClipboardEvent('paste', {{ bubbles: true, cancelable: true, clipboardData: dt }});
-                    try {{ draftEditor._onPaste(pe); }} catch(e) {{ log('Burst paste error: ' + e.message); }}
-                    setTimeout(function() {{
-                        sendMessage(messageInput);
-                        setTimeout(function() {{
-                            log('Burst chunk sent: ' + message);
-                            if (typeof StreakApp !== 'undefined') StreakApp.onMessageSent(userName, true, '');
-                        }}, 1000);
-                    }}, 300);
-                }}, 200);
-            }} else {{
-                messageInput.click();
-                messageInput.focus();
-                setTimeout(function() {{
-                    var sel = window.getSelection();
-                    var range = document.createRange();
-                    range.selectNodeContents(messageInput);
-                    range.collapse(false);
-                    sel.removeAllRanges();
-                    sel.addRange(range);
-                    document.execCommand('insertText', false, message);
-                    setTimeout(function() {{
-                        sendMessage(messageInput);
-                        setTimeout(function() {{
-                            log('Burst chunk sent (fallback): ' + message);
-                            if (typeof StreakApp !== 'undefined') StreakApp.onMessageSent(userName, true, '');
-                        }}, 1000);
-                    }}, 300);
-                }}, 200);
-            }}
-        }})();";
-    }
 
     private void CompleteService(bool success, string message)
     {
@@ -639,7 +524,15 @@ public class StreakService : Service
                 _runResult.Success = success;
                 _runResult.ErrorMessage = success ? null : message;
                 _settingsService.AddRunResult(_runResult);
-                _settingsService.SetLastRunTime(DateTime.Now);
+                
+                if (_isBurstMode)
+                {
+                    _settingsService.SetBurstLastRunTime(DateTime.Now);
+                }
+                else
+                {
+                    _settingsService.SetLastRunTime(DateTime.Now);
+                }
             }
 
             // Show completion notification

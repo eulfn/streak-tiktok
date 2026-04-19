@@ -16,6 +16,8 @@ public class SettingsService
     private const string RunHistoryKey = "run_history";
     private const string IntervalHoursKey = "interval_hours";
     private const string SkipUnreachableUsersKey = "skip_unreachable_users";
+    private const string BurstMessageTextKey = "burst_message_text";
+    private const string BurstLastRunKey = "burst_last_run";
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -125,6 +127,22 @@ public class SettingsService
         Preferences.Set(MessageTextKey, message);
     }
 
+    /// <summary>
+    /// Get the burst message pattern to send
+    /// </summary>
+    public string GetBurstMessageText()
+    {
+        return Preferences.Get(BurstMessageTextKey, "Burst Message");
+    }
+
+    /// <summary>
+    /// Set the burst message pattern to send
+    /// </summary>
+    public void SetBurstMessageText(string message)
+    {
+        Preferences.Set(BurstMessageTextKey, message);
+    }
+
     #endregion
 
     #region Scheduling
@@ -160,6 +178,23 @@ public class SettingsService
     public void SetLastRunTime(DateTime time)
     {
         Preferences.Set(LastRunKey, time.Ticks);
+    }
+
+    /// <summary>
+    /// Get the last burst run timestamp
+    /// </summary>
+    public DateTime? GetBurstLastRunTime()
+    {
+        var ticks = Preferences.Get(BurstLastRunKey, 0L);
+        return ticks > 0 ? new DateTime(ticks) : null;
+    }
+
+    /// <summary>
+    /// Set the last burst run timestamp
+    /// </summary>
+    public void SetBurstLastRunTime(DateTime time)
+    {
+        Preferences.Set(BurstLastRunKey, time.Ticks);
     }
 
     /// <summary>

@@ -14,6 +14,7 @@ public partial class MainPage : ContentPage
     private bool _sessionCheckCompleted = false;
     private bool _isCheckingForUpdates = false;
     private bool _isAppInForeground = false;
+    private IDispatcherTimer? _statusTimer;
 
     public MainPage()
     {
@@ -44,6 +45,15 @@ public partial class MainPage : ContentPage
         
         await EvaluatePermissionsAsync();
         
+        // Start status timer for tracking service
+        if (_statusTimer == null)
+        {
+            _statusTimer = Dispatcher.CreateTimer();
+            _statusTimer.Interval = TimeSpan.FromSeconds(1);
+            _statusTimer.Tick += OnStatusTimerTick;
+        }
+        _statusTimer.Start();
+
         // Check session status
         CheckSessionStatus();
 
@@ -55,6 +65,29 @@ public partial class MainPage : ContentPage
     {
         base.OnDisappearing();
         _isAppInForeground = false;
+        _statusTimer?.Stop();
+    }
+
+    private void OnStatusTimerTick(object? sender, EventArgs e)
+    {
+        bool isRunning = false;
+#if ANDROID
+        isRunning = Feener.Platforms.Android.Services.StreakService.IsRunning;
+#endif
+
+        if (isRunning)
+        {
+            RunButtonsContainer.IsVisible = false;
+            StopServiceButton.IsVisible = true;
+        }
+        else
+        {
+            RunButtonsContainer.IsVisible = true;
+            StopServiceButton.IsVisible = false;
+            
+            // Refresh labels if run just ended
+            UpdateStatus();
+        }
     }
 
     // ─── Normalizes "v1.6.0" → "1.6.0" to ensure consistent Preferences storage ─────
@@ -341,6 +374,8 @@ public partial class MainPage : ContentPage
             SessionCheckingIndicator.IsVisible = false;
             RunNowButton.IsEnabled = true;
             RunNowButton.Opacity = 1.0;
+            RunBurstNowButton.IsEnabled = true;
+            RunBurstNowButton.Opacity = 1.0;
         }
         else
         {
@@ -350,13 +385,16 @@ public partial class MainPage : ContentPage
             SessionCheckingIndicator.IsVisible = false;
             RunNowButton.IsEnabled = false;
             RunNowButton.Opacity = 0.5;
+            RunBurstNowButton.IsEnabled = false;
+            RunBurstNowButton.Opacity = 0.5;
         }
     }
 
     private void LoadSettings()
     {
-        // Load message
+        // Load messages
         MessageEditor.Text = _settingsService.GetMessageText();
+        BurstMessageEditor.Text = _settingsService.GetBurstMessageText();
 
         // Load schedule state
         ScheduleSwitch.IsToggled = _settingsService.IsScheduled();
@@ -406,6 +444,23 @@ public partial class MainPage : ContentPage
         else
         {
             LastRunLabel.Text = "Never";
+        }
+
+        // Update Burst Last run
+        var burstLastRun = _settingsService.GetBurstLastRunTime();
+        if (burstLastRun.HasValue)
+        {
+            var timeSinceBurst = DateTime.Now - burstLastRun.Value;
+            if (timeSinceBurst.TotalMinutes < 60)
+                BurstLastRunLabel.Text = $"{(int)timeSinceBurst.TotalMinutes} minutes ago";
+            else if (timeSinceBurst.TotalHours < 24)
+                BurstLastRunLabel.Text = $"{(int)timeSinceBurst.TotalHours} hours ago";
+            else
+                BurstLastRunLabel.Text = burstLastRun.Value.ToString("MMM dd, HH:mm");
+        }
+        else
+        {
+            BurstLastRunLabel.Text = "Never";
         }
 
         // Update next run
@@ -737,6 +792,14 @@ public partial class MainPage : ContentPage
         }
     }
 
+    private void OnBurstMessageChanged(object? sender, TextChangedEventArgs e)
+    {
+        if (!string.IsNullOrEmpty(e.NewTextValue))
+        {
+            _settingsService.SetBurstMessageText(e.NewTextValue);
+        }
+    }
+
     private void OnSearchFriendTextChanged(object? sender, TextChangedEventArgs e)
     {
         LoadFriendsList();
@@ -880,15 +943,58 @@ public partial class MainPage : ContentPage
         
         if (started)
         {
-            await DisplayAlert("Started", "Streak service started. Check the notification for progress.", "OK");
+            await DisplayAlert("Started", "Normal streak run started. Check the notification for progress.", "OK");
             UpdateStatus(); // refresh next-run display after alarm reschedule
         }
         else
         {
-            await DisplayAlert("Already Running", "A streak run is already in progress. Please wait for it to finish.", "OK");
+            await DisplayAlert("Already Running", "A process is already running. Please wait for it to finish.", "OK");
         }
 #else
         await DisplayAlert("Info", "This feature is only available on Android", "OK");
+#endif
+    }
+
+    private async void OnRunBurstNowClicked(object? sender, EventArgs e)
+    {
+        var friends = _settingsService.GetEnabledFriends();
+        if (friends.Count == 0)
+        {
+            await DisplayAlert("No Friends", "Please add at least one friend before running.", "OK");
+            return;
+        }
+
+        var confirm = await DisplayAlert("Burst Mode", 
+            $"This will send 1-5 chunks to {friends.Count} friend{(friends.Count != 1 ? "s" : "")}. It uses natural delays between chunks and takes longer. Continue?", 
+            "Run Burst", "Cancel");
+
+        if (!confirm) return;
+
+#if ANDROID
+        await RequestNotificationPermission();
+
+        var context = Platform.CurrentActivity ?? Android.App.Application.Context;
+        bool started = Feener.Platforms.Android.StreakScheduler.RunNow(context, isBurstMode: true);
+        
+        if (started)
+        {
+            await DisplayAlert("Burst Started", "Burst Mode started. Check the notification for progress.", "OK");
+            UpdateStatus();
+        }
+        else
+        {
+            await DisplayAlert("Already Running", "A process is already running.", "OK");
+        }
+#else
+        await DisplayAlert("Info", "This feature is only available on Android", "OK");
+#endif
+    }
+
+    private void OnStopServiceClicked(object? sender, EventArgs e)
+    {
+#if ANDROID
+        var context = Platform.CurrentActivity ?? Android.App.Application.Context;
+        Feener.Platforms.Android.StreakScheduler.StopService(context);
 #endif
     }
 

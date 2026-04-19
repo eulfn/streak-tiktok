@@ -17,33 +17,42 @@
     };
 
     var findChatItems = function () {
-        // Primary selector (known working)
-        var items = document.querySelectorAll("[data-e2e*='chat-list-item']");
-        if (items.length > 0) return items;
+        // Primary selector (known working historically)
+        var items = document.querySelectorAll("[data-e2e='chat-list-item']");
+        if (items.length > 0 && items.length < 100) return items;
 
-        // Fallback selectors in case TikTok changed attribute names
+        // Fallback selectors, explicitly avoiding message-level items inside the chat
         var fallbacks = [
-            "[data-e2e*='chat-item']",
-            "[data-e2e*='ChatListItem']",
-            "[data-e2e*='inbox-item']",
-            "[data-e2e*='conversation']",
-            "[class*='ChatListItem']",
-            "[class*='DivChatListItem']",
-            "[class*='ConversationItem']",
-            "[class*='MessageListItem']",
-            "[class*='chat-list'] > div",
-            "[class*='ChatList'] > div"
+            // Exact data-e2e matches to avoid matching 'conversation-message' etc.
+            "[data-e2e='chat-item']",
+            "[data-e2e='inbox-item']",
+            "[data-e2e='conversation-item']",
+            "[data-e2e='conversation']", // Only exact, not *=
+            // Class-based exact list children
+            "ul[class*='ChatList'] > li",
+            "ul[class*='chat-list'] > li",
+            "ul[class*='InboxList'] > li",
+            "div[class*='ChatList'] > div",
+            "div[class*='InboxList'] > div",
+            // Elements with generic list item classes
+            "li[class*='ChatListItem']",
+            "li[class*='ConversationItem']",
+            "div[class*='ConversationItem']"
         ];
+
         for (var i = 0; i < fallbacks.length; i++) {
             try {
-                items = document.querySelectorAll(fallbacks[i]);
-                if (items.length > 0) {
-                    log('Found ' + items.length + ' items via fallback: ' + fallbacks[i]);
-                    return items;
+                var found = document.querySelectorAll(fallbacks[i]);
+                // A valid chat list typically has between 1 and 50 visible items.
+                // If it finds hundreds, it's matching messages in the history.
+                if (found.length > 0 && found.length < 100) {
+                    log('Found ' + found.length + ' items via fallback: ' + fallbacks[i]);
+                    return found;
                 }
             } catch (e) { }
         }
-        return document.querySelectorAll("[data-e2e*='chat-list-item']");
+        
+        return []; // Return empty so the caller triggers dumpPageState
     };
 
     var findCurrentChatUsername = function () {

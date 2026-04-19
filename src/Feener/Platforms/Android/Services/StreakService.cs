@@ -537,79 +537,79 @@ public class StreakService : Service
         var escapedMessage = message.Replace("\\", "\\\\").Replace("'", "\\'").Replace("\"", "\\\"").Replace("\n", "\\n");
         var escapedUsername = _currentBurstUsername?.Replace("\\", "\\\\").Replace("'", "\\'").Replace("\"", "\\\"") ?? "";
 
-        return @"(function() {
-            var message = '"" + escapedMessage + @"';
-            var userName = '"" + escapedUsername + @"';
+        return $@"(function() {{
+            var message = '{escapedMessage}';
+            var userName = '{escapedUsername}';
 
-            var log = function(msg) {
-                if (typeof StreakApp === 'undefined') { console.log(msg); return; }
+            var log = function(msg) {{
+                if (typeof StreakApp === 'undefined') {{ console.log(msg); return; }}
                 StreakApp.log(msg);
-            };
+            }};
 
-            var findMessageInput = function() {
+            var findMessageInput = function() {{
                 return document.querySelector('[class*=""DraftEditor-editorContainer""] [contenteditable=""true""]') ||
                     document.querySelector('[class*=""DraftEditor-root""] [contenteditable=""true""]') ||
                     document.querySelector('div[contenteditable=""true""][role=""textbox""]') ||
                     document.querySelector('div[contenteditable=""true""]');
-            };
+            }};
 
-            var findDraftEditor = function(messageInput) {
-                var key = Object.keys(messageInput).find(function(k) {
+            var findDraftEditor = function(messageInput) {{
+                var key = Object.keys(messageInput).find(function(k) {{
                     return k.startsWith('__reactFiber$') || k.startsWith('__reactInternalInstance$');
-                });
+                }});
                 if (!key) return null;
                 var fiber = messageInput[key];
                 var current = fiber;
-                while (current) {
+                while (current) {{
                     if (current.stateNode && current.stateNode.editor) return current.stateNode;
                     current = current.return;
-                }
+                }}
                 return null;
-            };
+            }};
 
-            var sendMessage = function(messageInput) {
+            var sendMessage = function(messageInput) {{
                 var sendBtn = document.querySelector('[data-e2e*=""send""]') ||
                               document.querySelector('[data-e2e*=""Send""]') ||
                               document.querySelector('button[type=""submit""]');
-                if (sendBtn) {
-                    sendBtn.dispatchEvent(new Event('click', { bubbles: true }));
+                if (sendBtn) {{
+                    sendBtn.dispatchEvent(new Event('click', {{ bubbles: true }}));
                     return;
-                }
-                messageInput.dispatchEvent(new KeyboardEvent('keydown', {
+                }}
+                messageInput.dispatchEvent(new KeyboardEvent('keydown', {{
                     key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true, cancelable: true
-                }));
-                messageInput.dispatchEvent(new KeyboardEvent('keyup', {
+                }}));
+                messageInput.dispatchEvent(new KeyboardEvent('keyup', {{
                     key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true
-                }));
-            };
+                }}));
+            }};
 
             var messageInput = findMessageInput();
-            if (!messageInput) {
+            if (!messageInput) {{
                 log('Burst: message input not found');
                 if (typeof StreakApp !== 'undefined') StreakApp.onMessageSent(userName, false, 'Message input not found during burst');
                 return;
-            }
+            }}
 
             var draftEditor = findDraftEditor(messageInput);
-            if (draftEditor) {
+            if (draftEditor) {{
                 draftEditor.focus();
-                setTimeout(function() {
+                setTimeout(function() {{
                     var dt = new DataTransfer();
                     dt.setData('text/plain', message);
-                    var pe = new ClipboardEvent('paste', { bubbles: true, cancelable: true, clipboardData: dt });
-                    try { draftEditor._onPaste(pe); } catch(e) { log('Burst paste error: ' + e.message); }
-                    setTimeout(function() {
+                    var pe = new ClipboardEvent('paste', {{ bubbles: true, cancelable: true, clipboardData: dt }});
+                    try {{ draftEditor._onPaste(pe); }} catch(e) {{ log('Burst paste error: ' + e.message); }}
+                    setTimeout(function() {{
                         sendMessage(messageInput);
-                        setTimeout(function() {
+                        setTimeout(function() {{
                             log('Burst chunk sent: ' + message);
                             if (typeof StreakApp !== 'undefined') StreakApp.onMessageSent(userName, true, '');
-                        }, 1000);
-                    }, 300);
-                }, 200);
-            } else {
+                        }}, 1000);
+                    }}, 300);
+                }}, 200);
+            }} else {{
                 messageInput.click();
                 messageInput.focus();
-                setTimeout(function() {
+                setTimeout(function() {{
                     var sel = window.getSelection();
                     var range = document.createRange();
                     range.selectNodeContents(messageInput);
@@ -617,16 +617,16 @@ public class StreakService : Service
                     sel.removeAllRanges();
                     sel.addRange(range);
                     document.execCommand('insertText', false, message);
-                    setTimeout(function() {
+                    setTimeout(function() {{
                         sendMessage(messageInput);
-                        setTimeout(function() {
+                        setTimeout(function() {{
                             log('Burst chunk sent (fallback): ' + message);
                             if (typeof StreakApp !== 'undefined') StreakApp.onMessageSent(userName, true, '');
-                        }, 1000);
-                    }, 300);
-                }, 200);
-            }
-        })();";
+                        }}, 1000);
+                    }}, 300);
+                }}, 200);
+            }}
+        }})();";
     }
 
     private void CompleteService(bool success, string message)

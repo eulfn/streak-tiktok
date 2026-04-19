@@ -17,6 +17,32 @@
     };
 
     var findChatItems = function () {
+        // Primary selector (known working)
+        var items = document.querySelectorAll("[data-e2e*='chat-list-item']");
+        if (items.length > 0) return items;
+
+        // Fallback selectors in case TikTok changed attribute names
+        var fallbacks = [
+            "[data-e2e*='chat-item']",
+            "[data-e2e*='ChatListItem']",
+            "[data-e2e*='inbox-item']",
+            "[data-e2e*='conversation']",
+            "[class*='ChatListItem']",
+            "[class*='DivChatListItem']",
+            "[class*='ConversationItem']",
+            "[class*='MessageListItem']",
+            "[class*='chat-list'] > div",
+            "[class*='ChatList'] > div"
+        ];
+        for (var i = 0; i < fallbacks.length; i++) {
+            try {
+                items = document.querySelectorAll(fallbacks[i]);
+                if (items.length > 0) {
+                    log('Found ' + items.length + ' items via fallback: ' + fallbacks[i]);
+                    return items;
+                }
+            } catch (e) { }
+        }
         return document.querySelectorAll("[data-e2e*='chat-list-item']");
     };
 
@@ -271,6 +297,42 @@
         }, 1500);
     };
 
+    var dumpPageState = function () {
+        log('=== PAGE DIAGNOSTICS ===');
+        log('URL: ' + window.location.href);
+        log('Title: ' + document.title);
+        log('Body length: ' + (document.body ? document.body.innerHTML.length : 0));
+
+        // Dump all data-e2e attributes on the page
+        var allE2e = document.querySelectorAll('[data-e2e]');
+        log('Total data-e2e elements: ' + allE2e.length);
+        var e2eValues = [];
+        for (var i = 0; i < Math.min(allE2e.length, 30); i++) {
+            e2eValues.push(allE2e[i].getAttribute('data-e2e'));
+        }
+        if (e2eValues.length > 0) {
+            log('data-e2e values: ' + e2eValues.join(', '));
+        }
+
+        // Check for common TikTok chat container classes
+        var chatContainerSelectors = [
+            '[class*="ChatList"]', '[class*="chatList"]', '[class*="chat-list"]',
+            '[class*="Inbox"]', '[class*="inbox"]',
+            '[class*="MessageList"]', '[class*="messageList"]',
+            '[class*="Conversation"]', '[class*="conversation"]'
+        ];
+        for (var j = 0; j < chatContainerSelectors.length; j++) {
+            var found = document.querySelectorAll(chatContainerSelectors[j]);
+            if (found.length > 0) {
+                log('Selector "' + chatContainerSelectors[j] + '" matched ' + found.length + ' elements');
+                // Log first element's tag and class
+                var first = found[0];
+                log('  -> <' + first.tagName + ' class="' + (first.className || '').substring(0, 120) + '"> children=' + first.children.length);
+            }
+        }
+        log('=== END DIAGNOSTICS ===');
+    };
+
     var init = function () {
         try {
             if (userName.startsWith('@')) {
@@ -282,7 +344,21 @@
             log('Found ' + chatItems.length + ' chat items');
 
             if (chatItems.length === 0) {
-                reportError('No chat items found');
+                // Dump diagnostic info before giving up
+                dumpPageState();
+
+                // Retry once more after 5 additional seconds
+                log('Retrying in 5 seconds...');
+                setTimeout(function () {
+                    chatItems = findChatItems();
+                    log('Retry: Found ' + chatItems.length + ' chat items');
+                    if (chatItems.length === 0) {
+                        dumpPageState();
+                        reportError('No chat items found');
+                        return;
+                    }
+                    checkNextChat();
+                }, 5000);
                 return;
             }
 

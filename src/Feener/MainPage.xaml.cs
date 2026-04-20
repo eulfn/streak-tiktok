@@ -363,8 +363,8 @@ public partial class MainPage : ContentPage
             LoginButton.BackgroundColor = GetThemeColor("Gray400");
             LoginButton.IsEnabled = false;
             SessionCheckingIndicator.IsVisible = true;
-            RunNowButton.IsEnabled = false;
-            RunNowButton.Opacity = 0.5;
+            MasterRunButton.IsEnabled = false;
+            MasterRunButton.Opacity = 0.5;
         }
         else if (isSessionValid)
         {
@@ -372,10 +372,8 @@ public partial class MainPage : ContentPage
             LoginButton.BackgroundColor = GetThemeColor("Success", "#22946E");
             LoginButton.IsEnabled = false;
             SessionCheckingIndicator.IsVisible = false;
-            RunNowButton.IsEnabled = true;
-            RunNowButton.Opacity = 1.0;
-            RunBurstNowButton.IsEnabled = true;
-            RunBurstNowButton.Opacity = 1.0;
+            MasterRunButton.IsEnabled = true;
+            MasterRunButton.Opacity = 1.0;
         }
         else
         {
@@ -383,10 +381,8 @@ public partial class MainPage : ContentPage
             LoginButton.BackgroundColor = GetThemeColor("Primary", "#FE2C55");
             LoginButton.IsEnabled = true;
             SessionCheckingIndicator.IsVisible = false;
-            RunNowButton.IsEnabled = false;
-            RunNowButton.Opacity = 0.5;
-            RunBurstNowButton.IsEnabled = false;
-            RunBurstNowButton.Opacity = 0.5;
+            MasterRunButton.IsEnabled = false;
+            MasterRunButton.Opacity = 0.5;
         }
     }
 
@@ -394,7 +390,6 @@ public partial class MainPage : ContentPage
     {
         // Load messages
         MessageEditor.Text = _settingsService.GetMessageText();
-        BurstMessageEditor.Text = _settingsService.GetBurstMessageText();
 
         // Load schedule state
         ScheduleSwitch.IsToggled = _settingsService.IsScheduled();
@@ -591,22 +586,7 @@ public partial class MainPage : ContentPage
         var lastRun = _settingsService.GetLastRunTime();
         var friendsCount = _settingsService.GetEnabledFriends().Count;
 
-        // Update status label
-        if (isScheduled && friendsCount > 0)
-        {
-            StatusLabel.Text = $"Active • {friendsCount} friend{(friendsCount != 1 ? "s" : "")}";
-            StatusLabel.TextColor = GetThemeColor("Success", "#22946E");
-        }
-        else if (friendsCount == 0)
-        {
-            StatusLabel.Text = "Add friends to get started";
-            StatusLabel.TextColor = GetThemeColor("Gray500", "#666666");
-        }
-        else
-        {
-            StatusLabel.Text = "Scheduler disabled";
-            StatusLabel.TextColor = GetThemeColor("Gray400", "#92979E");
-        }
+        // Update status label -> StatusLabel intentionally removed from XAML in Mode Switch refactor
 
         // Update last run
         if (lastRun.HasValue)
@@ -624,22 +604,7 @@ public partial class MainPage : ContentPage
             LastRunLabel.Text = "Never";
         }
 
-        // Update Burst Last run
-        var burstLastRun = _settingsService.GetBurstLastRunTime();
-        if (burstLastRun.HasValue)
-        {
-            var timeSinceBurst = DateTime.Now - burstLastRun.Value;
-            if (timeSinceBurst.TotalMinutes < 60)
-                BurstLastRunLabel.Text = $"{(int)timeSinceBurst.TotalMinutes} minutes ago";
-            else if (timeSinceBurst.TotalHours < 24)
-                BurstLastRunLabel.Text = $"{(int)timeSinceBurst.TotalHours} hours ago";
-            else
-                BurstLastRunLabel.Text = burstLastRun.Value.ToString("MMM dd, HH:mm");
-        }
-        else
-        {
-            BurstLastRunLabel.Text = "Never";
-        }
+        // Update Burst Last run -> BurstLastRunLabel intentionally removed from BurstModeContainer in mode switch refactor
 
         // Update next run
         if (isScheduled)
@@ -941,40 +906,11 @@ public partial class MainPage : ContentPage
         _settingsService.SetSkipUnreachableUsers(e.Value);
     }
 
-    private void OnBurstChatToggled(object? sender, ToggledEventArgs e)
-    {
-        _burstChatService.SetEnabled(e.Value);
-        UpdateBurstModeDescription(e.Value);
-    }
-
-    private void UpdateBurstModeDescription(bool isEnabled)
-    {
-        if (isEnabled)
-        {
-            var count = _burstChatService.GetBurstCount();
-            BurstModeDescription.Text = $"Active — sending {count} messages per friend with randomized delays";
-            BurstModeDescription.TextColor = GetThemeColor("Success", "#22946E");
-        }
-        else
-        {
-            BurstModeDescription.Text = "Send multiple short messages per friend to simulate active chatting";
-            BurstModeDescription.TextColor = GetThemeColor("Gray500", "#666666");
-        }
-    }
-
     private void OnMessageChanged(object? sender, TextChangedEventArgs e)
     {
         if (!string.IsNullOrEmpty(e.NewTextValue))
         {
             _settingsService.SetMessageText(e.NewTextValue);
-        }
-    }
-
-    private void OnBurstMessageChanged(object? sender, TextChangedEventArgs e)
-    {
-        if (!string.IsNullOrEmpty(e.NewTextValue))
-        {
-            _settingsService.SetBurstMessageText(e.NewTextValue);
         }
     }
 

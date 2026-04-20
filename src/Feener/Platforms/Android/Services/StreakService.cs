@@ -83,7 +83,6 @@ public class StreakService : Service
 
         _mainHandler = new Handler(Looper.MainLooper!);
         _settingsService = new SettingsService();
-        _burstChatService = new BurstChatService();
         AcquireWakeLock();
 
         // Start foreground IMMEDIATELY in OnCreate to avoid ANR

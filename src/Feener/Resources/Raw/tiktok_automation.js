@@ -26,8 +26,7 @@
 
         // Fallback selectors — TikTok periodically renames data-e2e values
         var fallbacks = [
-            "[data-e2e*='chat-item']",
-            "[data-e2e*='conversation']"
+            "[data-e2e*='chat-item']"
         ];
         for (var i = 0; i < fallbacks.length; i++) {
             try {

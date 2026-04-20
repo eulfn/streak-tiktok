@@ -436,9 +436,12 @@ public partial class MainPage : ContentPage
         // UI visibility
         NormalModeContainer.IsVisible = true;
         BurstModeContainer.IsVisible = false;
+        
+        if (NormalAutomationSettingsPanel != null)
+            NormalAutomationSettingsPanel.IsVisible = true;
 
         // Button style
-        MasterRunButton.Text = "START NORMAL STREAK";
+        MasterRunButton.Text = "Initiate Normal Streak";
         MasterRunButton.BackgroundColor = GetThemeColor("Primary", "#2563EB");
     }
 
@@ -454,9 +457,12 @@ public partial class MainPage : ContentPage
         // UI visibility
         NormalModeContainer.IsVisible = false;
         BurstModeContainer.IsVisible = true;
+        
+        if (NormalAutomationSettingsPanel != null)
+            NormalAutomationSettingsPanel.IsVisible = false;
 
         // Button style
-        MasterRunButton.Text = "START INFINITE BURST";
+        MasterRunButton.Text = "Deploy Burst Sequence";
         MasterRunButton.BackgroundColor = Color.FromArgb("#8B5CF6");
     }
 
@@ -1064,7 +1070,7 @@ public partial class MainPage : ContentPage
             }
             else
             {
-                await DisplayAlert("Already Running", "A process is already running.", "OK");
+                await DisplayAlert("Service Locked", "An automation process is already active. The Background Service can only run one routine at a time to prevent conflicts. Please Stop the current execution before starting a new sequence.", "OK");
             }
 #else
             await DisplayAlert("Info", "This feature is only available on Android", "OK");

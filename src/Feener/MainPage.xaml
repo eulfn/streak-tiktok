@@ -334,29 +334,32 @@
                      Color="{AppThemeBinding Light={StaticResource BorderColorLight}, Dark={StaticResource BorderColorDark}}"
                      Margin="-20,-16,-20,0"/>
 
-            <!-- Toggle Header -->
-            <Grid ColumnDefinitions="*, Auto" ColumnSpacing="12">
-                <VerticalStackLayout VerticalOptions="Center" Spacing="4">
-                    <Label Text="Background Automation" Style="{StaticResource SectionLabel}"/>
-                    <Label Text="Automatically keep streaks alive in the background" Style="{StaticResource DataLabel}" LineBreakMode="WordWrap"/>
-                </VerticalStackLayout>
-                <Switch x:Name="ScheduleSwitch" 
-                        Grid.Column="1"
-                        VerticalOptions="Center"
-                        Toggled="OnScheduleToggled"/>
-            </Grid>
+            <!-- Dynamic Settings Container (Hidden in Burst Mode) -->
+            <VerticalStackLayout x:Name="NormalAutomationSettingsPanel" Spacing="16">
+                <!-- Toggle Header -->
+                <Grid ColumnDefinitions="*, Auto" ColumnSpacing="12">
+                    <VerticalStackLayout VerticalOptions="Center" Spacing="4">
+                        <Label Text="Background Automation" Style="{StaticResource SectionLabel}"/>
+                        <Label Text="Automatically keep streaks alive in the background" Style="{StaticResource DataLabel}" LineBreakMode="WordWrap"/>
+                    </VerticalStackLayout>
+                    <Switch x:Name="ScheduleSwitch" 
+                            Grid.Column="1"
+                            VerticalOptions="Center"
+                            Toggled="OnScheduleToggled"/>
+                </Grid>
 
-            <!-- Skip Unreachable Users Toggle -->
-            <Grid ColumnDefinitions="*, Auto" ColumnSpacing="12">
-                <VerticalStackLayout VerticalOptions="Center" Spacing="4">
-                    <Label Text="Skip Unreachable Users" Style="{StaticResource SectionLabel}"/>
-                    <Label Text="Continue sending to remaining users when one is not found" Style="{StaticResource DataLabel}" LineBreakMode="WordWrap"/>
-                </VerticalStackLayout>
-                <Switch x:Name="SkipUnreachableSwitch" 
-                        Grid.Column="1"
-                        VerticalOptions="Center"
-                        Toggled="OnSkipUnreachableToggled"/>
-            </Grid>
+                <!-- Skip Unreachable Users Toggle -->
+                <Grid ColumnDefinitions="*, Auto" ColumnSpacing="12">
+                    <VerticalStackLayout VerticalOptions="Center" Spacing="4">
+                        <Label Text="Skip Unreachable Users" Style="{StaticResource SectionLabel}"/>
+                        <Label Text="Continue sending to remaining users when one is not found" Style="{StaticResource DataLabel}" LineBreakMode="WordWrap"/>
+                    </VerticalStackLayout>
+                    <Switch x:Name="SkipUnreachableSwitch" 
+                            Grid.Column="1"
+                            VerticalOptions="Center"
+                            Toggled="OnSkipUnreachableToggled"/>
+                </Grid>
+            </VerticalStackLayout>
 
             <!-- Burst Chat Mode Toggle is removed because Mode switcher is at the top now -->
 

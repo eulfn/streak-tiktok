@@ -398,13 +398,191 @@ public partial class MainPage : ContentPage
 
         // Load schedule state
         ScheduleSwitch.IsToggled = _settingsService.IsScheduled();
-
-        // Load skip unreachable users setting
         SkipUnreachableSwitch.IsToggled = _settingsService.GetSkipUnreachableUsers();
 
-        // Load burst chat mode setting
-        BurstChatSwitch.IsToggled = _burstChatService.IsEnabled();
-        UpdateBurstModeDescription(_burstChatService.IsEnabled());
+        // Load mode state
+        var isBurstActive = _settingsService.IsBurstModeActive();
+        if (isBurstActive)
+        {
+            SetBurstModeUI();
+        }
+        else
+        {
+            SetNormalModeUI();
+        }
+        
+        LoadBurstMessages();
+        BurstTargetUserEntry.Text = _settingsService.GetBurstTargetUsername();
+    }
+    
+    // ─── Mode Switching Logic ──────────────────────────────────────────────────
+    
+    private void OnNormalModeTapped(object? sender, TappedEventArgs e)
+    {
+        _settingsService.SetBurstModeActive(false);
+        SetNormalModeUI();
+    }
+
+    private void OnBurstModeTapped(object? sender, TappedEventArgs e)
+    {
+        _settingsService.SetBurstModeActive(true);
+        SetBurstModeUI();
+    }
+
+    private void SetNormalModeUI()
+    {
+        // Styling tabs
+        NormalModeTabBorder.BackgroundColor = GetThemeColor("Primary", "#2563EB");
+        NormalModeTabLabel.TextColor = GetThemeColor("White", "#FFFFFF");
+        
+        BurstModeTabBorder.BackgroundColor = Colors.Transparent;
+        BurstModeTabLabel.TextColor = GetThemeColor("Gray600", "#4B5563");
+
+        // UI visibility
+        NormalModeContainer.IsVisible = true;
+        BurstModeContainer.IsVisible = false;
+
+        // Button style
+        MasterRunButton.Text = "START NORMAL STREAK";
+        MasterRunButton.BackgroundColor = GetThemeColor("Primary", "#2563EB");
+    }
+
+    private void SetBurstModeUI()
+    {
+        // Styling tabs
+        BurstModeTabBorder.BackgroundColor = Color.FromArgb("#8B5CF6");
+        BurstModeTabLabel.TextColor = Colors.White;
+        
+        NormalModeTabBorder.BackgroundColor = Colors.Transparent;
+        NormalModeTabLabel.TextColor = GetThemeColor("Gray600", "#4B5563");
+
+        // UI visibility
+        NormalModeContainer.IsVisible = false;
+        BurstModeContainer.IsVisible = true;
+
+        // Button style
+        MasterRunButton.Text = "START INFINITE BURST";
+        MasterRunButton.BackgroundColor = Color.FromArgb("#8B5CF6");
+    }
+
+    // ─── Burst Message Stack Logic ─────────────────────────────────────────────
+    
+    private void LoadBurstMessages()
+    {
+        BurstMessagesStack.Children.Clear();
+        var msgs = _settingsService.GetBurstMessages();
+        
+        // Ensure at least 1 remains
+        if (msgs.Count == 0) msgs.Add(SettingsService.DefaultMessage);
+        
+        foreach (var m in msgs)
+        {
+            AddBurstMessageEditorUI(m);
+        }
+        
+        UpdateAddBurstMessageButtonVisibility();
+    }
+
+    private void AddBurstMessageEditorUI(string initialText)
+    {
+        var border = new Border
+        {
+            Stroke = GetThemeColor("BorderColorLight", "#E5E5E5"),
+            StrokeThickness = 1,
+            StrokeShape = new RoundRectangle { CornerRadius = 8 },
+            Margin = new Thickness(0, 0, 0, 8)
+        };
+
+        var grid = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitionCollection
+            {
+                new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Auto }
+            }
+        };
+
+        var editor = new Editor
+        {
+            Text = initialText,
+            Placeholder = "Enter burst message...",
+            HeightRequest = 60,
+            Margin = new Thickness(8)
+        };
+        editor.TextChanged += OnBurstSettingsChanged;
+        
+        var removeBtn = new Button
+        {
+            Text = "X",
+            BackgroundColor = Colors.Transparent,
+            TextColor = GetThemeColor("DeleteColor", "#EF4444"),
+            FontAttributes = FontAttributes.Bold,
+            WidthRequest = 40,
+            VerticalOptions = LayoutOptions.Center
+        };
+        removeBtn.Clicked += (s, e) => 
+        {
+            if (BurstMessagesStack.Children.Count > 1)
+            {
+                BurstMessagesStack.Children.Remove(border);
+                SaveBurstSettings();
+                UpdateAddBurstMessageButtonVisibility();
+            }
+            else
+            {
+                DisplayAlert("Limit Reached", "You must have at least one burst message.", "OK");
+            }
+        };
+
+        grid.Children.Add(editor);
+        Grid.SetColumn(editor, 0);
+        grid.Children.Add(removeBtn);
+        Grid.SetColumn(removeBtn, 1);
+        
+        border.Content = grid;
+        BurstMessagesStack.Children.Add(border);
+    }
+
+    private void OnAddBurstMessageClicked(object? sender, EventArgs e)
+    {
+        if (BurstMessagesStack.Children.Count < 5)
+        {
+            AddBurstMessageEditorUI("");
+            SaveBurstSettings();
+            UpdateAddBurstMessageButtonVisibility();
+        }
+    }
+
+    private void UpdateAddBurstMessageButtonVisibility()
+    {
+        AddBurstMessageButton.IsVisible = BurstMessagesStack.Children.Count < 5;
+    }
+
+    private void OnBurstSettingsChanged(object? sender, TextChangedEventArgs e)
+    {
+        SaveBurstSettings();
+    }
+
+    private void SaveBurstSettings()
+    {
+        _settingsService.SetBurstTargetUsername(BurstTargetUserEntry.Text?.Trim() ?? "");
+        
+        var messages = new List<string>();
+        foreach (Border border in BurstMessagesStack.Children)
+        {
+            if (border.Content is Grid grid && grid.Children[0] is Editor editor)
+            {
+                var text = editor.Text?.Trim() ?? "";
+                if (!string.IsNullOrEmpty(text))
+                {
+                    messages.Add(text);
+                }
+            }
+        }
+        
+        if (messages.Count == 0) messages.Add(SettingsService.DefaultMessage);
+        
+        _settingsService.SetBurstMessages(messages);
     }
 
     private void UpdateStatus()
@@ -919,75 +1097,76 @@ public partial class MainPage : ContentPage
 #endif
     }
 
-    private async void OnRunNowClicked(object? sender, EventArgs e)
+    private async void OnMasterRunClicked(object? sender, EventArgs e)
     {
-        var friends = _settingsService.GetEnabledFriends();
-        if (friends.Count == 0)
+        bool isBurstMode = _settingsService.IsBurstModeActive();
+
+        if (isBurstMode)
         {
-            await DisplayAlert("No Friends", "Please add at least one friend before running.", "OK");
-            return;
-        }
+            var target = _settingsService.GetBurstTargetUsername();
+            if (string.IsNullOrWhiteSpace(target))
+            {
+                await DisplayAlert("No Target", "Please enter a target username for Burst Mode.", "OK");
+                return;
+            }
 
-        var confirm = await DisplayAlert("Run Now", 
-            $"This will send your streak message to {friends.Count} friend{(friends.Count != 1 ? "s" : "")}. Continue?", 
-            "Run", "Cancel");
+            var confirm = await DisplayAlert("Burst Mode", 
+                $"This will infinitely send your burst messages to @{target} with randomized delays until you manually stop it. Make sure you don't abuse this. Continue?", 
+                "Start Bursting", "Cancel");
 
-        if (!confirm) return;
+            if (!confirm) return;
 
 #if ANDROID
-        // Request notification permission first on Android 13+
-        await RequestNotificationPermission();
-
-        var context = Platform.CurrentActivity ?? Android.App.Application.Context;
-        bool started = Feener.Platforms.Android.StreakScheduler.RunNow(context);
-        
-        if (started)
-        {
-            await DisplayAlert("Started", "Normal streak run started. Check the notification for progress.", "OK");
-            UpdateStatus(); // refresh next-run display after alarm reschedule
+            await RequestNotificationPermission();
+            var context = Platform.CurrentActivity ?? Android.App.Application.Context;
+            bool started = Feener.Platforms.Android.StreakScheduler.RunNow(context, isBurstMode: true);
+            
+            if (started)
+            {
+                await DisplayAlert("Burst Started", "Infinite Burst Mode started. Tap Stop when done.", "OK");
+                UpdateStatus();
+            }
+            else
+            {
+                await DisplayAlert("Already Running", "A process is already running.", "OK");
+            }
+#else
+            await DisplayAlert("Info", "This feature is only available on Android", "OK");
+#endif
         }
         else
         {
-            await DisplayAlert("Already Running", "A process is already running. Please wait for it to finish.", "OK");
-        }
-#else
-        await DisplayAlert("Info", "This feature is only available on Android", "OK");
-#endif
-    }
+            var friends = _settingsService.GetEnabledFriends();
+            if (friends.Count == 0)
+            {
+                await DisplayAlert("No Friends", "Please add at least one friend before running.", "OK");
+                return;
+            }
 
-    private async void OnRunBurstNowClicked(object? sender, EventArgs e)
-    {
-        var friends = _settingsService.GetEnabledFriends();
-        if (friends.Count == 0)
-        {
-            await DisplayAlert("No Friends", "Please add at least one friend before running.", "OK");
-            return;
-        }
+            var confirm = await DisplayAlert("Run Now", 
+                $"This will send your streak message to {friends.Count} friend{(friends.Count != 1 ? "s" : "")}. Continue?", 
+                "Run", "Cancel");
 
-        var confirm = await DisplayAlert("Burst Mode", 
-            $"This will send 1-5 chunks to {friends.Count} friend{(friends.Count != 1 ? "s" : "")}. It uses natural delays between chunks and takes longer. Continue?", 
-            "Run Burst", "Cancel");
-
-        if (!confirm) return;
+            if (!confirm) return;
 
 #if ANDROID
-        await RequestNotificationPermission();
-
-        var context = Platform.CurrentActivity ?? Android.App.Application.Context;
-        bool started = Feener.Platforms.Android.StreakScheduler.RunNow(context, isBurstMode: true);
-        
-        if (started)
-        {
-            await DisplayAlert("Burst Started", "Burst Mode started. Check the notification for progress.", "OK");
-            UpdateStatus();
-        }
-        else
-        {
-            await DisplayAlert("Already Running", "A process is already running.", "OK");
-        }
+            await RequestNotificationPermission();
+            var context = Platform.CurrentActivity ?? Android.App.Application.Context;
+            bool started = Feener.Platforms.Android.StreakScheduler.RunNow(context, isBurstMode: false);
+            
+            if (started)
+            {
+                await DisplayAlert("Started", "Normal streak run started. Check the notification for progress.", "OK");
+                UpdateStatus(); 
+            }
+            else
+            {
+                await DisplayAlert("Already Running", "A process is already running. Please wait for it to finish.", "OK");
+            }
 #else
-        await DisplayAlert("Info", "This feature is only available on Android", "OK");
+            await DisplayAlert("Info", "This feature is only available on Android", "OK");
 #endif
+        }
     }
 
     private void OnStopServiceClicked(object? sender, EventArgs e)

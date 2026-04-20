@@ -59,7 +59,6 @@
                             </Grid>
                         </Border>
                     </VerticalStackLayout>
-                </Grid>
 
                 <VerticalStackLayout x:Name="NormalModeContainer" IsVisible="True" Spacing="16">
                     <!-- Normal System Status Card -->

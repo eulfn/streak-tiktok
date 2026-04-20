@@ -9,7 +9,6 @@ public partial class MainPage : ContentPage
     private readonly SettingsService _settingsService;
     private readonly SessionService _sessionService;
     private readonly UpdateService _updateService;
-    private readonly BurstChatService _burstChatService;
     private bool _isCheckingSession = false;
     private bool _sessionCheckCompleted = false;
     private bool _isCheckingForUpdates = false;
@@ -22,7 +21,6 @@ public partial class MainPage : ContentPage
         _settingsService = new SettingsService();
         _sessionService = new SessionService();
         _updateService = new UpdateService();
-        _burstChatService = new BurstChatService();
     }
 
     private Color GetThemeColor(string key, string fallbackHex = "#92979E")
@@ -53,6 +51,9 @@ public partial class MainPage : ContentPage
             _statusTimer.Tick += OnStatusTimerTick;
         }
         _statusTimer.Start();
+
+        // Immediately sync with service state to prevent stale button flash on reopen
+        OnStatusTimerTick(null, EventArgs.Empty);
 
         // Check session status
         CheckSessionStatus();
@@ -87,6 +88,7 @@ public partial class MainPage : ContentPage
             
             // Refresh labels if run just ended
             UpdateStatus();
+            UpdateBurstPlanDisplay();
         }
     }
 
@@ -408,6 +410,8 @@ public partial class MainPage : ContentPage
         
         LoadBurstMessages();
         BurstTargetUserEntry.Text = _settingsService.GetBurstTargetUsername();
+        BurstDailyLimitEntry.Text = _settingsService.GetBurstDailyLimit().ToString();
+        UpdateBurstPlanDisplay();
     }
     
     // ─── Mode Switching Logic ──────────────────────────────────────────────────
@@ -464,6 +468,44 @@ public partial class MainPage : ContentPage
         // Button style
         MasterRunButton.Text = "Deploy Burst Sequence";
         MasterRunButton.BackgroundColor = Color.FromArgb("#8B5CF6");
+    }
+
+    private void UpdateBurstPlanDisplay()
+    {
+        var (sessions, minutes, totalSeconds, remaining, dailyLimit) = _settingsService.CalculateBurstPlan();
+        var dailySent = dailyLimit - remaining;
+        
+        var hours = totalSeconds / 3600;
+        var partMins = (totalSeconds % 3600) / 60;
+        var partSecs = totalSeconds % 60;
+        
+        string timeStr = hours > 0 
+            ? $"~{hours}h {partMins}m" 
+            : $"~{partMins}m {partSecs}s";
+
+        BurstPlanLabel.Text = remaining > 0
+            ? $"{remaining} messages left \u2022 ~{sessions} sessions"
+            : "Daily cap reached! Come back tomorrow.";
+            
+        BurstTimeEstimateLabel.Text = remaining > 0 ? timeStr : "0m 0s";
+        BurstDailyProgressLabel.Text = $"{dailySent}/{dailyLimit}";
+    }
+
+    private async void OnBurstLimitChanged(object? sender, EventArgs e)
+    {
+        if (int.TryParse(BurstDailyLimitEntry.Text, out int newLimit))
+        {
+            if (newLimit > SettingsService.BurstMaxDailyCeiling)
+            {
+                await DisplayAlert("Limit Capped", 
+                    $"The daily burst limit cannot exceed {SettingsService.BurstMaxDailyCeiling} messages for security and anti-spam reasons.", "OK");
+            }
+            
+            _settingsService.SetBurstDailyLimit(newLimit);
+            // Revert format to clamped value if they typed something wild (>720 or <1)
+            BurstDailyLimitEntry.Text = _settingsService.GetBurstDailyLimit().ToString();
+            UpdateBurstPlanDisplay();
+        }
     }
 
     // ─── Burst Message Stack Logic ─────────────────────────────────────────────
@@ -592,8 +634,6 @@ public partial class MainPage : ContentPage
         var lastRun = _settingsService.GetLastRunTime();
         var friendsCount = _settingsService.GetEnabledFriends().Count;
 
-        // Update status label -> StatusLabel intentionally removed from XAML in Mode Switch refactor
-
         // Update last run
         if (lastRun.HasValue)
         {
@@ -609,8 +649,6 @@ public partial class MainPage : ContentPage
         {
             LastRunLabel.Text = "Never";
         }
-
-        // Update Burst Last run -> BurstLastRunLabel intentionally removed from BurstModeContainer in mode switch refactor
 
         // Update next run
         if (isScheduled)
@@ -1052,8 +1090,25 @@ public partial class MainPage : ContentPage
                 return;
             }
 
+            var plan = _settingsService.CalculateBurstPlan();
+            if (plan.remaining == 0)
+            {
+                await DisplayAlert("Daily Cap Reached", 
+                    $"You've already sent {plan.dailyLimit} burst messages today. Come back tomorrow!", "OK");
+                return;
+            }
+
+            var hours = plan.estimatedTotalSeconds / 3600;
+            var mins = (plan.estimatedTotalSeconds % 3600) / 60;
+            var secs = plan.estimatedTotalSeconds % 60;
+            var timeStr = hours > 0 ? $"{hours}h {mins}m" : $"{mins}m {secs}s";
+
             var confirm = await DisplayAlert("Burst Mode", 
-                $"This will infinitely send your burst messages to @{target} with randomized delays until you manually stop it. Make sure you don't abuse this. Continue?", 
+                $"Target: @{target}\n" +
+                $"Messages: {plan.remaining} remaining today\n" +
+                $"Sessions: ~{plan.sessionsNeeded} (with hibernation breaks)\n" +
+                $"Estimated time: ~{timeStr}\n\n" +
+                $"Messages will be chunked into batches of {SettingsService.BurstChunkSizeMin}-{SettingsService.BurstChunkSizeMax} with smart hibernation breaks to preserve battery.", 
                 "Start Bursting", "Cancel");
 
             if (!confirm) return;
@@ -1065,7 +1120,8 @@ public partial class MainPage : ContentPage
             
             if (started)
             {
-                await DisplayAlert("Burst Started", "Infinite Burst Mode started. Tap Stop when done.", "OK");
+                await DisplayAlert("Burst Started", 
+                    $"Sending {plan.remaining} messages in ~{plan.sessionsNeeded} sessions with hibernation breaks. Tap Stop to cancel anytime.", "OK");
                 UpdateStatus();
             }
             else

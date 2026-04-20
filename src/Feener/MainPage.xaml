@@ -245,6 +245,50 @@
                 </VerticalStackLayout>
                 
                 <VerticalStackLayout x:Name="BurstModeContainer" IsVisible="False" Spacing="16">
+                    <!-- Burst Stats (top position) -->
+                    <Border Style="{StaticResource SectionCard}">
+                        <VerticalStackLayout Spacing="12">
+                            <Label Text="Burst Status" Style="{StaticResource SectionLabel}"/>
+                            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="8">
+                                <Label Text="Sent today" Style="{StaticResource DataLabel}" VerticalOptions="Center"/>
+                                <Label x:Name="BurstDailyProgressLabel" 
+                                       Text="--" 
+                                       Style="{StaticResource ValueLabel}" 
+                                       Grid.Column="1" 
+                                       HorizontalTextAlignment="End"/>
+                                
+                                <Label Text="Daily limit" Style="{StaticResource DataLabel}" Grid.Row="1" VerticalOptions="Center"/>
+                                <Border Grid.Row="1" Grid.Column="1" 
+                                        Stroke="{AppThemeBinding Light={StaticResource BorderColorLight}, Dark={StaticResource BorderColorDark}}" 
+                                        StrokeThickness="1" 
+                                        StrokeShape="RoundRectangle 6"
+                                        WidthRequest="80"
+                                        HorizontalOptions="End">
+                                    <Entry x:Name="BurstDailyLimitEntry"
+                                           Text="--"
+                                           Keyboard="Numeric"
+                                           HorizontalTextAlignment="Center"
+                                           Margin="4,2"
+                                           Completed="OnBurstLimitChanged"
+                                           Unfocused="OnBurstLimitChanged"/>
+                                </Border>
+                                
+                                <Label Text="Estimated time" Style="{StaticResource DataLabel}" Grid.Row="2" VerticalOptions="Center"/>
+                                <Label x:Name="BurstTimeEstimateLabel"
+                                       Text="--"
+                                       Style="{StaticResource ValueLabel}" 
+                                       Grid.Column="1" Grid.Row="2"
+                                       HorizontalTextAlignment="End"/>
+                            </Grid>
+                            <Label x:Name="BurstPlanLabel" 
+                                   Text="Calculating plan..."
+                                   Style="{StaticResource DataLabel}" 
+                                   LineBreakMode="WordWrap"
+                                   Opacity="0.7"/>
+                        </VerticalStackLayout>
+                    </Border>
+                    
+                    <!-- Burst Target -->
                     <Border Style="{StaticResource SectionCard}">
                         <VerticalStackLayout Spacing="12">
                             <Label Text="Burst Target" Style="{StaticResource SectionLabel}"/>
@@ -260,6 +304,7 @@
                         </VerticalStackLayout>
                     </Border>
                     
+                    <!-- Burst Messages -->
                     <Border Style="{StaticResource SectionCard}">
                         <VerticalStackLayout Spacing="12">
                             <Grid ColumnDefinitions="*, Auto">

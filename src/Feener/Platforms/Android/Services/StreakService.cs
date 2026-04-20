@@ -37,11 +37,15 @@ public class StreakService : Service
     private readonly List<string> _disabledUsernames = new();
     private const string UserNotFoundError = "User not found in chat list";
 
-    // ── Burst Mode state (Infinite Continuous) ──
+    // ── Burst Mode state (Smart Daily Quota) ──
     private bool _isBurstMode = false;
     private List<string> _burstMessages = new();
     private int _lastBurstMessageIndex = -1;
     private int _burstTotalSent = 0;
+    private int _burstChunkSent = 0;
+    private int _burstCurrentChunkSize = 35;
+    private int _burstSessionCount = 0;
+    private int _burstRemaining = 0;
 
     // ── Service lifecycle flags ──
     private bool _isCancelRequested = false;
@@ -159,7 +163,7 @@ public class StreakService : Service
     {
         var powerManager = (PowerManager?)GetSystemService(PowerService);
         _wakeLock = powerManager?.NewWakeLock(WakeLockFlags.Partial, "Feener::StreakWakeLock");
-        _wakeLock?.Acquire(10 * 60 * 1000); // 10 minutes max
+        _wakeLock?.Acquire(6L * 60 * 60 * 1000); // 6 hours max (auto-released on service destroy)
     }
 
     private void ReleaseWakeLock()
@@ -261,12 +265,27 @@ public class StreakService : Service
                     return;
                 }
                 
+                // Check daily cap before starting
+                var dailyLimit = _settingsService?.GetBurstDailyLimit() ?? 0;
+                _burstRemaining = Math.Max(0, dailyLimit - (_settingsService?.GetBurstDailySentCount() ?? 0));
+                if (_burstRemaining == 0)
+                {
+                    AppLog("SYSTEM", "-", $"Daily burst cap already reached ({dailyLimit}).");
+                    CompleteService(true, $"Daily burst cap already reached ({dailyLimit} messages sent today).");
+                    return;
+                }
+                
                 _friendsToProcess.Add(new FriendConfig { Username = target, IsEnabled = true });
                 _burstMessages = _settingsService?.GetBurstMessages() ?? new List<string> { SettingsService.DefaultMessage };
                 if (_burstMessages.Count == 0) _burstMessages.Add(SettingsService.DefaultMessage);
                 _burstTotalSent = 0;
+                _burstChunkSent = 0;
+                _burstSessionCount = 0;
+                _burstCurrentChunkSize = new Random().Next(SettingsService.BurstChunkSizeMin, SettingsService.BurstChunkSizeMax + 1);
                 
-                AppLog("SYSTEM", "-", $"Starting INFINITE BURST targeting @{target} with {_burstMessages.Count} messages.");
+                var avgChunk = (SettingsService.BurstChunkSizeMin + SettingsService.BurstChunkSizeMax) / 2;
+                var estSessions = (int)Math.Ceiling((double)_burstRemaining / avgChunk);
+                AppLog("SYSTEM", "-", $"Starting SMART BURST targeting @{target}: {_burstRemaining} msgs remaining, ~{estSessions} sessions, {_burstMessages.Count} message variants.");
             }
             else
             {
@@ -511,18 +530,45 @@ public class StreakService : Service
             if (_isBurstMode)
             {
                 _burstTotalSent++;
-                int delayMs = new Random().Next(3000, 10000);
-                AppLog("BURST", $"@{username}", $"Message {_burstTotalSent} sent successfully! Waiting {delayMs / 1000.0:F1}s for next burst round.");
+                _burstChunkSent++;
+                _settingsService.IncrementBurstDailySentCount();
                 
-                // Track last run time for bursts
-                _settingsService.SetBurstLastRunTime(DateTime.Now);
+                // Check daily cap
+                var dailyLimit = _settingsService.GetBurstDailyLimit();
+                var totalToday = _settingsService.GetBurstDailySentCount();
+                if (totalToday >= dailyLimit)
+                {
+                    AppLog("BURST", $"@{username}", $"Daily cap reached! {totalToday}/{dailyLimit} sent today.");
+                    CompleteService(true, $"Burst complete \u2014 {totalToday}/{dailyLimit} messages sent today.");
+                    return;
+                }
                 
-                // Infinite Loop back to sending a new message to the same friend
+                // Check chunk boundary \u2014 enter hibernation
+                if (_burstChunkSent >= _burstCurrentChunkSize)
+                {
+                    _burstSessionCount++;
+                    var rng = new Random();
+                    var hibernationMs = rng.Next(SettingsService.BurstHibernationMinMs, SettingsService.BurstHibernationMaxMs + 1);
+                    var hibernationMin = hibernationMs / 60000.0;
+                    AppLog("HIBERNATE", $"@{username}", $"Session {_burstSessionCount} complete ({_burstChunkSent} msgs). Hibernating {hibernationMin:F1} min...");
+                    
+                    UpdateNotification($"Hibernating \u2014 Session {_burstSessionCount} done \u2022 {_burstTotalSent}/{_burstRemaining} sent \u2022 Next in {hibernationMin:F0} min");
+                    
+                    _mainHandler?.PostDelayed(StartNextBurstChunk, hibernationMs);
+                    return;
+                }
+                
+                // Normal inter-message delay
+                int delayMs = new Random().Next(3000, 10001);
+                AppLog("BURST", $"@{username}", $"Message {_burstTotalSent}/{_burstRemaining} sent (chunk {_burstChunkSent}/{_burstCurrentChunkSize}). Waiting {delayMs / 1000.0:F1}s...");
+                
+                UpdateNotification($"Bursting @{username} \u2014 {_burstTotalSent}/{_burstRemaining} (Session {_burstSessionCount + 1})");
+                
                 if (!_isCancelRequested)
                 {
                     _mainHandler?.PostDelayed(SendCurrentFriendMessage, delayMs);
                 }
-                return; 
+                return;
             }
 
             // All simple burst chunks done — record success
@@ -560,6 +606,24 @@ public class StreakService : Service
         _mainHandler?.PostDelayed(ProcessNextFriend, 3000);
     }
 
+    /// <summary>
+    /// Wake from hibernation and start the next burst chunk.
+    /// </summary>
+    private void StartNextBurstChunk()
+    {
+        if (_isCancelRequested) return;
+        
+        // Randomize next chunk size
+        _burstCurrentChunkSize = new Random().Next(SettingsService.BurstChunkSizeMin, SettingsService.BurstChunkSizeMax + 1);
+        _burstChunkSent = 0;
+        
+        var target = _friendsToProcess?[0]?.Username ?? "unknown";
+        AppLog("BURST", $"@{target}", $"Waking from hibernation. Starting session {_burstSessionCount + 1}, chunk size: {_burstCurrentChunkSize}");
+        UpdateNotification($"Bursting @{target} \u2014 Resuming session {_burstSessionCount + 1}...");
+        
+        SendCurrentFriendMessage();
+    }
+
     private void CompleteService(bool success, string message)
     {
         try
@@ -571,11 +635,7 @@ public class StreakService : Service
                 _runResult.ErrorMessage = success ? null : message;
                 _settingsService.AddRunResult(_runResult);
 
-                if (_isBurstMode)
-                {
-                    _settingsService.SetBurstLastRunTime(DateTime.Now);
-                }
-                else
+                if (!_isBurstMode)
                 {
                     _settingsService.SetLastRunTime(DateTime.Now);
                 }

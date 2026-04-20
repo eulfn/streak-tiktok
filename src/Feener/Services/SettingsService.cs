@@ -16,9 +16,7 @@ public class SettingsService
     private const string RunHistoryKey = "run_history";
     private const string IntervalHoursKey = "interval_hours";
     private const string SkipUnreachableUsersKey = "skip_unreachable_users";
-    private const string BurstMessageTextKey = "burst_message_text"; // Legacy
     private const string BurstMessagesKey = "burst_messages_list";
-    private const string BurstLastRunKey = "burst_last_run";
     private const string IsBurstModeActiveKey = "is_burst_mode_active";
     private const string BurstTargetUsernameKey = "burst_target_username";
 
@@ -139,15 +137,7 @@ public class SettingsService
         {
             var json = Preferences.Get(BurstMessagesKey, string.Empty);
             if (string.IsNullOrEmpty(json))
-            {
-                // Fallback to legacy single message
-                var legacy = Preferences.Get(BurstMessageTextKey, string.Empty);
-                if (!string.IsNullOrEmpty(legacy))
-                {
-                    return new List<string> { legacy };
-                }
                 return new List<string> { "Burst Message" };
-            }
 
             return JsonSerializer.Deserialize<List<string>>(json, JsonOptions) ?? new List<string> { "Burst Message" };
         }
@@ -239,22 +229,6 @@ public class SettingsService
         Preferences.Set(LastRunKey, time.Ticks);
     }
 
-    /// <summary>
-    /// Get the last burst run timestamp
-    /// </summary>
-    public DateTime? GetBurstLastRunTime()
-    {
-        var ticks = Preferences.Get(BurstLastRunKey, 0L);
-        return ticks > 0 ? new DateTime(ticks) : null;
-    }
-
-    /// <summary>
-    /// Set the last burst run timestamp
-    /// </summary>
-    public void SetBurstLastRunTime(DateTime time)
-    {
-        Preferences.Set(BurstLastRunKey, time.Ticks);
-    }
 
     /// <summary>
     /// Get whether the scheduler is enabled
@@ -303,6 +277,98 @@ public class SettingsService
 
         // If never run, schedule for now
         return DateTime.Now;
+    }
+
+    #endregion
+
+    #region Burst Quota
+
+    private const string BurstDailySentCountKey = "burst_daily_sent_count";
+    private const string BurstDailyDateKey = "burst_daily_date";
+    private const string BurstDailyLimitKey = "burst_daily_limit";
+
+    /// <summary>Absolute maximum burst messages per day (hard ceiling)</summary>
+    public const int BurstMaxDailyCeiling = 720;
+
+    /// <summary>Minimum messages per burst chunk</summary>
+    public const int BurstChunkSizeMin = 30;
+
+    /// <summary>Maximum messages per burst chunk</summary>
+    public const int BurstChunkSizeMax = 40;
+
+    /// <summary>Minimum hibernation between chunks in ms (5 min)</summary>
+    public const int BurstHibernationMinMs = 5 * 60 * 1000;
+
+    /// <summary>Maximum hibernation between chunks in ms (15 min)</summary>
+    public const int BurstHibernationMaxMs = 15 * 60 * 1000;
+
+    /// <summary>
+    /// Get user-configured daily burst limit (1-720, defaults to 720)
+    /// </summary>
+    public int GetBurstDailyLimit()
+    {
+        var limit = Preferences.Get(BurstDailyLimitKey, BurstMaxDailyCeiling);
+        return Math.Clamp(limit, 1, BurstMaxDailyCeiling);
+    }
+
+    /// <summary>
+    /// Set user-configured daily burst limit (clamped to 1-720)
+    /// </summary>
+    public void SetBurstDailyLimit(int limit)
+    {
+        Preferences.Set(BurstDailyLimitKey, Math.Clamp(limit, 1, BurstMaxDailyCeiling));
+    }
+
+    /// <summary>
+    /// Get burst messages sent today (resets on new day)
+    /// </summary>
+    public int GetBurstDailySentCount()
+    {
+        var savedDate = Preferences.Get(BurstDailyDateKey, string.Empty);
+        var today = DateTime.Now.ToString("yyyy-MM-dd");
+        if (savedDate != today)
+        {
+            Preferences.Set(BurstDailyDateKey, today);
+            Preferences.Set(BurstDailySentCountKey, 0);
+            return 0;
+        }
+        return Preferences.Get(BurstDailySentCountKey, 0);
+    }
+
+    /// <summary>
+    /// Set burst messages sent today
+    /// </summary>
+    public void SetBurstDailySentCount(int count)
+    {
+        Preferences.Set(BurstDailyDateKey, DateTime.Now.ToString("yyyy-MM-dd"));
+        Preferences.Set(BurstDailySentCountKey, count);
+    }
+
+    /// <summary>
+    /// Increment burst daily sent count by 1
+    /// </summary>
+    public void IncrementBurstDailySentCount()
+    {
+        var current = GetBurstDailySentCount();
+        SetBurstDailySentCount(current + 1);
+    }
+
+    /// <summary>
+    /// Calculate burst session plan with precise time estimates
+    /// </summary>
+    public (int sessionsNeeded, int estimatedMinutes, int estimatedTotalSeconds, int remaining, int dailyLimit) CalculateBurstPlan()
+    {
+        var dailyLimit = GetBurstDailyLimit();
+        var dailySent = GetBurstDailySentCount();
+        var remaining = Math.Max(0, dailyLimit - dailySent);
+        var avgChunkSize = (BurstChunkSizeMin + BurstChunkSizeMax) / 2;
+        var sessionsNeeded = remaining > 0 ? (int)Math.Ceiling((double)remaining / avgChunkSize) : 0;
+        var avgDelaySeconds = 6.5; // avg of 3-10s
+        var totalSendSeconds = remaining * avgDelaySeconds;
+        var totalHibernationSeconds = Math.Max(0, sessionsNeeded - 1) * ((BurstHibernationMinMs + BurstHibernationMaxMs) / 2.0 / 1000.0);
+        var estimatedTotalSeconds = (int)(totalSendSeconds + totalHibernationSeconds);
+        var estimatedMinutes = estimatedTotalSeconds / 60;
+        return (sessionsNeeded, estimatedMinutes, estimatedTotalSeconds, remaining, dailyLimit);
     }
 
     #endregion

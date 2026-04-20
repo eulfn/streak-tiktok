@@ -52,7 +52,7 @@ public class StreakService : Service
     // ── Service lifecycle flags ──
     private bool _isCancelRequested = false;
     private bool _automationStarted = false;
-    private bool _needsPageReload = false;
+
 
     // ── Run-level mutex: prevents concurrent automation sessions ──
     private static volatile bool _isRunning = false;
@@ -360,16 +360,6 @@ public class StreakService : Service
         // Check if we're on the messages page
         if (url.Contains("tiktok.com/messages"))
         {
-            // Inter-friend page reload: the page was reloaded to reset the
-            // TikTok SPA state so the chat list is fresh for the next friend.
-            if (_needsPageReload)
-            {
-                _needsPageReload = false;
-                AppLog("NAVIGATION", "-", "Messages page reloaded for next friend");
-                _mainHandler?.PostDelayed(ProcessNextFriend, 3000);
-                return;
-            }
-
             // Guard: only start the automation chain once (first page load)
             if (_automationStarted) return;
             _automationStarted = true;
@@ -592,32 +582,13 @@ public class StreakService : Service
         _currentBurstUsername = null;
         _burstCurrentChunk = 0;
 
-        // Move to next friend
+        // Move to next friend (v1.8.0 approach: no page reload, sidebar stays visible)
         _currentFriendIndex++;
         var completedCount = _currentFriendIndex;
         var totalCount = _friendsToProcess?.Count ?? 0;
         var resultText = $"{completedCount}/{totalCount} : Sent to @{username}";
         UpdateNotification(resultText, completedCount, totalCount);
-
-        // Check if there are more friends to process
-        if (_currentFriendIndex < (_friendsToProcess?.Count ?? 0))
-        {
-            // Reload the messages page to reset TikTok's SPA state.
-            // After messaging a friend, the WebView stays inside that conversation.
-            // The next friend's script would fail because the chat list DOM is stale.
-            // OnPageLoaded will detect _needsPageReload and call ProcessNextFriend.
-            _needsPageReload = true;
-            AppLog("NAVIGATION", "-", "Reloading messages page for next friend...");
-            _mainHandler?.PostDelayed(() =>
-            {
-                _webView?.LoadUrl("https://www.tiktok.com/messages?lang=en");
-            }, 2000);
-        }
-        else
-        {
-            // All friends processed — call ProcessNextFriend to trigger completion
-            _mainHandler?.PostDelayed(ProcessNextFriend, 1000);
-        }
+        _mainHandler?.PostDelayed(ProcessNextFriend, 3000);
     }
 
     /// <summary>

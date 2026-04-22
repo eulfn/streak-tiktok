@@ -193,41 +193,6 @@ public partial class MainPage : ContentPage
         }
     }
 
-    private async void OnCheckUpdatesClicked(object? sender, EventArgs e)
-    {
-        if (_isCheckingForUpdates) return;
-        _isCheckingForUpdates = true;
-
-        try
-        {
-            if (Navigation.ModalStack.Any(p => p is AboutPopupPage)) return;
-
-            var updateCheck = await _updateService.CheckForUpdatesAsync();
-            if (updateCheck != null && updateCheck.HasUpdate)
-            {
-                string remoteVersion = NormalizeVersion(updateCheck.LatestVersion);
-                await Navigation.PushModalAsync(new AboutPopupPage(
-                    "Update Available!",
-                    remoteVersion,
-                    updateCheck.Changelog,
-                    true,
-                    updateCheck.ApkDownloadUrl));
-            }
-            else
-            {
-                await DisplayAlert("Up to Date", "You are running the latest version of Feener.", "OK");
-            }
-        }
-        catch
-        {
-            await DisplayAlert("Network Error", "Could not check for updates. Please check your connection.", "OK");
-        }
-        finally
-        {
-            _isCheckingForUpdates = false;
-        }
-    }
-
     private void CheckSessionStatus()
     {
         // If we already checked this session, just update the button state
@@ -357,8 +322,11 @@ public partial class MainPage : ContentPage
         }
     }
 
-    private void UpdateLoginButtonState(bool isSessionValid, bool isChecking = false)
+    private async void UpdateLoginButtonState(bool isSessionValid, bool isChecking = false)
     {
+        // Animate out
+        await LoginButton.FadeTo(0.5, 100);
+
         if (isChecking)
         {
             LoginButton.Text = string.Empty;
@@ -386,6 +354,9 @@ public partial class MainPage : ContentPage
             MasterRunButton.IsEnabled = false;
             MasterRunButton.Opacity = 0.5;
         }
+
+        // Animate back in
+        await LoginButton.FadeTo(1.0, 200);
     }
 
     private void LoadSettings()
@@ -428,46 +399,62 @@ public partial class MainPage : ContentPage
         SetBurstModeUI();
     }
 
-    private void SetNormalModeUI()
+    private async void SetNormalModeUI()
     {
+        // Animate outgoing container
+        if (BurstModeContainer.IsVisible)
+        {
+            await BurstModeContainer.FadeTo(0, 150, Easing.CubicIn);
+            BurstModeContainer.IsVisible = false;
+        }
+
         // Styling tabs
-        NormalModeTabBorder.BackgroundColor = GetThemeColor("Primary", "#2563EB");
+        NormalModeTabBorder.BackgroundColor = GetThemeColor("Primary", "#FE2C55");
         NormalModeTabLabel.TextColor = GetThemeColor("White", "#FFFFFF");
         
         BurstModeTabBorder.BackgroundColor = Colors.Transparent;
         BurstModeTabLabel.TextColor = GetThemeColor("Gray600", "#4B5563");
 
-        // UI visibility
+        // UI visibility with fade-in
+        NormalModeContainer.Opacity = 0;
         NormalModeContainer.IsVisible = true;
-        BurstModeContainer.IsVisible = false;
+        await NormalModeContainer.FadeTo(1, 200, Easing.CubicOut);
         
         if (NormalAutomationSettingsPanel != null)
             NormalAutomationSettingsPanel.IsVisible = true;
 
         // Button style
-        MasterRunButton.Text = "Initiate Normal Streak";
-        MasterRunButton.BackgroundColor = GetThemeColor("Primary", "#2563EB");
+        MasterRunButton.Text = "Run Normal";
+        MasterRunButton.BackgroundColor = GetThemeColor("Primary", "#FE2C55");
     }
 
-    private void SetBurstModeUI()
+    private async void SetBurstModeUI()
     {
+        // Animate outgoing container
+        if (NormalModeContainer.IsVisible)
+        {
+            await NormalModeContainer.FadeTo(0, 150, Easing.CubicIn);
+            NormalModeContainer.IsVisible = false;
+        }
+
         // Styling tabs
-        BurstModeTabBorder.BackgroundColor = Color.FromArgb("#8B5CF6");
+        BurstModeTabBorder.BackgroundColor = GetThemeColor("BurstAccent", "#8B5CF6");
         BurstModeTabLabel.TextColor = Colors.White;
         
         NormalModeTabBorder.BackgroundColor = Colors.Transparent;
         NormalModeTabLabel.TextColor = GetThemeColor("Gray600", "#4B5563");
 
-        // UI visibility
-        NormalModeContainer.IsVisible = false;
+        // UI visibility with fade-in
+        BurstModeContainer.Opacity = 0;
         BurstModeContainer.IsVisible = true;
+        await BurstModeContainer.FadeTo(1, 200, Easing.CubicOut);
         
         if (NormalAutomationSettingsPanel != null)
             NormalAutomationSettingsPanel.IsVisible = false;
 
         // Button style
-        MasterRunButton.Text = "Deploy Burst Sequence";
-        MasterRunButton.BackgroundColor = Color.FromArgb("#8B5CF6");
+        MasterRunButton.Text = "Run Burst";
+        MasterRunButton.BackgroundColor = GetThemeColor("BurstAccent", "#8B5CF6");
     }
 
     private void UpdateBurstPlanDisplay()
@@ -721,13 +708,19 @@ public partial class MainPage : ContentPage
     {
         var border = new Border
         {
-            StrokeShape = new RoundRectangle { CornerRadius = 12 },
+            StrokeShape = new RoundRectangle { CornerRadius = 16 },
             Stroke = Colors.Transparent,
-            Padding = new Thickness(12)
+            Padding = new Thickness(12),
+            Opacity = 0,
+            TranslationY = 10
         };
         border.SetAppThemeColor(Border.BackgroundColorProperty,
             GetThemeColor("ListItemLight", "#F4F4F4"),
-            GetThemeColor("ListItemDark", "#282828"));
+            GetThemeColor("ListItemDark", "#252525"));
+            
+        // Subtle entrance animation
+        _ = border.FadeTo(1, 300, Easing.CubicOut);
+        _ = border.TranslateTo(0, 0, 300, Easing.CubicOut);
 
         var grid = new Grid
         {
@@ -846,7 +839,7 @@ public partial class MainPage : ContentPage
 
     private void LoadHistory()
     {
-        var history = _settingsService.GetRunHistory().Take(5).ToList();
+        var allHistory = _settingsService.GetRunHistory();
 
         // Clear existing history items (except NoHistoryLabel)
         var itemsToRemove = HistoryContainer.Children
@@ -858,20 +851,30 @@ public partial class MainPage : ContentPage
             HistoryContainer.Children.Remove(item);
         }
 
-        NoHistoryLabel.IsVisible = history.Count == 0;
+        NoHistoryLabel.IsVisible = allHistory.Count == 0;
+        SeeAllHistoryButton.IsVisible = allHistory.Count > 5;
 
-        foreach (var run in history)
+        foreach (var run in allHistory.Take(5))
         {
             var historyView = CreateHistoryView(run);
             HistoryContainer.Children.Add(historyView);
         }
     }
 
+    private async void OnSeeAllHistoryClicked(object? sender, EventArgs e)
+    {
+        var allHistory = _settingsService.GetRunHistory();
+        var summary = string.Join("\n\n", allHistory.Take(20).Select(r => 
+            $"{r.RunTime:MMM dd, HH:mm}: {(r.Success ? "Success" : "Failed")}\n" +
+            $"{(r.FriendResults.Count > 0 ? $"{r.FriendResults.Count(f => f.Success)}/{r.FriendResults.Count} sent" : r.ErrorMessage)}"));
+
+        await DisplayAlert("Run History", summary, "Done");
+    }
+
     private View CreateHistoryView(StreakRunResult run)
     {
         var successCount = run.FriendResults.Count(r => r.Success);
         var totalCount = run.FriendResults.Count;
-        var statusIcon = run.Success ? "OK" : "ERR";
         var statusColor = run.Success ? GetThemeColor("Success", "#22946E") : GetThemeColor("Error", "#9C2121");
 
         var grid = new Grid
@@ -882,23 +885,29 @@ public partial class MainPage : ContentPage
                 new ColumnDefinition { Width = GridLength.Star },
                 new ColumnDefinition { Width = GridLength.Auto }
             },
-            ColumnSpacing = 8
+            ColumnSpacing = 12,
+            Padding = new Thickness(0, 4)
         };
 
-        var iconLabel = new Label
+        // Status Indicator Dot
+        var statusDot = new Border
         {
-            Text = statusIcon,
-            FontSize = 16,
-            TextColor = statusColor,
-            VerticalOptions = LayoutOptions.Center
+            WidthRequest = 8,
+            HeightRequest = 8,
+            StrokeThickness = 0,
+            StrokeShape = new RoundRectangle { CornerRadius = 4 },
+            BackgroundColor = statusColor,
+            VerticalOptions = LayoutOptions.Center,
+            Margin = new Thickness(4, 0)
         };
-        grid.Children.Add(iconLabel);
+        grid.Children.Add(statusDot);
 
         var infoStack = new VerticalStackLayout { Spacing = 2 };
         infoStack.Children.Add(new Label
         {
             Text = run.RunTime.ToString("MMM dd, HH:mm"),
-            FontSize = 14
+            FontSize = 14,
+            FontFamily = "InterMedium"
         });
         
         if (totalCount > 0)
@@ -907,7 +916,7 @@ public partial class MainPage : ContentPage
             var infoLabel = new Label
             {
                 Text = skippedCount > 0
-                    ? $"{successCount}/{totalCount} sent, {skippedCount} skipped"
+                    ? $"{successCount}/{totalCount} sent \u2022 {skippedCount} skipped"
                     : $"{successCount}/{totalCount} messages sent",
                 FontSize = 12
             };
@@ -1079,6 +1088,10 @@ public partial class MainPage : ContentPage
 
     private async void OnMasterRunClicked(object? sender, EventArgs e)
     {
+        // Subtle press feedback
+        await MasterRunButton.ScaleTo(0.96, 80, Easing.CubicIn);
+        await MasterRunButton.ScaleTo(1.0, 80, Easing.CubicOut);
+
         bool isBurstMode = _settingsService.IsBurstModeActive();
 
         if (isBurstMode)

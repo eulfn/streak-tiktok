@@ -14,25 +14,30 @@
             <VerticalStackLayout Padding="20" Spacing="16">
                 
                 <!-- Header -->
-                    <VerticalStackLayout VerticalOptions="Center" Spacing="4">
+                <VerticalStackLayout VerticalOptions="Center" Spacing="2">
                         <Label Text="Feener" 
                                Style="{StaticResource PageTitleLabel}"
+                               HorizontalOptions="Start"/>
+                        <Label Text="TikTok Streak Automation"
+                               FontFamily="InterRegular"
+                               FontSize="12"
+                               TextColor="{AppThemeBinding Light={StaticResource Gray400}, Dark={StaticResource Gray500}}"
                                HorizontalOptions="Start"/>
                         
                         <!-- Mode Switcher -->
                         <Border Stroke="{AppThemeBinding Light={StaticResource BorderColorLight}, Dark={StaticResource BorderColorDark}}"
                                 StrokeThickness="1"
-                                StrokeShape="RoundRectangle 20"
+                                StrokeShape="RoundRectangle 22"
                                 BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray900}}"
-                                Margin="0,8,0,0">
-                            <Grid ColumnDefinitions="*,*" HeightRequest="40">
+                                Margin="0,12,0,0">
+                            <Grid ColumnDefinitions="*,*" HeightRequest="44">
                                 <Border x:Name="NormalModeTabBorder" 
                                         Grid.Column="0" 
                                         StrokeThickness="0"
                                         BackgroundColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}"
-                                        StrokeShape="RoundRectangle 20">
+                                        StrokeShape="RoundRectangle 22">
                                     <Label x:Name="NormalModeTabLabel" 
-                                           Text="Normal Streak" 
+                                           Text="Normal" 
                                            TextColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource PrimaryDarkText}}"
                                            FontFamily="InterSemiBold"
                                            FontSize="14"
@@ -45,9 +50,9 @@
                                         Grid.Column="1" 
                                         StrokeThickness="0"
                                         BackgroundColor="Transparent"
-                                        StrokeShape="RoundRectangle 20">
+                                        StrokeShape="RoundRectangle 22">
                                     <Label x:Name="BurstModeTabLabel" 
-                                           Text="Burst Mode" 
+                                           Text="Burst" 
                                            TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray400}}"
                                            FontFamily="InterSemiBold"
                                            FontSize="14"
@@ -242,6 +247,20 @@
                         </VerticalStackLayout>
                     </VerticalStackLayout>
                 </Border>
+
+                <!-- Skip Unreachable Users (moved from bottom bar) -->
+                <Border Style="{StaticResource SectionCard}">
+                    <Grid ColumnDefinitions="*, Auto" ColumnSpacing="12">
+                        <VerticalStackLayout VerticalOptions="Center" Spacing="4">
+                            <Label Text="Skip Unreachable" Style="{StaticResource SectionLabel}"/>
+                            <Label Text="Continue to remaining users when one is not found" Style="{StaticResource DataLabel}" LineBreakMode="WordWrap"/>
+                        </VerticalStackLayout>
+                        <Switch x:Name="SkipUnreachableSwitch" 
+                                Grid.Column="1"
+                                VerticalOptions="Center"
+                                Toggled="OnSkipUnreachableToggled"/>
+                    </Grid>
+                </Border>
                 </VerticalStackLayout>
                 
                 <VerticalStackLayout x:Name="BurstModeContainer" IsVisible="False" Spacing="16">
@@ -351,20 +370,23 @@
                                    Style="{StaticResource DataLabel}"
                                    HorizontalOptions="Center"/>
                         </VerticalStackLayout>
+                        
+                        <Button x:Name="SeeAllHistoryButton"
+                                Text="See Full History"
+                                Style="{StaticResource TextButton}"
+                                HorizontalOptions="Center"
+                                IsVisible="False"
+                                Clicked="OnSeeAllHistoryClicked"/>
                     </VerticalStackLayout>
                 </Border>
 
                 <!-- App Footer -->
-                <VerticalStackLayout Spacing="6" Margin="0, 24, 0, 16" HorizontalOptions="Center">
-                    <BoxView HeightRequest="1" WidthRequest="48" HorizontalOptions="Center"
-                             Color="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray700}}"
-                             Margin="0,0,0,4"/>
-                    <Button Text="Check for updates"
-                            Style="{StaticResource TextButton}"
-                            TextColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray400}}"
-                            FontSize="12"
-                            Clicked="OnCheckUpdatesClicked"/>
-                </VerticalStackLayout>
+                <Label Text="Pull down to check for updates"
+                       FontFamily="InterRegular"
+                       FontSize="11"
+                       TextColor="{AppThemeBinding Light={StaticResource Gray400}, Dark={StaticResource Gray600}}"
+                       HorizontalOptions="Center"
+                       Margin="0,24,0,16"/>
 
             </VerticalStackLayout>
         </ScrollView>
@@ -385,24 +407,12 @@
                 <Grid ColumnDefinitions="*, Auto" ColumnSpacing="12">
                     <VerticalStackLayout VerticalOptions="Center" Spacing="4">
                         <Label Text="Background Automation" Style="{StaticResource SectionLabel}"/>
-                        <Label Text="Automatically keep streaks alive in the background" Style="{StaticResource DataLabel}" LineBreakMode="WordWrap"/>
+                        <Label Text="Keep streaks alive automatically" Style="{StaticResource DataLabel}" LineBreakMode="WordWrap"/>
                     </VerticalStackLayout>
                     <Switch x:Name="ScheduleSwitch" 
                             Grid.Column="1"
                             VerticalOptions="Center"
                             Toggled="OnScheduleToggled"/>
-                </Grid>
-
-                <!-- Skip Unreachable Users Toggle -->
-                <Grid ColumnDefinitions="*, Auto" ColumnSpacing="12">
-                    <VerticalStackLayout VerticalOptions="Center" Spacing="4">
-                        <Label Text="Skip Unreachable Users" Style="{StaticResource SectionLabel}"/>
-                        <Label Text="Continue sending to remaining users when one is not found" Style="{StaticResource DataLabel}" LineBreakMode="WordWrap"/>
-                    </VerticalStackLayout>
-                    <Switch x:Name="SkipUnreachableSwitch" 
-                            Grid.Column="1"
-                            VerticalOptions="Center"
-                            Toggled="OnSkipUnreachableToggled"/>
                 </Grid>
             </VerticalStackLayout>
 
@@ -436,11 +446,12 @@
             <!-- Execution Action -->
             <Grid x:Name="RunButtonsContainer">
                 <Button x:Name="MasterRunButton"
-                        Text="START NORMAL STREAK"
+                        Text="Run Normal"
                         BackgroundColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}"
                         TextColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource PrimaryDarkText}}"
                         FontFamily="InterSemiBold"
-                        CornerRadius="12"
+                        FontSize="16"
+                        CornerRadius="14"
                         HeightRequest="56"
                         Clicked="OnMasterRunClicked"/>
             </Grid>

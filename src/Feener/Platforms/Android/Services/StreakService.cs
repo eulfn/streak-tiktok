@@ -686,35 +686,47 @@ public class StreakService : Service
             }
 
             // Show completion notification
-            var successCount = _runResult?.FriendResults.Count(r => r.Success) ?? 0;
-            var totalSent = _runResult?.FriendResults.Count ?? 0;
-            var skippedCount = totalSent - successCount;
-
-            // Build human-readable summary including cooldown-skipped friends
-            var cooldownNote = _cooldownSkippedCount > 0
-                ? $", {_cooldownSkippedCount} already sent"
-                : string.Empty;
-
             string finalText;
-            if (success)
+            if (_isBurstMode)
             {
-                finalText = $"Done : {successCount}/{totalSent} sent successfully{cooldownNote}";
-            }
-            else if (totalSent > 0 && successCount > 0)
-            {
-                if (_disabledUsernames.Count > 0)
-                    finalText = $"Done : {successCount}/{totalSent} sent, {_disabledUsernames.Count} disabled ({string.Join(", ", _disabledUsernames)}){cooldownNote}";
+                // Burst mode tracks progress in _burstTotalSent, not FriendResults
+                var dailyTotal = _settingsService?.GetBurstDailySentCount() ?? _burstTotalSent;
+                var dailyLimit = _settingsService?.GetBurstDailyLimit() ?? 0;
+                if (success)
+                    finalText = $"Burst done — {_burstTotalSent} sent this session ({dailyTotal}/{dailyLimit} today)";
                 else
-                    finalText = $"Done : {successCount}/{totalSent} sent, {skippedCount} skipped{cooldownNote}";
+                    finalText = $"Burst stopped — {_burstTotalSent} sent this session: {message}";
             }
             else
             {
-                if (_disabledUsernames.Count > 0)
-                    finalText = $"Done : 0/{totalSent} sent, {_disabledUsernames.Count} disabled ({string.Join(", ", _disabledUsernames)}){cooldownNote}";
-                else if (totalSent > 0)
-                    finalText = $"Done : 0/{totalSent} sent, {skippedCount} failed{cooldownNote}";
+                var successCount = _runResult?.FriendResults.Count(r => r.Success) ?? 0;
+                var totalSent = _runResult?.FriendResults.Count ?? 0;
+                var skippedCount = totalSent - successCount;
+
+                var cooldownNote = _cooldownSkippedCount > 0
+                    ? $", {_cooldownSkippedCount} already sent"
+                    : string.Empty;
+
+                if (success)
+                {
+                    finalText = $"Done : {successCount}/{totalSent} sent successfully{cooldownNote}";
+                }
+                else if (totalSent > 0 && successCount > 0)
+                {
+                    if (_disabledUsernames.Count > 0)
+                        finalText = $"Done : {successCount}/{totalSent} sent, {_disabledUsernames.Count} disabled ({string.Join(", ", _disabledUsernames)}){cooldownNote}";
+                    else
+                        finalText = $"Done : {successCount}/{totalSent} sent, {skippedCount} skipped{cooldownNote}";
+                }
                 else
-                    finalText = $"Stopped : {message}";
+                {
+                    if (_disabledUsernames.Count > 0)
+                        finalText = $"Done : 0/{totalSent} sent, {_disabledUsernames.Count} disabled ({string.Join(", ", _disabledUsernames)}){cooldownNote}";
+                    else if (totalSent > 0)
+                        finalText = $"Done : 0/{totalSent} sent, {skippedCount} failed{cooldownNote}";
+                    else
+                        finalText = $"Stopped : {message}";
+                }
             }
 
             var finalNotification = new NotificationCompat.Builder(this, ChannelId)

@@ -14,6 +14,10 @@
     <Color x:Key="SecondaryDarkText">#25F4EE</Color>
     <Color x:Key="Tertiary">#FE2C55</Color>
 
+    <!-- Burst Mode Accent -->
+    <Color x:Key="BurstAccent">#8B5CF6</Color>
+    <Color x:Key="BurstAccentDark">#A78BFA</Color>
+
     <Color x:Key="White">White</Color>
     <Color x:Key="Black">Black</Color>
     <Color x:Key="Magenta">#FE2C55</Color>
@@ -62,13 +66,14 @@
     
     <!-- Light Theme Surfaces (DOCX) -->
     <Color x:Key="CardBackgroundLight">#FFFFFF</Color>
-    <Color x:Key="CardBackgroundDark">#282828</Color>
+    <Color x:Key="CardBackgroundDark">#1E1E1E</Color>
+    <Color x:Key="SurfaceElevated">#1A1A2E</Color>
     <Color x:Key="BorderColorLight">#E1E8ED</Color>
     <Color x:Key="BorderColorDark">#3F3F3F</Color>
     <Color x:Key="DeleteColor">#EE1D52</Color>
     
     <Color x:Key="ListItemLight">#F4F4F4</Color>
-    <Color x:Key="ListItemDark">#282828</Color>
+    <Color x:Key="ListItemDark">#252525</Color>
     <Color x:Key="ListItemBorderLight">#E1E8ED</Color>
     <Color x:Key="ListItemBorderDark">#3F3F3F</Color>
 

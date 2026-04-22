@@ -370,13 +370,6 @@
                                    Style="{StaticResource DataLabel}"
                                    HorizontalOptions="Center"/>
                         </VerticalStackLayout>
-                        
-                        <Button x:Name="SeeAllHistoryButton"
-                                Text="See Full History"
-                                Style="{StaticResource TextButton}"
-                                HorizontalOptions="Center"
-                                IsVisible="False"
-                                Clicked="OnSeeAllHistoryClicked"/>
                     </VerticalStackLayout>
                 </Border>
 

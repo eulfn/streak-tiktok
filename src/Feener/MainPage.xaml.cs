@@ -193,6 +193,41 @@ public partial class MainPage : ContentPage
         }
     }
 
+    private async void OnCheckUpdatesClicked(object? sender, EventArgs e)
+    {
+        if (_isCheckingForUpdates) return;
+        _isCheckingForUpdates = true;
+
+        try
+        {
+            if (Navigation.ModalStack.Any(p => p is AboutPopupPage)) return;
+
+            var updateCheck = await _updateService.CheckForUpdatesAsync();
+            if (updateCheck != null && updateCheck.HasUpdate)
+            {
+                string remoteVersion = NormalizeVersion(updateCheck.LatestVersion);
+                await Navigation.PushModalAsync(new AboutPopupPage(
+                    "Update Available!",
+                    remoteVersion,
+                    updateCheck.Changelog,
+                    true,
+                    updateCheck.ApkDownloadUrl));
+            }
+            else
+            {
+                await DisplayAlert("Up to Date", "You are running the latest version of Feener.", "OK");
+            }
+        }
+        catch
+        {
+            await DisplayAlert("Network Error", "Could not check for updates. Please check your connection.", "OK");
+        }
+        finally
+        {
+            _isCheckingForUpdates = false;
+        }
+    }
+
     private void CheckSessionStatus()
     {
         // If we already checked this session, just update the button state
@@ -324,8 +359,8 @@ public partial class MainPage : ContentPage
 
     private async void UpdateLoginButtonState(bool isSessionValid, bool isChecking = false)
     {
-        // Animate out
-        await LoginButton.FadeTo(0.5, 100);
+        // Fade out before state change
+        await LoginButton.FadeTo(0.3, 120, Easing.CubicIn);
 
         if (isChecking)
         {
@@ -338,7 +373,7 @@ public partial class MainPage : ContentPage
         }
         else if (isSessionValid)
         {
-            LoginButton.Text = "Session OK";
+            LoginButton.Text = "Session Active";
             LoginButton.BackgroundColor = GetThemeColor("Success", "#22946E");
             LoginButton.IsEnabled = false;
             SessionCheckingIndicator.IsVisible = false;
@@ -355,8 +390,8 @@ public partial class MainPage : ContentPage
             MasterRunButton.Opacity = 0.5;
         }
 
-        // Animate back in
-        await LoginButton.FadeTo(1.0, 200);
+        // Fade back in
+        await LoginButton.FadeTo(1.0, 200, Easing.CubicOut);
     }
 
     private void LoadSettings()
@@ -697,10 +732,20 @@ public partial class MainPage : ContentPage
             NoFriendsLabel.IsVisible = false;
         }
 
+        int index = 0;
         foreach (var friend in displayFriends)
         {
             var friendView = CreateFriendView(friend);
+            friendView.Opacity = 0;
+            friendView.TranslationY = -8;
             FriendsListContainer.Children.Add(friendView);
+
+            // Staggered entrance animation
+            _ = Task.WhenAll(
+                friendView.FadeTo(1, 200 + (uint)(index * 30), Easing.CubicOut),
+                friendView.TranslateTo(0, 0, 200 + (uint)(index * 30), Easing.CubicOut)
+            );
+            index++;
         }
     }
 
@@ -708,19 +753,13 @@ public partial class MainPage : ContentPage
     {
         var border = new Border
         {
-            StrokeShape = new RoundRectangle { CornerRadius = 16 },
+            StrokeShape = new RoundRectangle { CornerRadius = 12 },
             Stroke = Colors.Transparent,
-            Padding = new Thickness(12),
-            Opacity = 0,
-            TranslationY = 10
+            Padding = new Thickness(12)
         };
         border.SetAppThemeColor(Border.BackgroundColorProperty,
             GetThemeColor("ListItemLight", "#F4F4F4"),
-            GetThemeColor("ListItemDark", "#252525"));
-            
-        // Subtle entrance animation
-        _ = border.FadeTo(1, 300, Easing.CubicOut);
-        _ = border.TranslateTo(0, 0, 300, Easing.CubicOut);
+            GetThemeColor("ListItemDark", "#282828"));
 
         var grid = new Grid
         {
@@ -839,7 +878,7 @@ public partial class MainPage : ContentPage
 
     private void LoadHistory()
     {
-        var allHistory = _settingsService.GetRunHistory();
+        var history = _settingsService.GetRunHistory().Take(5).ToList();
 
         // Clear existing history items (except NoHistoryLabel)
         var itemsToRemove = HistoryContainer.Children
@@ -851,24 +890,13 @@ public partial class MainPage : ContentPage
             HistoryContainer.Children.Remove(item);
         }
 
-        NoHistoryLabel.IsVisible = allHistory.Count == 0;
-        SeeAllHistoryButton.IsVisible = allHistory.Count > 5;
+        NoHistoryLabel.IsVisible = history.Count == 0;
 
-        foreach (var run in allHistory.Take(5))
+        foreach (var run in history)
         {
             var historyView = CreateHistoryView(run);
             HistoryContainer.Children.Add(historyView);
         }
-    }
-
-    private async void OnSeeAllHistoryClicked(object? sender, EventArgs e)
-    {
-        var allHistory = _settingsService.GetRunHistory();
-        var summary = string.Join("\n\n", allHistory.Take(20).Select(r => 
-            $"{r.RunTime:MMM dd, HH:mm}: {(r.Success ? "Success" : "Failed")}\n" +
-            $"{(r.FriendResults.Count > 0 ? $"{r.FriendResults.Count(f => f.Success)}/{r.FriendResults.Count} sent" : r.ErrorMessage)}"));
-
-        await DisplayAlert("Run History", summary, "Done");
     }
 
     private View CreateHistoryView(StreakRunResult run)
@@ -876,6 +904,16 @@ public partial class MainPage : ContentPage
         var successCount = run.FriendResults.Count(r => r.Success);
         var totalCount = run.FriendResults.Count;
         var statusColor = run.Success ? GetThemeColor("Success", "#22946E") : GetThemeColor("Error", "#9C2121");
+
+        var border = new Border
+        {
+            StrokeShape = new RoundRectangle { CornerRadius = 10 },
+            Stroke = Colors.Transparent,
+            Padding = new Thickness(12, 10)
+        };
+        border.SetAppThemeColor(Border.BackgroundColorProperty,
+            GetThemeColor("ListItemLight", "#F4F4F4"),
+            GetThemeColor("ListItemDark", "#1E1E1E"));
 
         var grid = new Grid
         {
@@ -885,22 +923,19 @@ public partial class MainPage : ContentPage
                 new ColumnDefinition { Width = GridLength.Star },
                 new ColumnDefinition { Width = GridLength.Auto }
             },
-            ColumnSpacing = 12,
-            Padding = new Thickness(0, 4)
+            ColumnSpacing = 12
         };
 
-        // Status Indicator Dot
-        var statusDot = new Border
+        // Status dot indicator
+        var dot = new BoxView
         {
-            WidthRequest = 8,
-            HeightRequest = 8,
-            StrokeThickness = 0,
-            StrokeShape = new RoundRectangle { CornerRadius = 4 },
-            BackgroundColor = statusColor,
-            VerticalOptions = LayoutOptions.Center,
-            Margin = new Thickness(4, 0)
+            WidthRequest = 10,
+            HeightRequest = 10,
+            CornerRadius = 5,
+            Color = statusColor,
+            VerticalOptions = LayoutOptions.Center
         };
-        grid.Children.Add(statusDot);
+        grid.Children.Add(dot);
 
         var infoStack = new VerticalStackLayout { Spacing = 2 };
         infoStack.Children.Add(new Label
@@ -916,8 +951,8 @@ public partial class MainPage : ContentPage
             var infoLabel = new Label
             {
                 Text = skippedCount > 0
-                    ? $"{successCount}/{totalCount} sent \u2022 {skippedCount} skipped"
-                    : $"{successCount}/{totalCount} messages sent",
+                    ? $"{successCount}/{totalCount} sent, {skippedCount} skipped"
+                    : $"{successCount}/{totalCount} sent",
                 FontSize = 12
             };
             infoLabel.SetAppThemeColor(Label.TextColorProperty,
@@ -939,7 +974,8 @@ public partial class MainPage : ContentPage
         Grid.SetColumn(infoStack, 1);
         grid.Children.Add(infoStack);
 
-        return grid;
+        border.Content = grid;
+        return border;
     }
 
     private void OnScheduleToggled(object? sender, ToggledEventArgs e)

@@ -73,7 +73,7 @@
     <Color x:Key="DeleteColor">#EE1D52</Color>
     
     <Color x:Key="ListItemLight">#F4F4F4</Color>
-    <Color x:Key="ListItemDark">#252525</Color>
+    <Color x:Key="ListItemDark">#262626</Color>
     <Color x:Key="ListItemBorderLight">#E1E8ED</Color>
     <Color x:Key="ListItemBorderDark">#3F3F3F</Color>
 

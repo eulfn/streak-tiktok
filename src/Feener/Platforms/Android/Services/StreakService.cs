@@ -46,6 +46,8 @@ public class StreakService : Service
     private int _burstCurrentChunkSize = 35;
     private int _burstSessionCount = 0;
     private int _burstRemaining = 0;
+    private bool _isHibernating = false;
+    private long _hibernationEndTimeMs = 0;
 
     // ── Service lifecycle flags ──
     private bool _isCancelRequested = false;
@@ -63,6 +65,8 @@ public class StreakService : Service
     public static bool IsRunning => _isRunning;
 
     private int _cooldownSkippedCount = 0;
+    private int _failureAttemptsForCurrentFriend = 0;
+    private const int MaxSendAttemptsPerFriend = 4;
 
     private static List<string> _logs = new();
 
@@ -114,9 +118,7 @@ public class StreakService : Service
         {
             if (_isRunning)
             {
-                AppLog("SYSTEM", "-", "OnStartCommand rejected — automation already running");
-                StopForeground(StopForegroundFlags.Remove);
-                StopSelf();
+                AppLog("SYSTEM", "-", "OnStartCommand ignored — automation already running");
                 return StartCommandResult.NotSticky;
             }
             _isRunning = true;
@@ -315,6 +317,14 @@ public class StreakService : Service
                 }
             }
 
+            // Pre-flight network check
+            if (!NetworkConnectivity.HasWifiOrCellularInternet(this))
+            {
+                AppLog("SYSTEM", "-", "No Wi-Fi or mobile data — skipping run");
+                CompleteService(false, "No network connection — skipped.");
+                return;
+            }
+
             UpdateNotification("Preparing automation...");
 
             //read tiktok_automation.js from assets
@@ -495,7 +505,17 @@ public class StreakService : Service
         {
             if (!success)
             {
-                // FAILED — record failure and move on
+                _failureAttemptsForCurrentFriend++;
+
+                // Retry before giving up (skip retries in burst — same target each time)
+                if (!_isBurstMode && _failureAttemptsForCurrentFriend < MaxSendAttemptsPerFriend)
+                {
+                    AppLog("RETRY", $"@{username}", $"Attempt {_failureAttemptsForCurrentFriend}/{MaxSendAttemptsPerFriend}: {error}");
+                    _mainHandler?.PostDelayed(SendCurrentFriendMessage, 3000);
+                    return;
+                }
+
+                // Max retries exceeded — record failure and move on
                 friend.FailureCount++;
                 AppLog("FAIL", $"@{username}", error);
 
@@ -517,6 +537,7 @@ public class StreakService : Service
                     ErrorMessage = error
                 });
 
+                _failureAttemptsForCurrentFriend = 0;
                 _currentFriendIndex++;
                 if (!_isBurstMode)
                 {
@@ -531,6 +552,7 @@ public class StreakService : Service
             {
                 _burstTotalSent++;
                 _burstChunkSent++;
+                _burstRemaining = Math.Max(0, _burstRemaining - 1);
                 _settingsService.IncrementBurstDailySentCount();
                 
                 // Check daily cap
@@ -552,8 +574,7 @@ public class StreakService : Service
                     var hibernationMin = hibernationMs / 60000.0;
                     AppLog("HIBERNATE", $"@{username}", $"Session {_burstSessionCount} complete ({_burstChunkSent} msgs). Hibernating {hibernationMin:F1} min...");
                     
-                    UpdateNotification($"Hibernating \u2014 Session {_burstSessionCount} done \u2022 {_burstTotalSent}/{_burstRemaining} sent \u2022 Next in {hibernationMin:F0} min");
-                    
+                    StartHibernationCountdown(hibernationMs);
                     _mainHandler?.PostDelayed(StartNextBurstChunk, hibernationMs);
                     return;
                 }
@@ -597,8 +618,8 @@ public class StreakService : Service
     /// </summary>
     private void AdvanceToNextFriend(string username)
     {
-        // Move to next friend (no page reload, sidebar stays visible)
         _currentFriendIndex++;
+        _failureAttemptsForCurrentFriend = 0;
         var completedCount = _currentFriendIndex;
         var totalCount = _friendsToProcess?.Count ?? 0;
         var resultText = $"{completedCount}/{totalCount} : Sent to @{username}";
@@ -612,8 +633,8 @@ public class StreakService : Service
     private void StartNextBurstChunk()
     {
         if (_isCancelRequested) return;
+        StopHibernationCountdown();
         
-        // Randomize next chunk size
         _burstCurrentChunkSize = new Random().Next(SettingsService.BurstChunkSizeMin, SettingsService.BurstChunkSizeMax + 1);
         _burstChunkSent = 0;
         
@@ -622,6 +643,29 @@ public class StreakService : Service
         UpdateNotification($"Bursting @{target} \u2014 Resuming session {_burstSessionCount + 1}...");
         
         SendCurrentFriendMessage();
+    }
+
+    private void StartHibernationCountdown(int totalMs)
+    {
+        _isHibernating = true;
+        _hibernationEndTimeMs = Java.Lang.JavaSystem.CurrentTimeMillis() + totalMs;
+        TickHibernationCountdown();
+    }
+
+    private void StopHibernationCountdown()
+    {
+        _isHibernating = false;
+    }
+
+    private void TickHibernationCountdown()
+    {
+        if (!_isHibernating || _isCancelRequested) return;
+        var remainingMs = _hibernationEndTimeMs - Java.Lang.JavaSystem.CurrentTimeMillis();
+        if (remainingMs <= 0) return;
+        var remainingMin = remainingMs / 60000;
+        var remainingSec = (remainingMs % 60000) / 1000;
+        UpdateNotification($"Hibernating \u2014 Session {_burstSessionCount} done \u2022 {_burstTotalSent} sent \u2022 Next in {remainingMin}m {remainingSec}s");
+        _mainHandler?.PostDelayed(TickHibernationCountdown, 30_000);
     }
 
     private void CompleteService(bool success, string message)

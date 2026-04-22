@@ -7,6 +7,8 @@
     var found = false;
     var chatIndex = 0;
     var chatItems = [];
+    var maxScrollAttempts = 5;
+    var scrollAttempts = 0;
 
     var log = function (msg) {
         if (typeof StreakApp == 'undefined') {
@@ -41,6 +43,63 @@
 
         // Nothing found
         return document.querySelectorAll("[data-e2e*='chat-list-item']");
+    };
+
+    var findChatListContainer = function () {
+        if (chatItems.length > 0) {
+            var parent = chatItems[0].parentElement;
+            while (parent && parent !== document.body) {
+                if (parent.scrollHeight > parent.clientHeight + 10) {
+                    return parent;
+                }
+                parent = parent.parentElement;
+            }
+        }
+        var candidates = document.querySelectorAll('[class*="ChatList"], [class*="chatList"], [class*="conversation-list"]');
+        for (var i = 0; i < candidates.length; i++) {
+            if (candidates[i].scrollHeight > candidates[i].clientHeight + 10) {
+                return candidates[i];
+            }
+        }
+        return null;
+    };
+
+    var scrollAndRetry = function () {
+        scrollAttempts++;
+        if (scrollAttempts > maxScrollAttempts) {
+            log('Max scroll attempts reached (' + maxScrollAttempts + ')');
+            reportError('User not found in chat list');
+            return;
+        }
+        var container = findChatListContainer();
+        if (!container) {
+            log('No scrollable chat container found');
+            reportError('User not found in chat list');
+            return;
+        }
+        var prevCount = chatItems.length;
+        var prevScrollTop = container.scrollTop;
+        container.scrollTop = container.scrollHeight;
+        log('Scrolling chat list (attempt ' + scrollAttempts + '/' + maxScrollAttempts + ')...');
+        setTimeout(function () {
+            chatItems = findChatItems();
+            log('After scroll: ' + chatItems.length + ' items (was ' + prevCount + ')');
+            if (chatItems.length > prevCount) {
+                checkNextChat();
+            } else if (container.scrollTop > prevScrollTop) {
+                setTimeout(function () {
+                    chatItems = findChatItems();
+                    if (chatItems.length > prevCount) {
+                        checkNextChat();
+                    } else {
+                        scrollAndRetry();
+                    }
+                }, 2000);
+            } else {
+                log('Scroll did not move — end of list');
+                reportError('User not found in chat list');
+            }
+        }, 2000);
     };
 
     var findCurrentChatUsername = function () {
@@ -273,8 +332,8 @@
     var checkNextChat = function () {
         if (found || chatIndex >= chatItems.length) {
             if (!found) {
-                log('User not found after checking all chats');
-                reportError('User not found in chat list');
+                log('User not found in visible chats, trying scroll...');
+                scrollAndRetry();
             }
             return;
         }
@@ -362,6 +421,16 @@
                 userName = userName.substring(1);
             }
             log('Looking for user: ' + userName);
+
+            // Pre-check: if the target chat is already open (burst mode repeat)
+            var preCheckUsername = findCurrentChatUsername();
+            if (preCheckUsername && isTargetUser(preCheckUsername)) {
+                log('Target chat already open: ' + preCheckUsername);
+                found = true;
+                setTimeout(sendMessageViaButton, 500);
+                return;
+            }
+
             setTimeout(function () {
             chatItems = findChatItems();
             log('Found ' + chatItems.length + ' chat items');

@@ -5,25 +5,25 @@
              Title="Login to TikTok"
              Shell.NavBarIsVisible="False"
              NavigationPage.HasNavigationBar="False"
-             BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource OffBlack}}">
+             BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource OffBlack}}">
     
     <Grid RowDefinitions="Auto, *, Auto">
         
         <!-- Header -->
         <Border Grid.Row="0" 
                 BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}"
-                Stroke="{AppThemeBinding Light={StaticResource BorderColorLightBrush}, Dark={StaticResource BorderColorDarkBrush}}"
-                StrokeThickness="1"
-                StrokeShape="Rectangle"
-                Padding="16">
+                Stroke="Transparent"
+                StrokeThickness="0"
+                StrokeShape="RoundRectangle 0,0,20,20"
+                Padding="20">
             <VerticalStackLayout Spacing="4">
                 <Label Text="Login to TikTok" 
                        TextColor="{AppThemeBinding Light={StaticResource Gray950}, Dark={StaticResource White}}"
                        FontFamily="InterSemiBold"
                        FontSize="20"/>
                 <Label Text="Login to your TikTok account. Your session will be saved for background messaging."
-                       TextColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray400}}"
-                       FontSize="12"
+                       TextColor="{AppThemeBinding Light={StaticResource Gray400}, Dark={StaticResource Gray400}}"
+                       FontSize="13"
                        LineBreakMode="WordWrap"/>
             </VerticalStackLayout>
         </Border>
@@ -44,8 +44,8 @@
                                    HeightRequest="48"
                                    WidthRequest="48"/>
                 <Label Text="Loading TikTok..."
-                       TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray200}}"
-                       FontSize="12"
+                       TextColor="{AppThemeBinding Light={StaticResource Gray950}, Dark={StaticResource Gray200}}"
+                       FontSize="13"
                        HorizontalOptions="Center"/>
             </VerticalStackLayout>
         </Grid>
@@ -62,18 +62,10 @@
                         BackgroundColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}"
                         TextColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource PrimaryDarkText}}"
                         FontFamily="InterSemiBold"
-                        CornerRadius="12"
+                        CornerRadius="14"
                         HeightRequest="44"
                         Clicked="OnRefreshClicked"/>
             </Grid>
         </Border>
     </Grid>
 </ContentPage>
-
-
-
-
-
-
-
-

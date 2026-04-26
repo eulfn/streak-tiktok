@@ -5,12 +5,12 @@
              Title="Settings"
              Shell.NavBarIsVisible="False"
              NavigationPage.HasNavigationBar="False"
-             BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource OffBlack}}">
+             BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource OffBlack}}">
     
     <ScrollView>
         <VerticalStackLayout Padding="20" Spacing="16">
             <!-- Header with Back Button -->
-            <Grid ColumnDefinitions="Auto, *" Margin="0,0,0,16">
+            <Grid ColumnDefinitions="Auto, *" Margin="0,0,0,8">
                 <Button Grid.Column="0" 
                         Text="← Back" 
                         Style="{StaticResource TextButton}"
@@ -26,7 +26,7 @@
 
             <!-- Background Automation -->
             <Border Style="{StaticResource SectionCard}">
-                <Grid ColumnDefinitions="*, Auto" ColumnSpacing="12">
+                <Grid ColumnDefinitions="*, Auto" ColumnSpacing="16">
                     <VerticalStackLayout VerticalOptions="Center" Spacing="4">
                         <Label Text="Background Automation" Style="{StaticResource SectionLabel}"/>
                         <Label Text="Keep streaks alive automatically" Style="{StaticResource DataLabel}" LineBreakMode="WordWrap"/>
@@ -40,7 +40,7 @@
 
             <!-- Skip Unreachable Users -->
             <Border Style="{StaticResource SectionCard}">
-                <Grid ColumnDefinitions="*, Auto" ColumnSpacing="12">
+                <Grid ColumnDefinitions="*, Auto" ColumnSpacing="16">
                     <VerticalStackLayout VerticalOptions="Center" Spacing="4">
                         <Label Text="Skip Unreachable" Style="{StaticResource SectionLabel}"/>
                         <Label Text="Continue to remaining users when one is not found" Style="{StaticResource DataLabel}" LineBreakMode="WordWrap"/>

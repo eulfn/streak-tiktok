@@ -52,14 +52,14 @@ public partial class AboutPopupPage : ContentPage
         bool isDark = Application.Current?.RequestedTheme == AppTheme.Dark;
 
         // ── Color palette ──────────────────────────────────────────────────
-        string bg        = isDark ? "#121212" : "#F2F2F2";
-        string fg        = isDark ? "#FFFFFF" : "#000000";
-        string fgMuted   = isDark ? "#92979E" : "#666666";
+        string bg        = isDark ? "#121214" : "#F8F8FA";
+        string fg        = isDark ? "#FFFFFF" : "#141517";
+        string fgMuted   = isDark ? "#8B8F96" : "#8B8F96";
         string accent    = isDark ? "#FF6B7F" : "#FE2C55";
-        string cardBg    = isDark ? "#282828" : "#FFFFFF";
-        string divider   = isDark ? "#3F3F3F" : "#E1E8ED";
-        string utilBg    = isDark ? "#1E1E1E" : "#F4F4F4";
-        string bulletCol = isDark ? "#3F3F3F" : "#E1E8ED";
+        string cardBg    = isDark ? "#232528" : "#FFFFFF";
+        string divider   = isDark ? "#2E3036" : "#EBEDF0";
+        string utilBg    = isDark ? "#1E1F23" : "#F5F5F7";
+        string bulletCol = isDark ? "#2E3036" : "#EBEDF0";
 
         string bodyHtml = ConvertMarkdownToStructuredHtml(markdown);
 

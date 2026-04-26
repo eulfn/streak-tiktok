@@ -723,13 +723,13 @@ public partial class MainPage : ContentPage
         {
             StrokeShape = new RoundRectangle { CornerRadius = 16 },
             Stroke = Colors.Transparent,
-            Padding = new Thickness(12),
+            Padding = new Thickness(14, 12),
             Opacity = 0,
             TranslationY = 10
         };
         border.SetAppThemeColor(Border.BackgroundColorProperty,
-            GetThemeColor("ListItemLight", "#F4F4F4"),
-            GetThemeColor("ListItemDark", "#252525"));
+            GetThemeColor("ListItemLight", "#F5F5F7"),
+            GetThemeColor("ListItemDark", "#252629"));
             
         // Subtle entrance animation
         _ = border.FadeTo(1, 300, Easing.CubicOut);
@@ -747,22 +747,21 @@ public partial class MainPage : ContentPage
             ColumnSpacing = 8
         };
 
-        var infoStack = new VerticalStackLayout { Spacing = 2 };
+        var infoStack = new VerticalStackLayout { Spacing = 3 };
         
         var displayName = string.IsNullOrEmpty(friend.DisplayName) ? friend.Username : friend.DisplayName;
         infoStack.Children.Add(new Label
         {
             Text = displayName,
-            FontSize = 14,
-            FontFamily = "InterSemiBold",
-            FontAttributes = FontAttributes.Bold
+            FontSize = 15,
+            FontFamily = "InterSemiBold"
         });
         
         infoStack.Children.Add(new Label
         {
             Text = $"@{friend.Username}",
-            FontSize = 12,
-            TextColor = GetThemeColor("Gray500", "#666666")
+            FontSize = 13,
+            TextColor = GetThemeColor("Gray400", "#8B8F96")
         });
 
         if (friend.LastMessageSent.HasValue)
@@ -770,8 +769,8 @@ public partial class MainPage : ContentPage
             infoStack.Children.Add(new Label
             {
                 Text = $"Last sent: {friend.LastMessageSent.Value:MMM dd}",
-                FontSize = 11,
-                TextColor = GetThemeColor("Gray500", "#666666")
+                FontSize = 12,
+                TextColor = GetThemeColor("Gray400", "#8B8F96")
             });
         }
 
@@ -787,8 +786,8 @@ public partial class MainPage : ContentPage
             VerticalOptions = LayoutOptions.Center
         };
         editButton.SetAppThemeColor(Button.TextColorProperty,
-            GetThemeColor("Gray500", "#666666"),
-            GetThemeColor("Gray400", "#92979E"));
+            GetThemeColor("Gray400", "#8B8F96"),
+            GetThemeColor("Gray400", "#8B8F96"));
         editButton.Clicked += async (s, e) =>
         {
             var newName = await DisplayPromptAsync("Edit Friend", "Enter new display name:", initialValue: friend.DisplayName ?? friend.Username);
@@ -899,7 +898,7 @@ public partial class MainPage : ContentPage
                 new ColumnDefinition { Width = GridLength.Auto }
             },
             ColumnSpacing = 12,
-            Padding = new Thickness(0, 4)
+            Padding = new Thickness(0, 6)
         };
 
         // Status Indicator Dot
@@ -915,11 +914,11 @@ public partial class MainPage : ContentPage
         };
         grid.Children.Add(statusDot);
 
-        var infoStack = new VerticalStackLayout { Spacing = 2 };
+        var infoStack = new VerticalStackLayout { Spacing = 3 };
         infoStack.Children.Add(new Label
         {
             Text = run.RunTime.ToString("MMM dd, HH:mm"),
-            FontSize = 14,
+            FontSize = 15,
             FontFamily = "InterMedium"
         });
         
@@ -931,11 +930,11 @@ public partial class MainPage : ContentPage
                 Text = skippedCount > 0
                     ? $"{successCount}/{totalCount} sent \u2022 {skippedCount} skipped"
                     : $"{successCount}/{totalCount} messages sent",
-                FontSize = 12
+                FontSize = 13
             };
             infoLabel.SetAppThemeColor(Label.TextColorProperty,
-                GetThemeColor("Gray500", "#666666"),
-                GetThemeColor("Gray400", "#92979E"));
+                GetThemeColor("Gray400", "#8B8F96"),
+                GetThemeColor("Gray400", "#8B8F96"));
             infoStack.Children.Add(infoLabel);
         }
         else if (!string.IsNullOrEmpty(run.ErrorMessage))

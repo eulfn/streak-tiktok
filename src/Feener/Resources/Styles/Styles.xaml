@@ -410,7 +410,7 @@
 
     <Style TargetType="Page" ApplyToDerivedTypes="True">
         <Setter Property="Padding" Value="0"/>
-        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource OffBlack}}" />
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource OffBlack}}" />
     </Style>
 
     <Style TargetType="Shell" ApplyToDerivedTypes="True">
@@ -464,24 +464,23 @@
     </Style>
 
     <Style x:Key="PageTitleLabel" TargetType="Label">
-        <Setter Property="FontSize" Value="24" />
-        <Setter Property="FontFamily" Value="InterSemiBold" />
-        <Setter Property="FontAttributes" Value="Bold" />
+        <Setter Property="FontSize" Value="28" />
+        <Setter Property="FontFamily" Value="InterBold" />
         <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Gray950}, Dark={StaticResource White}}" />
     </Style>
 
     <Style x:Key="SectionCard" TargetType="Border">
         <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}" />
-        <Setter Property="Stroke" Value="{AppThemeBinding Light={StaticResource BorderColorLightBrush}, Dark={StaticResource BorderColorDarkBrush}}" />
-        <Setter Property="StrokeThickness" Value="1" />
-        <Setter Property="StrokeShape" Value="RoundRectangle 16" />
-        <Setter Property="Padding" Value="16" />
+        <Setter Property="Stroke" Value="Transparent" />
+        <Setter Property="StrokeThickness" Value="0" />
+        <Setter Property="StrokeShape" Value="RoundRectangle 20" />
+        <Setter Property="Padding" Value="20" />
         <Setter Property="Shadow">
             <Setter.Value>
-                <Shadow Brush="{AppThemeBinding Light=#22000000, Dark=#44000000}"
+                <Shadow Brush="{AppThemeBinding Light=#14000000, Dark=#00000000}"
                         Offset="0,2"
-                        Radius="8"
-                        Opacity="0.5" />
+                        Radius="12"
+                        Opacity="1" />
             </Setter.Value>
         </Setter>
     </Style>
@@ -489,28 +488,25 @@
     <Style x:Key="SectionLabel" TargetType="Label">
         <Setter Property="FontFamily" Value="InterSemiBold" />
         <Setter Property="FontSize" Value="16" />
-        <Setter Property="FontAttributes" Value="Bold" />
-        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}" />
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Gray950}, Dark={StaticResource White}}" />
     </Style>
 
     <Style x:Key="DataLabel" TargetType="Label">
         <Setter Property="FontFamily" Value="InterRegular" />
-        <Setter Property="FontSize" Value="12" />
-        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray400}}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Gray400}, Dark={StaticResource Gray400}}" />
     </Style>
 
     <Style x:Key="ValueLabel" TargetType="Label">
         <Setter Property="FontFamily" Value="InterMedium" />
-        <Setter Property="FontSize" Value="14" />
-        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}" />
-        <Setter Property="FontAttributes" Value="None" />
+        <Setter Property="FontSize" Value="15" />
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Gray950}, Dark={StaticResource White}}" />
     </Style>
 
     <Style x:Key="ControlTitleLabel" TargetType="Label">
         <Setter Property="FontFamily" Value="InterSemiBold" />
         <Setter Property="FontSize" Value="15" />
-        <Setter Property="FontAttributes" Value="Bold" />
-        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}" />
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Gray950}, Dark={StaticResource White}}" />
     </Style>
 
     <Style x:Key="ControlSubLabel" TargetType="Label">
@@ -520,11 +516,19 @@
     </Style>
 
     <Style x:Key="BottomActionBorder" TargetType="Border">
-        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource CardBackgroundDark}}"/>
-        <Setter Property="Stroke" Value="{AppThemeBinding Light={StaticResource BorderColorLightBrush}, Dark={StaticResource BorderColorDarkBrush}}"/>
-        <Setter Property="StrokeThickness" Value="1"/>
-        <Setter Property="StrokeShape" Value="RoundRectangle 20,20,0,0"/>
-        <Setter Property="Padding" Value="20,16,20,32"/>
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}"/>
+        <Setter Property="Stroke" Value="Transparent"/>
+        <Setter Property="StrokeThickness" Value="0"/>
+        <Setter Property="StrokeShape" Value="RoundRectangle 24,24,0,0"/>
+        <Setter Property="Padding" Value="20,20,20,32"/>
+        <Setter Property="Shadow">
+            <Setter.Value>
+                <Shadow Brush="{AppThemeBinding Light=#18000000, Dark=#00000000}"
+                        Offset="0,-4"
+                        Radius="16"
+                        Opacity="1" />
+            </Setter.Value>
+        </Setter>
     </Style>
 
 </ResourceDictionary>

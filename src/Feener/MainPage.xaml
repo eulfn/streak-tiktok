@@ -5,7 +5,7 @@
              Title="Feener"
              Shell.NavBarIsVisible="False"
              NavigationPage.HasNavigationBar="False"
-             BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource OffBlack}}">
+             BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource OffBlack}}">
 
     <Grid RowDefinitions="*, Auto">
         <!-- Scrollable Content -->
@@ -22,8 +22,8 @@
                                        HorizontalOptions="Start"/>
                                 <Label Text="TikTok Streak Automation"
                                        FontFamily="InterRegular"
-                                       FontSize="12"
-                                       TextColor="{AppThemeBinding Light={StaticResource Gray400}, Dark={StaticResource Gray500}}"
+                                       FontSize="13"
+                                       TextColor="{AppThemeBinding Light={StaticResource Gray400}, Dark={StaticResource Gray400}}"
                                        HorizontalOptions="Start"/>
                             </VerticalStackLayout>
                             <Button Grid.Column="1" 
@@ -38,7 +38,7 @@
                                 StrokeThickness="1"
                                 StrokeShape="RoundRectangle 22"
                                 BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray900}}"
-                                Margin="0,12,0,0">
+                                Margin="0,16,0,0">
                             <Grid ColumnDefinitions="*,*" HeightRequest="44">
                                 <Border x:Name="NormalModeTabBorder" 
                                         Grid.Column="0" 
@@ -77,17 +77,17 @@
                 <VerticalStackLayout x:Name="NormalModeContainer" IsVisible="True" Spacing="16">
                     <!-- Normal System Status Card -->
                     <Border Style="{StaticResource SectionCard}">
-                    <VerticalStackLayout Spacing="12">
+                    <VerticalStackLayout Spacing="14">
                         <Label Text="System Status" Style="{StaticResource SectionLabel}"/>
                         
                         <Grid ColumnDefinitions="*, *" ColumnSpacing="16">
                             <VerticalStackLayout Grid.Column="0" Spacing="4">
-                                <Label Text="Last Run:" Style="{StaticResource DataLabel}"/>
+                                <Label Text="Last Run" Style="{StaticResource DataLabel}"/>
                                 <Label x:Name="LastRunLabel" Text="Never" Style="{StaticResource ValueLabel}"/>
                             </VerticalStackLayout>
                             
                             <VerticalStackLayout Grid.Column="1" Spacing="4">
-                                <Label Text="Next Run:" Style="{StaticResource DataLabel}"/>
+                                <Label Text="Next Run" Style="{StaticResource DataLabel}"/>
                                 <Label x:Name="NextRunLabel" Text="Not scheduled" Style="{StaticResource ValueLabel}"/>
                             </VerticalStackLayout>
                         </Grid>
@@ -104,8 +104,8 @@
                                     BackgroundColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}"
                                     TextColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource PrimaryDarkText}}"
                                     FontFamily="InterSemiBold"
-                                    CornerRadius="12"
-                                    HeightRequest="50"
+                                    CornerRadius="14"
+                                    HeightRequest="48"
                                     Clicked="OnLoginClicked"/>
                             
                             <!-- Session checking indicator -->
@@ -142,7 +142,8 @@
                         
                         <Border Stroke="{AppThemeBinding Light={StaticResource BorderColorLight}, Dark={StaticResource BorderColorDark}}" 
                                 StrokeThickness="1" 
-                                StrokeShape="RoundRectangle 8">
+                                StrokeShape="RoundRectangle 12"
+                                BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource Gray900}}">
                             <Editor x:Name="MessageEditor"
                                     Placeholder="Enter your streak message..."
                                     HeightRequest="80"
@@ -185,7 +186,8 @@
                             <Border Grid.Column="0" 
                                     Stroke="{AppThemeBinding Light={StaticResource BorderColorLight}, Dark={StaticResource BorderColorDark}}" 
                                     StrokeThickness="1" 
-                                    StrokeShape="RoundRectangle 8">
+                                    StrokeShape="RoundRectangle 12"
+                                    BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource Gray900}}">
                                 <Entry x:Name="SearchFriendEntry"
                                        Placeholder="Search friends..."
                                        Margin="8,0"
@@ -216,14 +218,16 @@
                         <VerticalStackLayout x:Name="AddFriendPanel" IsVisible="False" Spacing="8">
                             <Border Stroke="{AppThemeBinding Light={StaticResource BorderColorLight}, Dark={StaticResource BorderColorDark}}" 
                                     StrokeThickness="1" 
-                                    StrokeShape="RoundRectangle 8">
+                                    StrokeShape="RoundRectangle 12"
+                                    BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource Gray900}}">
                                 <Entry x:Name="NewFriendUsernameEntry"
                                        Placeholder="TikTok username (without @)"
                                        Margin="8,4"/>
                             </Border>
                             <Border Stroke="{AppThemeBinding Light={StaticResource BorderColorLight}, Dark={StaticResource BorderColorDark}}" 
                                     StrokeThickness="1" 
-                                    StrokeShape="RoundRectangle 8">
+                                    StrokeShape="RoundRectangle 12"
+                                    BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource Gray900}}">
                                 <Entry x:Name="NewFriendDisplayNameEntry"
                                        Placeholder="Display name (optional)"
                                        Margin="8,4"/>
@@ -233,14 +237,14 @@
                                         Style="{StaticResource TextButton}"
                                         BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray800}}"
                                         TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}"
-                                        CornerRadius="8"
+                                        CornerRadius="12"
                                         HeightRequest="40"
                                         Clicked="OnCancelAddFriend"/>
                                 <Button Grid.Column="1"
                                         Text="Save"
                                         BackgroundColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}"
                                         TextColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource PrimaryDarkText}}"
-                                        CornerRadius="8"
+                                        CornerRadius="12"
                                         HeightRequest="40"
                                         Clicked="OnSaveFriend"/>
                             </Grid>
@@ -262,7 +266,7 @@
                 <VerticalStackLayout x:Name="BurstModeContainer" IsVisible="False" Spacing="16">
                     <!-- Burst Stats (top position) -->
                     <Border Style="{StaticResource SectionCard}">
-                        <VerticalStackLayout Spacing="12">
+                        <VerticalStackLayout Spacing="14">
                             <Label Text="Burst Status" Style="{StaticResource SectionLabel}"/>
                             <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="8">
                                 <Label Text="Sent today" Style="{StaticResource DataLabel}" VerticalOptions="Center"/>
@@ -276,7 +280,8 @@
                                 <Border Grid.Row="1" Grid.Column="1" 
                                         Stroke="{AppThemeBinding Light={StaticResource BorderColorLight}, Dark={StaticResource BorderColorDark}}" 
                                         StrokeThickness="1" 
-                                        StrokeShape="RoundRectangle 6"
+                                        StrokeShape="RoundRectangle 10"
+                                        BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource Gray900}}"
                                         WidthRequest="80"
                                         HorizontalOptions="End">
                                     <Entry x:Name="BurstDailyLimitEntry"
@@ -310,7 +315,8 @@
                             <Label Text="The single user to burst messages to endlessly." Style="{StaticResource DataLabel}" LineBreakMode="WordWrap"/>
                             <Border Stroke="{AppThemeBinding Light={StaticResource BorderColorLight}, Dark={StaticResource BorderColorDark}}" 
                                     StrokeThickness="1" 
-                                    StrokeShape="RoundRectangle 8">
+                                    StrokeShape="RoundRectangle 12"
+                                    BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource Gray900}}">
                                 <Entry x:Name="BurstTargetUserEntry"
                                        Placeholder="Username (without @)"
                                        Margin="8,4"
@@ -379,10 +385,10 @@
                 <!-- App Footer -->
                 <Label Text="Pull down to check for updates"
                        FontFamily="InterRegular"
-                       FontSize="11"
-                       TextColor="{AppThemeBinding Light={StaticResource Gray400}, Dark={StaticResource Gray600}}"
+                       FontSize="12"
+                       TextColor="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}"
                        HorizontalOptions="Center"
-                       Margin="0,24,0,16"/>
+                       Margin="0,24,0,20"/>
 
             </VerticalStackLayout>
         </ScrollView>
@@ -390,16 +396,7 @@
 
     <!-- Fixed Bottom Automation Container -->
     <Border Grid.Row="1" Style="{StaticResource BottomActionBorder}">
-        <VerticalStackLayout Spacing="16">
-
-            <!-- Top separator -->
-            <BoxView HeightRequest="1"
-                     Color="{AppThemeBinding Light={StaticResource BorderColorLight}, Dark={StaticResource BorderColorDark}}"
-                     Margin="-20,-16,-20,0"/>
-
-            <!-- Dynamic Settings Container was moved to SettingsPage -->
-
-            <!-- Burst Chat Mode Toggle is removed because Mode switcher is at the top now -->
+        <VerticalStackLayout Spacing="12">
 
             <!-- Dynamic Permissions Panel -->
             <VerticalStackLayout x:Name="PermissionsPanel" IsVisible="False" Spacing="8">
@@ -434,8 +431,8 @@
                         TextColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource PrimaryDarkText}}"
                         FontFamily="InterSemiBold"
                         FontSize="16"
-                        CornerRadius="14"
-                        HeightRequest="56"
+                        CornerRadius="16"
+                        HeightRequest="54"
                         Clicked="OnMasterRunClicked"/>
             </Grid>
             
@@ -445,8 +442,8 @@
                     BackgroundColor="{AppThemeBinding Light={StaticResource DeleteColor}, Dark={StaticResource DeleteColor}}"
                     TextColor="White"
                     FontFamily="InterSemiBold"
-                    CornerRadius="12"
-                    HeightRequest="56"
+                    CornerRadius="16"
+                    HeightRequest="54"
                     Clicked="OnStopServiceClicked"/>
         </VerticalStackLayout>
     </Border>

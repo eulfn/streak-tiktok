@@ -2,7 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="Feener.AboutPopupPage"
-             BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource OffBlack}}"
+             BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource OffBlack}}"
              Shell.PresentationMode="ModalAnimated">
 
     <Grid RowDefinitions="Auto, *, Auto" Padding="24" RowSpacing="24">
@@ -56,7 +56,7 @@
                     <Label Text="Original base app created by Jon2G" 
                            Style="{StaticResource ValueLabel}" />
                     <Label Text="https://github.com/Jon2G" 
-                           TextColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray400}}"
+                           TextColor="{AppThemeBinding Light={StaticResource Gray400}, Dark={StaticResource Gray400}}"
                            FontSize="12" />
 
                     <Label Text="Modified and maintained by @eulfen" 
@@ -71,8 +71,8 @@
                 <VerticalStackLayout Spacing="8" Margin="0, 0, 0, 12">
                     <Label Text="Privacy &amp; System Permissions" 
                            Style="{StaticResource SectionLabel}" 
-                           TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray400}}" 
-                           FontSize="12"/>
+                           TextColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray400}}" 
+                           FontSize="13"/>
                     <Label Text="All operations execute locally on your device. Zero credentials or messaging session keys are extracted or broadcasted remotely. Background automations require battery exemptions and exact-alarm scheduling to function reliably." 
                            Style="{StaticResource DataLabel}" 
                            LineBreakMode="WordWrap" 

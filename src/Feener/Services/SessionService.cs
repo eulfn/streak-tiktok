@@ -8,6 +8,7 @@ public class SessionService
 {
     private const string SessionValidKey = "session_valid";
     private const string SessionLastCheckKey = "session_last_check";
+    private const string DisplayNameKey = "session_display_name";
 
     /// <summary>
     /// Get whether the session was valid on last check
@@ -33,6 +34,22 @@ public class SessionService
     {
         var ticks = Preferences.Get(SessionLastCheckKey, 0L);
         return ticks > 0 ? new DateTime(ticks) : null;
+    }
+
+    /// <summary>
+    /// Get the user's display name
+    /// </summary>
+    public string GetDisplayName()
+    {
+        return Preferences.Get(DisplayNameKey, "User");
+    }
+
+    /// <summary>
+    /// Set the user's display name
+    /// </summary>
+    public void SetDisplayName(string name)
+    {
+        Preferences.Set(DisplayNameKey, string.IsNullOrWhiteSpace(name) ? "User" : name.Trim());
     }
 
     /// <summary>

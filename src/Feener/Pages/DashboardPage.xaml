@@ -1,13 +1,16 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:views="clr-namespace:Feener.Views"
              x:Class="Feener.Pages.DashboardPage"
              Title="Dashboard"
              Shell.NavBarIsVisible="False"
+             Shell.TabBarIsVisible="False"
              NavigationPage.HasNavigationBar="False"
              BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource OffBlack}}">
 
-    <Grid RowDefinitions="*, Auto">
+    <Grid RowDefinitions="*, Auto, Auto">
+
         <!-- ═══ Scrollable Content ═══ -->
         <RefreshView Grid.Row="0" x:Name="MainRefreshView" Refreshing="OnRefreshing">
             <ScrollView>
@@ -28,17 +31,24 @@
                     </VerticalStackLayout>
 
                     <!-- Profile avatar circle -->
-                    <Border Grid.Column="1"
+                    <Border x:Name="ProfileAvatarBorder"
+                            Grid.Column="1"
                             WidthRequest="44" HeightRequest="44"
                             StrokeThickness="0"
                             StrokeShape="RoundRectangle 22"
                             BackgroundColor="{AppThemeBinding Light={StaticResource PrimarySubtle}, Dark={StaticResource Gray800}}"
                             VerticalOptions="Center">
-                        <Label Text="🎵"
-                               FontSize="20"
-                               HorizontalOptions="Center"
-                               VerticalOptions="Center"/>
+                        <Image x:Name="ProfileAvatarImage"
+                               IsVisible="False"
+                               Aspect="AspectFill"
+                               WidthRequest="44" HeightRequest="44"/>
+                        <!-- Fallback emoji shown when no photo set -->
                     </Border>
+                    <Label x:Name="ProfileAvatarEmoji"
+                           Grid.Column="1"
+                           Text="🎵" FontSize="20"
+                           HorizontalOptions="Center" VerticalOptions="Center"
+                           InputTransparent="True"/>
                 </Grid>
 
                 <!-- ─── Mode Switcher ─── -->
@@ -81,9 +91,9 @@
                     </Grid>
                 </Border>
 
-                <!-- ─── System Status Card (enhanced) ─── -->
+                <!-- ─── System Status Card ─── -->
                 <Border Style="{StaticResource SectionCard}">
-                    <VerticalStackLayout Spacing="16">
+                    <VerticalStackLayout Spacing="14">
                         <Label Text="System Status" Style="{StaticResource SectionLabel}"/>
 
                         <Grid ColumnDefinitions="*, *" ColumnSpacing="16">
@@ -91,14 +101,13 @@
                                 <Label Text="Last Run" Style="{StaticResource DataLabel}"/>
                                 <Label x:Name="LastRunLabel" Text="Never" Style="{StaticResource ValueLabel}"/>
                             </VerticalStackLayout>
-
                             <VerticalStackLayout Grid.Column="1" Spacing="4">
                                 <Label Text="Next Run" Style="{StaticResource DataLabel}"/>
                                 <Label x:Name="NextRunLabel" Text="Not scheduled" Style="{StaticResource ValueLabel}"/>
                             </VerticalStackLayout>
                         </Grid>
 
-                        <!-- Session status indicator -->
+                        <!-- Session indicator -->
                         <Grid ColumnDefinitions="Auto, *, Auto" ColumnSpacing="10">
                             <Border x:Name="SessionDot"
                                     WidthRequest="10" HeightRequest="10"
@@ -119,42 +128,27 @@
                                    VerticalOptions="Center"
                                    FontFamily="InterSemiBold"/>
                         </Grid>
-
-                        <!-- Success Rate Chart -->
-                        <Grid ColumnDefinitions="Auto, *" ColumnSpacing="16">
-                            <GraphicsView x:Name="SuccessChartView"
-                                          WidthRequest="80" HeightRequest="80"/>
-                            <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="4">
-                                <Label x:Name="SuccessRateLabel"
-                                       Text="No data yet"
-                                       Style="{StaticResource ValueLabel}"/>
-                                <Label x:Name="TotalRunsLabel"
-                                       Text=""
-                                       Style="{StaticResource DataLabel}"/>
-                                <Label x:Name="AvgDurationLabel"
-                                       Text=""
-                                       Style="{StaticResource DataLabel}"/>
-                            </VerticalStackLayout>
-                        </Grid>
                     </VerticalStackLayout>
                 </Border>
 
                 <!-- ═══ Normal Mode Container ═══ -->
                 <VerticalStackLayout x:Name="NormalModeContainer" IsVisible="True" Spacing="16">
 
-                    <!-- Normal Streak Message -->
+                    <!-- Run Configuration Card (integrated streak message) -->
                     <Border Style="{StaticResource SectionCard}">
                         <VerticalStackLayout Spacing="12">
-                            <Label Text="Streak Message"
+                            <Label Text="Run Configuration"
                                    Style="{StaticResource SectionLabel}"/>
+                            <Label Text="Message sent to each friend during a streak run"
+                                   Style="{StaticResource DataLabel}" LineBreakMode="WordWrap"/>
                             <Border Stroke="{AppThemeBinding Light={StaticResource BorderColorLight}, Dark={StaticResource BorderColorDark}}"
                                     StrokeThickness="1"
-                                    StrokeShape="RoundRectangle 12"
+                                    StrokeShape="RoundRectangle 14"
                                     BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource Gray900}}">
                                 <Editor x:Name="MessageEditor"
                                         Placeholder="Enter your streak message..."
-                                        HeightRequest="80"
-                                        Margin="8"
+                                        HeightRequest="72"
+                                        Margin="12,8"
                                         TextChanged="OnMessageChanged"/>
                             </Border>
                         </VerticalStackLayout>
@@ -164,42 +158,47 @@
                 <!-- ═══ Burst Mode Container ═══ -->
                 <VerticalStackLayout x:Name="BurstModeContainer" IsVisible="False" Spacing="16">
 
-                    <!-- Burst Status Card -->
+                    <!-- Burst Progress Card (unique identity) -->
                     <Border Style="{StaticResource SectionCard}">
                         <VerticalStackLayout Spacing="14">
-                            <Label Text="Burst Status" Style="{StaticResource SectionLabel}"/>
-                            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="8">
-                                <Label Text="Sent today" Style="{StaticResource DataLabel}" VerticalOptions="Center"/>
-                                <Label x:Name="BurstDailyProgressLabel"
-                                       Text="--"
-                                       Style="{StaticResource ValueLabel}"
-                                       Grid.Column="1"
-                                       HorizontalTextAlignment="End"/>
-
-                                <Label Text="Daily limit" Style="{StaticResource DataLabel}" Grid.Row="1" VerticalOptions="Center"/>
-                                <Border Grid.Row="1" Grid.Column="1"
-                                        Stroke="{AppThemeBinding Light={StaticResource BorderColorLight}, Dark={StaticResource BorderColorDark}}"
-                                        StrokeThickness="1"
-                                        StrokeShape="RoundRectangle 10"
-                                        BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource Gray900}}"
-                                        WidthRequest="80"
-                                        HorizontalOptions="End">
-                                    <Entry x:Name="BurstDailyLimitEntry"
-                                           Text="--"
-                                           Keyboard="Numeric"
-                                           HorizontalTextAlignment="Center"
-                                           Margin="4,2"
-                                           Completed="OnBurstLimitChanged"
-                                           Unfocused="OnBurstLimitChanged"/>
+                            <Grid ColumnDefinitions="*, Auto">
+                                <Label Text="Burst Progress" Style="{StaticResource SectionLabel}"/>
+                                <Border Grid.Column="1"
+                                        StrokeThickness="0"
+                                        StrokeShape="RoundRectangle 8"
+                                        BackgroundColor="{AppThemeBinding Light=#F3EEFF, Dark=#2D2540}"
+                                        Padding="8,4">
+                                    <Label x:Name="BurstDailyProgressLabel"
+                                           Text="0/720"
+                                           FontFamily="InterSemiBold" FontSize="12"
+                                           TextColor="{AppThemeBinding Light={StaticResource BurstAccent}, Dark={StaticResource BurstAccentDark}}"/>
                                 </Border>
-
-                                <Label Text="Estimated time" Style="{StaticResource DataLabel}" Grid.Row="2" VerticalOptions="Center"/>
-                                <Label x:Name="BurstTimeEstimateLabel"
-                                       Text="--"
-                                       Style="{StaticResource ValueLabel}"
-                                       Grid.Column="1" Grid.Row="2"
-                                       HorizontalTextAlignment="End"/>
                             </Grid>
+
+                            <!-- Linear progress bar -->
+                            <GraphicsView x:Name="BurstProgressGraphicsView"
+                                          HeightRequest="12"
+                                          HorizontalOptions="Fill" />
+
+                            <!-- Stats grid -->
+                            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="12">
+                                <VerticalStackLayout Spacing="2">
+                                    <Label Text="Remaining" Style="{StaticResource DataLabel}"/>
+                                    <Label x:Name="BurstRemainingLabel" Text="--"
+                                           Style="{StaticResource ValueLabel}"/>
+                                </VerticalStackLayout>
+                                <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                    <Label Text="Sessions" Style="{StaticResource DataLabel}"/>
+                                    <Label x:Name="BurstSessionsLabel" Text="--"
+                                           Style="{StaticResource ValueLabel}"/>
+                                </VerticalStackLayout>
+                                <VerticalStackLayout Grid.Column="2" Spacing="2">
+                                    <Label Text="Est. Time" Style="{StaticResource DataLabel}"/>
+                                    <Label x:Name="BurstTimeEstimateLabel" Text="--"
+                                           Style="{StaticResource ValueLabel}"/>
+                                </VerticalStackLayout>
+                            </Grid>
+
                             <Label x:Name="BurstPlanLabel"
                                    Text="Calculating plan..."
                                    Style="{StaticResource DataLabel}"
@@ -215,11 +214,11 @@
                             <Label Text="The single user to burst messages to endlessly." Style="{StaticResource DataLabel}" LineBreakMode="WordWrap"/>
                             <Border Stroke="{AppThemeBinding Light={StaticResource BorderColorLight}, Dark={StaticResource BorderColorDark}}"
                                     StrokeThickness="1"
-                                    StrokeShape="RoundRectangle 12"
+                                    StrokeShape="RoundRectangle 14"
                                     BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource Gray900}}">
                                 <Entry x:Name="BurstTargetUserEntry"
                                        Placeholder="Username (without @)"
-                                       Margin="8,4"
+                                       Margin="12,4"
                                        TextChanged="OnBurstSettingsChanged"/>
                             </Border>
                         </VerticalStackLayout>
@@ -238,41 +237,29 @@
                                     Style="{StaticResource TextButton}"
                                     HorizontalOptions="Start"
                                     Clicked="OnAddBurstMessageClicked"/>
+
+                            <!-- Daily limit -->
+                            <Grid ColumnDefinitions="*, Auto" ColumnSpacing="12">
+                                <Label Text="Daily message limit"
+                                       Style="{StaticResource DataLabel}" VerticalOptions="Center"/>
+                                <Border Grid.Column="1"
+                                        Stroke="{AppThemeBinding Light={StaticResource BorderColorLight}, Dark={StaticResource BorderColorDark}}"
+                                        StrokeThickness="1"
+                                        StrokeShape="RoundRectangle 10"
+                                        BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource Gray900}}"
+                                        WidthRequest="80" HorizontalOptions="End">
+                                    <Entry x:Name="BurstDailyLimitEntry"
+                                           Text="--"
+                                           Keyboard="Numeric"
+                                           HorizontalTextAlignment="Center"
+                                           Margin="4,2"
+                                           Completed="OnBurstLimitChanged"
+                                           Unfocused="OnBurstLimitChanged"/>
+                                </Border>
+                            </Grid>
                         </VerticalStackLayout>
                     </Border>
                 </VerticalStackLayout>
-
-                <!-- ─── Recent Activity ─── -->
-                <Border Style="{StaticResource SectionCard}">
-                    <VerticalStackLayout Spacing="12">
-                        <Grid ColumnDefinitions="*, Auto, Auto" ColumnSpacing="8">
-                            <Label Text="Recent Activity"
-                                   Style="{StaticResource SectionLabel}"
-                                   VerticalOptions="Center"/>
-                            <Button Grid.Column="1"
-                                    Text="Clear"
-                                    Style="{StaticResource TextButton}"
-                                    TextColor="{AppThemeBinding Light={StaticResource DeleteColor}, Dark={StaticResource DeleteColor}}"
-                                    Clicked="OnClearHistoryClicked"/>
-                            <Button Grid.Column="2"
-                                    Text="Export Logs"
-                                    Style="{StaticResource TextButton}"
-                                    Clicked="OnExportLogsClicked"/>
-                        </Grid>
-                        <VerticalStackLayout x:Name="HistoryContainer" Spacing="8">
-                            <Label x:Name="NoHistoryLabel"
-                                   Text="No activity yet."
-                                   Style="{StaticResource DataLabel}"
-                                   HorizontalOptions="Center"/>
-                        </VerticalStackLayout>
-                        <Button x:Name="SeeAllHistoryButton"
-                                Text="See Full History"
-                                Style="{StaticResource TextButton}"
-                                HorizontalOptions="Center"
-                                IsVisible="False"
-                                Clicked="OnSeeAllHistoryClicked"/>
-                    </VerticalStackLayout>
-                </Border>
 
                 <!-- Footer hint -->
                 <Label Text="Pull down to check for updates"
@@ -280,14 +267,17 @@
                        FontSize="12"
                        TextColor="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}"
                        HorizontalOptions="Center"
-                       Margin="0,24,0,20"/>
+                       Margin="0,8,0,0"/>
+
+                <!-- Nav bar clearance -->
+                <BoxView HeightRequest="80" BackgroundColor="Transparent"/>
 
             </VerticalStackLayout>
             </ScrollView>
         </RefreshView>
 
         <!-- ═══ Fixed Bottom Action Bar ═══ -->
-        <Border Grid.Row="1" Style="{StaticResource BottomActionBorder}">
+        <Border Grid.Row="1" Style="{StaticResource BottomActionBorder}" Margin="0,0,0,68">
             <VerticalStackLayout Spacing="12">
 
                 <!-- Dynamic Permissions Panel -->
@@ -339,5 +329,8 @@
                         Clicked="OnStopServiceClicked"/>
             </VerticalStackLayout>
         </Border>
+
+        <!-- ═══ Floating Nav Bar ═══ -->
+        <views:FloatingNavBar Grid.Row="2" CurrentTab="Dashboard"/>
     </Grid>
 </ContentPage>

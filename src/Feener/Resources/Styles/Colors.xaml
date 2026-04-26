@@ -10,8 +10,8 @@
     <Color x:Key="Primary">#FE2C55</Color>
     <Color x:Key="PrimaryDark">#FE2C55</Color>
     <Color x:Key="PrimaryDarkText">#FFFFFF</Color>
-    <Color x:Key="Secondary">#25F4EE</Color>
-    <Color x:Key="SecondaryDarkText">#25F4EE</Color>
+    <Color x:Key="Secondary">#FE2C55</Color>
+    <Color x:Key="SecondaryDarkText">#FE2C55</Color>
     <Color x:Key="Tertiary">#FE2C55</Color>
 
     <!-- Softer primary for subtle tints and backgrounds -->

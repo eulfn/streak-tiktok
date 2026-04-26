@@ -1,186 +1,206 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:views="clr-namespace:Feener.Views"
              x:Class="Feener.Pages.ProfilePage"
              Title="Profile"
              Shell.NavBarIsVisible="False"
+             Shell.TabBarIsVisible="False"
              NavigationPage.HasNavigationBar="False"
              BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource OffBlack}}">
 
-    <ScrollView>
-        <VerticalStackLayout Padding="20" Spacing="16">
+    <Grid RowDefinitions="*, Auto">
 
-            <!-- ─── Header ─── -->
-            <VerticalStackLayout Spacing="2" Margin="0,8,0,0">
-                <Label Text="Profile"
-                       Style="{StaticResource PageTitleLabel}"
-                       HorizontalOptions="Start"/>
-                <Label Text="Session &amp; settings"
-                       FontFamily="InterRegular"
-                       FontSize="13"
-                       TextColor="{AppThemeBinding Light={StaticResource Gray400}, Dark={StaticResource Gray400}}"
-                       HorizontalOptions="Start"/>
-            </VerticalStackLayout>
+        <ScrollView Grid.Row="0">
+            <VerticalStackLayout Padding="20" Spacing="16">
 
-            <!-- ─── Account Card ─── -->
-            <Border Style="{StaticResource SectionCard}">
-                <VerticalStackLayout Spacing="16">
-                    <Label Text="TikTok Account" Style="{StaticResource SectionLabel}"/>
+                <!-- ─── Header ─── -->
+                <VerticalStackLayout Spacing="2" Margin="0,8,0,0">
+                    <Label Text="Profile"
+                           Style="{StaticResource PageTitleLabel}"
+                           HorizontalOptions="Start"/>
+                    <Label Text="Session &amp; settings"
+                           FontFamily="InterRegular"
+                           FontSize="13"
+                           TextColor="{AppThemeBinding Light={StaticResource Gray400}, Dark={StaticResource Gray400}}"
+                           HorizontalOptions="Start"/>
+                </VerticalStackLayout>
 
-                    <!-- Profile avatar + display name -->
-                    <Grid ColumnDefinitions="Auto, *" ColumnSpacing="16">
-                        <Border WidthRequest="56" HeightRequest="56"
-                                StrokeThickness="2"
-                                Stroke="{AppThemeBinding Light={StaticResource BorderColorLight}, Dark={StaticResource BorderColorDark}}"
-                                StrokeShape="RoundRectangle 28"
-                                BackgroundColor="{AppThemeBinding Light={StaticResource PrimarySubtle}, Dark={StaticResource Gray800}}"
-                                VerticalOptions="Center">
-                            <Label Text="🎵"
-                                   FontSize="24"
-                                   HorizontalOptions="Center"
-                                   VerticalOptions="Center"/>
-                        </Border>
+                <!-- ─── Account Card ─── -->
+                <Border Style="{StaticResource SectionCard}">
+                    <VerticalStackLayout Spacing="16">
+                        <Label Text="TikTok Account" Style="{StaticResource SectionLabel}"/>
 
-                        <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="6">
-                            <Border Stroke="{AppThemeBinding Light={StaticResource BorderColorLight}, Dark={StaticResource BorderColorDark}}"
-                                    StrokeThickness="1"
-                                    StrokeShape="RoundRectangle 10"
-                                    BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource Gray900}}">
-                                <Entry x:Name="DisplayNameEntry"
-                                       Placeholder="Your display name"
-                                       Margin="8,4"
-                                       Completed="OnDisplayNameChanged"
-                                       Unfocused="OnDisplayNameChanged"/>
+                        <!-- Profile avatar + display name -->
+                        <Grid ColumnDefinitions="Auto, *" ColumnSpacing="16">
+                            <Border WidthRequest="56" HeightRequest="56"
+                                    StrokeThickness="2"
+                                    Stroke="{AppThemeBinding Light={StaticResource BorderColorLight}, Dark={StaticResource BorderColorDark}}"
+                                    StrokeShape="RoundRectangle 28"
+                                    BackgroundColor="{AppThemeBinding Light={StaticResource PrimarySubtle}, Dark={StaticResource Gray800}}"
+                                    VerticalOptions="Center">
+                                <Grid>
+                                    <Image x:Name="ProfilePhoto"
+                                           IsVisible="False"
+                                           Aspect="AspectFill"
+                                           WidthRequest="56" HeightRequest="56"/>
+                                    <Label x:Name="ProfileEmoji"
+                                           Text="🎵"
+                                           FontSize="24"
+                                           HorizontalOptions="Center"
+                                           VerticalOptions="Center"/>
+                                </Grid>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnProfilePhotoTapped"/>
+                                </Border.GestureRecognizers>
                             </Border>
-                            <Label x:Name="DisplayNameHint"
-                                   Text="Used for the dashboard greeting"
-                                   Style="{StaticResource DataLabel}"/>
-                        </VerticalStackLayout>
-                    </Grid>
 
-                    <!-- Session Status -->
-                    <Grid ColumnDefinitions="Auto, *, Auto" ColumnSpacing="10">
-                        <Border x:Name="SessionDot"
-                                WidthRequest="10" HeightRequest="10"
-                                StrokeThickness="0"
-                                StrokeShape="RoundRectangle 5"
-                                BackgroundColor="{StaticResource Gray400}"
-                                VerticalOptions="Center"/>
-                        <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="2">
-                            <Label x:Name="SessionStatusLabel"
-                                   Text="Checking..."
-                                   Style="{StaticResource ValueLabel}"/>
-                            <Label x:Name="SessionLastCheckLabel"
-                                   Text=""
-                                   Style="{StaticResource DataLabel}"/>
-                        </VerticalStackLayout>
-                    </Grid>
+                            <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="6">
+                                <Border Stroke="{AppThemeBinding Light={StaticResource BorderColorLight}, Dark={StaticResource BorderColorDark}}"
+                                        StrokeThickness="1"
+                                        StrokeShape="RoundRectangle 14"
+                                        BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource Gray900}}">
+                                    <Entry x:Name="DisplayNameEntry"
+                                           Placeholder="Your display name"
+                                           Margin="12,4"
+                                           Completed="OnDisplayNameChanged"
+                                           Unfocused="OnDisplayNameChanged"/>
+                                </Border>
+                                <Label x:Name="DisplayNameHint"
+                                       Text="Tap photo to change • Name used for greeting"
+                                       Style="{StaticResource DataLabel}"/>
+                            </VerticalStackLayout>
+                        </Grid>
 
-                    <!-- Login / Re-validate Button -->
-                    <Grid>
-                        <Button x:Name="LoginButton"
-                                Text="Login to TikTok"
-                                BackgroundColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}"
-                                TextColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource PrimaryDarkText}}"
-                                FontFamily="InterSemiBold"
+                        <!-- Session Status -->
+                        <Grid ColumnDefinitions="Auto, *, Auto" ColumnSpacing="10">
+                            <Border x:Name="SessionDot"
+                                    WidthRequest="10" HeightRequest="10"
+                                    StrokeThickness="0"
+                                    StrokeShape="RoundRectangle 5"
+                                    BackgroundColor="{StaticResource Gray400}"
+                                    VerticalOptions="Center"/>
+                            <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="2">
+                                <Label x:Name="SessionStatusLabel"
+                                       Text="Checking..."
+                                       Style="{StaticResource ValueLabel}"/>
+                                <Label x:Name="SessionLastCheckLabel"
+                                       Text=""
+                                       Style="{StaticResource DataLabel}"/>
+                            </VerticalStackLayout>
+                        </Grid>
+
+                        <!-- Login / Re-validate Button -->
+                        <Grid>
+                            <Button x:Name="LoginButton"
+                                    Text="Login to TikTok"
+                                    BackgroundColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}"
+                                    TextColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource PrimaryDarkText}}"
+                                    FontFamily="InterSemiBold"
+                                    CornerRadius="14"
+                                    HeightRequest="48"
+                                    Clicked="OnLoginClicked"/>
+
+                            <!-- Session checking indicator -->
+                            <HorizontalStackLayout x:Name="SessionCheckingIndicator"
+                                                   IsVisible="False"
+                                                   HorizontalOptions="Center"
+                                                   VerticalOptions="Center"
+                                                   Spacing="8">
+                                <ActivityIndicator IsRunning="True"
+                                                   Color="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource White}}"
+                                                   HeightRequest="20"
+                                                   WidthRequest="20"/>
+                                <Label Text="Validating session..."
+                                       TextColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource White}}"
+                                       Style="{StaticResource DataLabel}"
+                                       VerticalOptions="Center"/>
+                            </HorizontalStackLayout>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Hidden WebView for session validation -->
+                <WebView x:Name="SessionCheckWebView"
+                         HeightRequest="0"
+                         WidthRequest="0"
+                         IsVisible="False"
+                         Navigated="OnSessionCheckNavigated"/>
+
+                <!-- ─── Settings Card ─── -->
+                <Border Style="{StaticResource SectionCard}">
+                    <VerticalStackLayout Spacing="16">
+                        <Label Text="Settings" Style="{StaticResource SectionLabel}"/>
+
+                        <!-- Background Automation -->
+                        <Grid ColumnDefinitions="*, Auto" ColumnSpacing="16">
+                            <VerticalStackLayout VerticalOptions="Center" Spacing="4">
+                                <Label Text="Background Automation" Style="{StaticResource ControlTitleLabel}"/>
+                                <Label Text="Keep streaks alive automatically" Style="{StaticResource DataLabel}" LineBreakMode="WordWrap"/>
+                            </VerticalStackLayout>
+                            <Switch x:Name="ScheduleSwitch"
+                                    Grid.Column="1"
+                                    VerticalOptions="Center"
+                                    Toggled="OnScheduleToggled"/>
+                        </Grid>
+
+                        <!-- Divider -->
+                        <BoxView HeightRequest="1"
+                                 BackgroundColor="{AppThemeBinding Light={StaticResource BorderColorLight}, Dark={StaticResource BorderColorDark}}"/>
+
+                        <!-- Skip Unreachable Users -->
+                        <Grid ColumnDefinitions="*, Auto" ColumnSpacing="16">
+                            <VerticalStackLayout VerticalOptions="Center" Spacing="4">
+                                <Label Text="Skip Unreachable" Style="{StaticResource ControlTitleLabel}"/>
+                                <Label Text="Continue to remaining users when one is not found" Style="{StaticResource DataLabel}" LineBreakMode="WordWrap"/>
+                            </VerticalStackLayout>
+                            <Switch x:Name="SkipUnreachableSwitch"
+                                    Grid.Column="1"
+                                    VerticalOptions="Center"
+                                    Toggled="OnSkipUnreachableToggled"/>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- ─── About Card ─── -->
+                <Border Style="{StaticResource SectionCard}">
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="About" Style="{StaticResource SectionLabel}"/>
+                        <Grid ColumnDefinitions="*, Auto">
+                            <VerticalStackLayout VerticalOptions="Center" Spacing="2">
+                                <Label Text="Feener" Style="{StaticResource ValueLabel}"/>
+                                <Label x:Name="VersionLabel"
+                                       Text="v1.0.0"
+                                       Style="{StaticResource DataLabel}"/>
+                            </VerticalStackLayout>
+                            <Button Grid.Column="1"
+                                    Text="View Details"
+                                    Style="{StaticResource TextButton}"
+                                    Clicked="OnAboutClicked"/>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- ─── Danger Zone ─── -->
+                <Border Style="{StaticResource SectionCard}">
+                    <VerticalStackLayout Spacing="12">
+                        <Label Text="Data" Style="{StaticResource SectionLabel}"/>
+                        <Button Text="Logout / Clear Session"
+                                BackgroundColor="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray800}}"
+                                TextColor="{AppThemeBinding Light={StaticResource DeleteColor}, Dark={StaticResource DeleteColor}}"
                                 CornerRadius="14"
-                                HeightRequest="48"
-                                Clicked="OnLoginClicked"/>
+                                HeightRequest="44"
+                                Clicked="OnLogoutClicked"/>
+                    </VerticalStackLayout>
+                </Border>
 
-                        <!-- Session checking indicator -->
-                        <HorizontalStackLayout x:Name="SessionCheckingIndicator"
-                                               IsVisible="False"
-                                               HorizontalOptions="Center"
-                                               VerticalOptions="Center"
-                                               Spacing="8">
-                            <ActivityIndicator IsRunning="True"
-                                               Color="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource White}}"
-                                               HeightRequest="20"
-                                               WidthRequest="20"/>
-                            <Label Text="Validating session..."
-                                   TextColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource White}}"
-                                   Style="{StaticResource DataLabel}"
-                                   VerticalOptions="Center"/>
-                        </HorizontalStackLayout>
-                    </Grid>
-                </VerticalStackLayout>
-            </Border>
+                <!-- Nav bar clearance -->
+                <BoxView HeightRequest="70" BackgroundColor="Transparent"/>
 
-            <!-- Hidden WebView for session validation -->
-            <WebView x:Name="SessionCheckWebView"
-                     HeightRequest="0"
-                     WidthRequest="0"
-                     IsVisible="False"
-                     Navigated="OnSessionCheckNavigated"/>
+            </VerticalStackLayout>
+        </ScrollView>
 
-            <!-- ─── Settings Card ─── -->
-            <Border Style="{StaticResource SectionCard}">
-                <VerticalStackLayout Spacing="16">
-                    <Label Text="Settings" Style="{StaticResource SectionLabel}"/>
-
-                    <!-- Background Automation -->
-                    <Grid ColumnDefinitions="*, Auto" ColumnSpacing="16">
-                        <VerticalStackLayout VerticalOptions="Center" Spacing="4">
-                            <Label Text="Background Automation" Style="{StaticResource ControlTitleLabel}"/>
-                            <Label Text="Keep streaks alive automatically" Style="{StaticResource DataLabel}" LineBreakMode="WordWrap"/>
-                        </VerticalStackLayout>
-                        <Switch x:Name="ScheduleSwitch"
-                                Grid.Column="1"
-                                VerticalOptions="Center"
-                                Toggled="OnScheduleToggled"/>
-                    </Grid>
-
-                    <!-- Divider -->
-                    <BoxView HeightRequest="1"
-                             BackgroundColor="{AppThemeBinding Light={StaticResource BorderColorLight}, Dark={StaticResource BorderColorDark}}"/>
-
-                    <!-- Skip Unreachable Users -->
-                    <Grid ColumnDefinitions="*, Auto" ColumnSpacing="16">
-                        <VerticalStackLayout VerticalOptions="Center" Spacing="4">
-                            <Label Text="Skip Unreachable" Style="{StaticResource ControlTitleLabel}"/>
-                            <Label Text="Continue to remaining users when one is not found" Style="{StaticResource DataLabel}" LineBreakMode="WordWrap"/>
-                        </VerticalStackLayout>
-                        <Switch x:Name="SkipUnreachableSwitch"
-                                Grid.Column="1"
-                                VerticalOptions="Center"
-                                Toggled="OnSkipUnreachableToggled"/>
-                    </Grid>
-                </VerticalStackLayout>
-            </Border>
-
-            <!-- ─── About Card ─── -->
-            <Border Style="{StaticResource SectionCard}">
-                <VerticalStackLayout Spacing="8">
-                    <Label Text="About" Style="{StaticResource SectionLabel}"/>
-                    <Grid ColumnDefinitions="*, Auto">
-                        <VerticalStackLayout VerticalOptions="Center" Spacing="2">
-                            <Label Text="Feener" Style="{StaticResource ValueLabel}"/>
-                            <Label x:Name="VersionLabel"
-                                   Text="v1.0.0"
-                                   Style="{StaticResource DataLabel}"/>
-                        </VerticalStackLayout>
-                        <Button Grid.Column="1"
-                                Text="View Details"
-                                Style="{StaticResource TextButton}"
-                                Clicked="OnAboutClicked"/>
-                    </Grid>
-                </VerticalStackLayout>
-            </Border>
-
-            <!-- ─── Danger Zone ─── -->
-            <Border Style="{StaticResource SectionCard}">
-                <VerticalStackLayout Spacing="12">
-                    <Label Text="Data" Style="{StaticResource SectionLabel}"/>
-                    <Button Text="Logout / Clear Session"
-                            BackgroundColor="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray800}}"
-                            TextColor="{AppThemeBinding Light={StaticResource DeleteColor}, Dark={StaticResource DeleteColor}}"
-                            CornerRadius="12"
-                            HeightRequest="44"
-                            Clicked="OnLogoutClicked"/>
-                </VerticalStackLayout>
-            </Border>
-
-            <BoxView HeightRequest="32" BackgroundColor="Transparent"/>
-        </VerticalStackLayout>
-    </ScrollView>
+        <!-- ─── Floating Nav Bar ─── -->
+        <views:FloatingNavBar Grid.Row="1" CurrentTab="Profile"/>
+    </Grid>
 </ContentPage>

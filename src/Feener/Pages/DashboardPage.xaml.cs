@@ -14,7 +14,7 @@ public partial class DashboardPage : ContentPage
     private bool _isCheckingForUpdates = false;
     private bool _isAppInForeground = false;
     private IDispatcherTimer? _statusTimer;
-    private readonly SuccessRateDrawable _chartDrawable;
+    private readonly BurstProgressDrawable _burstProgressDrawable;
 
     public DashboardPage()
     {
@@ -22,8 +22,9 @@ public partial class DashboardPage : ContentPage
         _settingsService = new SettingsService();
         _sessionService = new SessionService();
         _updateService = new UpdateService();
-        _chartDrawable = new SuccessRateDrawable();
-        SuccessChartView.Drawable = _chartDrawable;
+        
+        _burstProgressDrawable = new BurstProgressDrawable();
+        BurstProgressGraphicsView.Drawable = _burstProgressDrawable;
     }
 
     private Color GetThemeColor(string key, string fallbackHex = "#92979E")
@@ -38,20 +39,24 @@ public partial class DashboardPage : ContentPage
         base.OnAppearing();
         _isAppInForeground = true;
 
-        // Fade-in animation for smooth tab transition
+        // Non-linear transition animation
         this.Opacity = 0;
-        await this.FadeTo(1, 250, Easing.CubicOut);
+        this.TranslationY = 12;
+        await Task.WhenAll(
+            this.FadeTo(1, 280, Easing.SinInOut),
+            this.TranslateTo(0, 0, 280, Easing.SinInOut));
 
         // Update greeting
         GreetingLabel.Text = $"Hi, {_sessionService.GetDisplayName()}";
+
+        // Load profile photo
+        LoadProfilePhoto();
 
         // Update session indicator
         UpdateSessionIndicator();
 
         LoadSettings();
-        LoadHistory();
         UpdateStatus();
-        UpdateSuccessChart();
 
         await EvaluatePermissionsAsync();
 
@@ -73,6 +78,33 @@ public partial class DashboardPage : ContentPage
         _isAppInForeground = false;
         _statusTimer?.Stop();
     }
+
+    // ─── Profile Photo ──────────────────────────────────────────────────────────
+
+    private void LoadProfilePhoto()
+    {
+        var photoPath = _sessionService.GetProfileImagePath();
+        if (!string.IsNullOrEmpty(photoPath) && System.IO.File.Exists(photoPath))
+        {
+            ProfileAvatarImage.Source = ImageSource.FromFile(photoPath);
+            ProfileAvatarImage.IsVisible = true;
+            ProfileAvatarEmoji.IsVisible = false;
+            // Clip the image to the circle
+            ProfileAvatarImage.Clip = new EllipseGeometry
+            {
+                Center = new Point(22, 22),
+                RadiusX = 22,
+                RadiusY = 22
+            };
+        }
+        else
+        {
+            ProfileAvatarImage.IsVisible = false;
+            ProfileAvatarEmoji.IsVisible = true;
+        }
+    }
+
+    // ─── Session ────────────────────────────────────────────────────────────────
 
     private void UpdateSessionIndicator()
     {
@@ -240,11 +272,26 @@ public partial class DashboardPage : ContentPage
         var partMins = (totalSeconds % 3600) / 60;
         var partSecs = totalSeconds % 60;
         string timeStr = hours > 0 ? $"~{hours}h {partMins}m" : $"~{partMins}m {partSecs}s";
-        BurstPlanLabel.Text = remaining > 0
-            ? $"{remaining} messages left \u2022 ~{sessions} sessions"
-            : "Daily cap reached! Come back tomorrow.";
-        BurstTimeEstimateLabel.Text = remaining > 0 ? timeStr : "0m 0s";
+
+        // Update progress label
         BurstDailyProgressLabel.Text = $"{dailySent}/{dailyLimit}";
+
+        // Update linear progress bar
+        float progress = dailyLimit > 0 ? (float)dailySent / dailyLimit : 0;
+        _burstProgressDrawable.Progress = progress;
+        _burstProgressDrawable.TotalSessions = sessions > 0 ? sessions : 1;
+        _burstProgressDrawable.IsDarkTheme = Application.Current?.RequestedTheme == AppTheme.Dark;
+        BurstProgressGraphicsView.Invalidate();
+
+        // Update stat labels
+        BurstRemainingLabel.Text = remaining > 0 ? remaining.ToString() : "0";
+        BurstSessionsLabel.Text = remaining > 0 ? $"~{sessions}" : "0";
+        BurstTimeEstimateLabel.Text = remaining > 0 ? timeStr : "0m 0s";
+
+        // Plan summary
+        BurstPlanLabel.Text = remaining > 0
+            ? $"{remaining} messages left • ~{sessions} sessions"
+            : "Daily cap reached! Come back tomorrow.";
     }
 
     private async void OnBurstLimitChanged(object? sender, EventArgs e)
@@ -274,7 +321,7 @@ public partial class DashboardPage : ContentPage
         {
             Stroke = GetThemeColor("BorderColorLight", "#E5E5E5"),
             StrokeThickness = 1,
-            StrokeShape = new RoundRectangle { CornerRadius = 8 },
+            StrokeShape = new RoundRectangle { CornerRadius = 14 },
             Margin = new Thickness(0, 0, 0, 8)
         };
         var grid = new Grid
@@ -285,11 +332,11 @@ public partial class DashboardPage : ContentPage
                 new ColumnDefinition { Width = GridLength.Auto }
             }
         };
-        var editor = new Editor { Text = initialText, Placeholder = "Enter burst message...", HeightRequest = 60, Margin = new Thickness(8) };
+        var editor = new Editor { Text = initialText, Placeholder = "Enter burst message...", HeightRequest = 60, Margin = new Thickness(12, 8) };
         editor.TextChanged += OnBurstSettingsChanged;
         var removeBtn = new Button
         {
-            Text = "X", BackgroundColor = Colors.Transparent,
+            Text = "✕", BackgroundColor = Colors.Transparent,
             TextColor = GetThemeColor("DeleteColor", "#EF4444"),
             FontAttributes = FontAttributes.Bold, WidthRequest = 40, VerticalOptions = LayoutOptions.Center
         };
@@ -329,7 +376,7 @@ public partial class DashboardPage : ContentPage
         _settingsService.SetBurstMessages(messages);
     }
 
-    // ─── Status / History ───────────────────────────────────────────────────────
+    // ─── Status ─────────────────────────────────────────────────────────────────
 
     private void UpdateStatus()
     {
@@ -355,107 +402,6 @@ public partial class DashboardPage : ContentPage
         else NextRunLabel.Text = "Not scheduled";
     }
 
-    private void UpdateSuccessChart()
-    {
-        var history = _settingsService.GetRunHistory();
-        int total = history.Count;
-        int success = history.Count(r => r.Success);
-        float rate = total > 0 ? (float)success / total : 0;
-
-        bool isDark = Application.Current?.RequestedTheme == AppTheme.Dark;
-        _chartDrawable.IsDarkTheme = isDark;
-        _chartDrawable.SuccessRate = rate;
-        _chartDrawable.RateText = total > 0 ? $"{(int)(rate * 100)}%" : "—";
-        _chartDrawable.SubText = total > 0 ? "success" : "";
-        SuccessChartView.Invalidate();
-
-        if (total > 0)
-        {
-            SuccessRateLabel.Text = $"{success} of {total} runs successful";
-            TotalRunsLabel.Text = $"Last {Math.Min(total, 50)} runs tracked";
-
-            // Estimate avg duration from most recent run
-            var lastRun = history.FirstOrDefault();
-            if (lastRun != null && lastRun.FriendResults.Count > 0)
-            {
-                var lastTs = lastRun.FriendResults.Max(r => r.Timestamp);
-                var dur = lastTs - lastRun.RunTime;
-                AvgDurationLabel.Text = dur.TotalMinutes > 1
-                    ? $"Last run: ~{(int)dur.TotalMinutes}m {dur.Seconds}s"
-                    : $"Last run: ~{(int)dur.TotalSeconds}s";
-            }
-        }
-        else
-        {
-            SuccessRateLabel.Text = "No data yet";
-            TotalRunsLabel.Text = "";
-            AvgDurationLabel.Text = "";
-        }
-    }
-
-    private void LoadHistory()
-    {
-        var allHistory = _settingsService.GetRunHistory();
-        var itemsToRemove = HistoryContainer.Children.Where(c => c != NoHistoryLabel).ToList();
-        foreach (var item in itemsToRemove) HistoryContainer.Children.Remove(item);
-        NoHistoryLabel.IsVisible = allHistory.Count == 0;
-        SeeAllHistoryButton.IsVisible = allHistory.Count > 5;
-        foreach (var run in allHistory.Take(5)) HistoryContainer.Children.Add(CreateHistoryView(run));
-    }
-
-    private async void OnSeeAllHistoryClicked(object? sender, EventArgs e)
-    {
-        var allHistory = _settingsService.GetRunHistory();
-        var summary = string.Join("\n\n", allHistory.Take(20).Select(r =>
-            $"{r.RunTime:MMM dd, HH:mm}: {(r.Success ? "Success" : "Failed")}\n" +
-            $"{(r.FriendResults.Count > 0 ? $"{r.FriendResults.Count(f => f.Success)}/{r.FriendResults.Count} sent" : r.ErrorMessage)}"));
-        await DisplayAlert("Run History", summary, "Done");
-    }
-
-    private View CreateHistoryView(StreakRunResult run)
-    {
-        var successCount = run.FriendResults.Count(r => r.Success);
-        var totalCount = run.FriendResults.Count;
-        var statusColor = run.Success ? GetThemeColor("Success", "#22946E") : GetThemeColor("Error", "#9C2121");
-        var grid = new Grid
-        {
-            ColumnDefinitions = new ColumnDefinitionCollection
-            {
-                new ColumnDefinition { Width = GridLength.Auto },
-                new ColumnDefinition { Width = GridLength.Star },
-                new ColumnDefinition { Width = GridLength.Auto }
-            },
-            ColumnSpacing = 12, Padding = new Thickness(0, 6)
-        };
-        var statusDot = new Border
-        {
-            WidthRequest = 8, HeightRequest = 8, StrokeThickness = 0,
-            StrokeShape = new RoundRectangle { CornerRadius = 4 },
-            BackgroundColor = statusColor, VerticalOptions = LayoutOptions.Center, Margin = new Thickness(4, 0)
-        };
-        grid.Children.Add(statusDot);
-        var infoStack = new VerticalStackLayout { Spacing = 3 };
-        infoStack.Children.Add(new Label { Text = run.RunTime.ToString("MMM dd, HH:mm"), FontSize = 15, FontFamily = "InterMedium" });
-        if (totalCount > 0)
-        {
-            var skippedCount = totalCount - successCount;
-            var infoLabel = new Label
-            {
-                Text = skippedCount > 0 ? $"{successCount}/{totalCount} sent \u2022 {skippedCount} skipped" : $"{successCount}/{totalCount} messages sent",
-                FontSize = 13
-            };
-            infoLabel.SetAppThemeColor(Label.TextColorProperty, GetThemeColor("Gray400"), GetThemeColor("Gray400"));
-            infoStack.Children.Add(infoLabel);
-        }
-        else if (!string.IsNullOrEmpty(run.ErrorMessage))
-        {
-            infoStack.Children.Add(new Label { Text = run.ErrorMessage, FontSize = 12, TextColor = statusColor, LineBreakMode = LineBreakMode.TailTruncation });
-        }
-        Grid.SetColumn(infoStack, 1);
-        grid.Children.Add(infoStack);
-        return grid;
-    }
-
     // ─── Actions ────────────────────────────────────────────────────────────────
 
     private void OnMessageChanged(object? sender, TextChangedEventArgs e)
@@ -465,8 +411,9 @@ public partial class DashboardPage : ContentPage
 
     private async void OnMasterRunClicked(object? sender, EventArgs e)
     {
-        await MasterRunButton.ScaleTo(0.96, 80, Easing.CubicIn);
-        await MasterRunButton.ScaleTo(1.0, 80, Easing.CubicOut);
+        // Haptic press animation
+        await MasterRunButton.ScaleTo(0.94, 60, Easing.CubicIn);
+        await MasterRunButton.ScaleTo(1.0, 100, Easing.CubicOut);
 
         bool isBurstMode = _settingsService.IsBurstModeActive();
         if (isBurstMode)
@@ -509,53 +456,24 @@ public partial class DashboardPage : ContentPage
         }
     }
 
-    private void OnStopServiceClicked(object? sender, EventArgs e)
+    private async void OnStopServiceClicked(object? sender, EventArgs e)
     {
+        // Haptic press animation for stop button
+        await StopServiceButton.ScaleTo(0.94, 60, Easing.CubicIn);
+        await StopServiceButton.ScaleTo(1.0, 100, Easing.CubicOut);
 #if ANDROID
         var context = Platform.CurrentActivity ?? Android.App.Application.Context;
         Feener.Platforms.Android.StreakScheduler.StopService(context);
 #endif
     }
 
-    private bool _isExportingLogs = false;
-    private async void OnExportLogsClicked(object? sender, EventArgs e)
-    {
-        if (_isExportingLogs) return;
-        _isExportingLogs = true;
-        try
-        {
-#if ANDROID
-            var logs = Feener.Platforms.Android.Services.StreakService.GetLogs();
-#else
-            var logs = new List<string>();
-#endif
-            if (logs == null || logs.Count == 0) { await DisplayAlert("Export Logs", "No logs to export", "OK"); return; }
-            var textContent = string.Join(Environment.NewLine, logs);
-            var fileName = $"streak_logs_{DateTime.Now:yyyyMMdd_HHmm}.txt";
-            var filePath = System.IO.Path.Combine(FileSystem.CacheDirectory, fileName);
-            await System.IO.File.WriteAllTextAsync(filePath, textContent);
-            await Share.Default.RequestAsync(new ShareFileRequest { Title = "Export System Logs", File = new ShareFile(filePath, "text/plain") });
-        }
-        catch (Exception ex) { await DisplayAlert("Export Failed", $"Could not export logs: {ex.Message}", "OK"); }
-        finally { _isExportingLogs = false; }
-    }
-
-    private async void OnClearHistoryClicked(object? sender, EventArgs e)
-    {
-        var history = _settingsService.GetRunHistory();
-        if (history.Count == 0) return;
-        bool confirm = await DisplayAlert("Clear History", "Are you sure you want to clear your run history?", "Clear", "Cancel");
-        if (confirm) { _settingsService.ClearRunHistory(); LoadHistory(); UpdateSuccessChart(); }
-    }
-
     private async void OnRefreshing(object? sender, EventArgs e)
     {
         GreetingLabel.Text = $"Hi, {_sessionService.GetDisplayName()}";
+        LoadProfilePhoto();
         UpdateSessionIndicator();
         LoadSettings();
-        LoadHistory();
         UpdateStatus();
-        UpdateSuccessChart();
         await EvaluatePermissionsAsync();
         await CheckUpdateOnlyAsync();
         MainRefreshView.IsRefreshing = false;

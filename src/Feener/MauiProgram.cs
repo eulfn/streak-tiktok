@@ -15,6 +15,27 @@ namespace Feener
                     fonts.AddFont("Inter-Medium.ttf", "InterMedium");
                     fonts.AddFont("Inter-SemiBold.ttf", "InterSemiBold");
                     fonts.AddFont("Inter-Bold.ttf", "InterBold");
+                })
+                .ConfigureMauiHandlers(handlers =>
+                {
+#if ANDROID
+                    // Strip the default Android underline from Entry and Editor controls.
+                    // The underline comes from the native EditText background drawable.
+                    handlers.AddHandler<Entry, Microsoft.Maui.Handlers.EntryHandler>();
+                    handlers.AddHandler<Editor, Microsoft.Maui.Handlers.EditorHandler>();
+
+                    Microsoft.Maui.Handlers.EntryHandler.Mapper.AppendToMapping("NoUnderline", (handler, view) =>
+                    {
+                        handler.PlatformView.BackgroundTintList =
+                            Android.Content.Res.ColorStateList.ValueOf(Android.Graphics.Color.Transparent);
+                    });
+
+                    Microsoft.Maui.Handlers.EditorHandler.Mapper.AppendToMapping("NoUnderline", (handler, view) =>
+                    {
+                        handler.PlatformView.BackgroundTintList =
+                            Android.Content.Res.ColorStateList.ValueOf(Android.Graphics.Color.Transparent);
+                    });
+#endif
                 });
 
 #if DEBUG

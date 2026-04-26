@@ -1,4 +1,5 @@
 using Feener.Services;
+using Microsoft.Maui.Controls.Shapes;
 
 namespace Feener.Pages;
 
@@ -33,7 +34,12 @@ public partial class ProfilePage : ContentPage
         base.OnAppearing();
 
         this.Opacity = 0;
-        await this.FadeTo(1, 250, Easing.CubicOut);
+        this.TranslationY = 12;
+        await Task.WhenAll(
+            this.FadeTo(1, 280, Easing.SinInOut),
+            this.TranslateTo(0, 0, 280, Easing.SinInOut));
+
+        LoadProfilePhoto();
 
         // Load display name
         DisplayNameEntry.Text = _sessionService.GetDisplayName();
@@ -47,6 +53,57 @@ public partial class ProfilePage : ContentPage
 
         // Check session
         CheckSessionStatus();
+    }
+
+    // ─── Profile Photo ──────────────────────────────────────────────────────────
+
+    private void LoadProfilePhoto()
+    {
+        var photoPath = _sessionService.GetProfileImagePath();
+        if (!string.IsNullOrEmpty(photoPath) && System.IO.File.Exists(photoPath))
+        {
+            ProfilePhoto.Source = ImageSource.FromFile(photoPath);
+            ProfilePhoto.IsVisible = true;
+            ProfileEmoji.IsVisible = false;
+            // Clip the image to the circle
+            ProfilePhoto.Clip = new EllipseGeometry
+            {
+                Center = new Point(28, 28),
+                RadiusX = 28,
+                RadiusY = 28
+            };
+        }
+        else
+        {
+            ProfilePhoto.IsVisible = false;
+            ProfileEmoji.IsVisible = true;
+        }
+    }
+
+    private async void OnProfilePhotoTapped(object? sender, TappedEventArgs e)
+    {
+        try
+        {
+            var result = await MediaPicker.Default.PickPhotoAsync(new MediaPickerOptions
+            {
+                Title = "Please pick a photo"
+            });
+
+            if (result != null)
+            {
+                var newFile = Path.Combine(FileSystem.AppDataDirectory, result.FileName);
+                using (var stream = await result.OpenReadAsync())
+                using (var newStream = System.IO.File.OpenWrite(newFile))
+                    await stream.CopyToAsync(newStream);
+
+                _sessionService.SetProfileImagePath(newFile);
+                LoadProfilePhoto();
+            }
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Photo", $"Could not pick photo: {ex.Message}", "OK");
+        }
     }
 
     // ─── Display Name ───────────────────────────────────────────────────────────

@@ -60,4 +60,20 @@ public class SessionService
         Preferences.Set(SessionValidKey, false);
         Preferences.Remove(SessionLastCheckKey);
     }
+
+    /// <summary>
+    /// Get the path to the user's local profile photo
+    /// </summary>
+    public string GetProfileImagePath()
+    {
+        return Preferences.Get("session_profile_photo", string.Empty);
+    }
+
+    /// <summary>
+    /// Set the path to the user's local profile photo
+    /// </summary>
+    public void SetProfileImagePath(string path)
+    {
+        Preferences.Set("session_profile_photo", path ?? string.Empty);
+    }
 }

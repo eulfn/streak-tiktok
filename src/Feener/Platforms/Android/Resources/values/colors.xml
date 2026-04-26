@@ -3,6 +3,6 @@
     <!-- TikTok Brand Colors -->
     <color name="colorPrimary">#FE2C55</color>
     <color name="colorPrimaryDark">#161823</color>
-    <color name="colorAccent">#25F4EE</color>
+    <color name="colorAccent">#FE2C55</color>
     <color name="splash_bg">#FFFFFF</color>
 </resources>

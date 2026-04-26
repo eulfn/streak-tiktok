@@ -26,7 +26,10 @@ public partial class FriendsPage : ContentPage
     {
         base.OnAppearing();
         this.Opacity = 0;
-        await this.FadeTo(1, 250, Easing.CubicOut);
+        this.TranslationY = 12;
+        await Task.WhenAll(
+            this.FadeTo(1, 280, Easing.SinInOut),
+            this.TranslateTo(0, 0, 280, Easing.SinInOut));
         LoadFriendsList();
     }
 

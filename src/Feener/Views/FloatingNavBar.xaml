@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Feener.Views.FloatingNavBar"
+             HorizontalOptions="Center"
+             VerticalOptions="End">
+
+    <Border x:Name="NavContainer"
+            StrokeThickness="0"
+            StrokeShape="RoundRectangle 28"
+            Padding="8,10"
+            Margin="24,0,24,16"
+            HorizontalOptions="Center"
+            BackgroundColor="{AppThemeBinding Light=#F0FFFFFF, Dark=#E81E1F23}">
+        <Border.Shadow>
+            <Shadow Brush="{AppThemeBinding Light=#22000000, Dark=#30000000}"
+                    Offset="0,4"
+                    Radius="24"
+                    Opacity="1"/>
+        </Border.Shadow>
+
+        <Grid ColumnDefinitions="72,72,72,72" ColumnSpacing="4">
+
+            <!-- Dashboard Tab -->
+            <VerticalStackLayout Grid.Column="0" Spacing="3" HorizontalOptions="Center">
+                <Border x:Name="DashboardIndicator"
+                        WidthRequest="40" HeightRequest="32"
+                        StrokeThickness="0"
+                        StrokeShape="RoundRectangle 12"
+                        BackgroundColor="Transparent"
+                        HorizontalOptions="Center">
+                    <Label x:Name="DashboardIcon" Text="⌂"
+                           FontSize="18"
+                           HorizontalOptions="Center" VerticalOptions="Center"
+                           TextColor="{AppThemeBinding Light={StaticResource Gray400}, Dark={StaticResource Gray500}}"/>
+                </Border>
+                <Label x:Name="DashboardLabel" Text="Home"
+                       FontFamily="InterMedium" FontSize="10"
+                       HorizontalOptions="Center"
+                       TextColor="{AppThemeBinding Light={StaticResource Gray400}, Dark={StaticResource Gray500}}"/>
+                <VerticalStackLayout.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnDashboardTapped"/>
+                </VerticalStackLayout.GestureRecognizers>
+            </VerticalStackLayout>
+
+            <!-- History Tab -->
+            <VerticalStackLayout Grid.Column="1" Spacing="3" HorizontalOptions="Center">
+                <Border x:Name="HistoryIndicator"
+                        WidthRequest="40" HeightRequest="32"
+                        StrokeThickness="0"
+                        StrokeShape="RoundRectangle 12"
+                        BackgroundColor="Transparent"
+                        HorizontalOptions="Center">
+                    <Label x:Name="HistoryIcon" Text="⏱"
+                           FontSize="18"
+                           HorizontalOptions="Center" VerticalOptions="Center"
+                           TextColor="{AppThemeBinding Light={StaticResource Gray400}, Dark={StaticResource Gray500}}"/>
+                </Border>
+                <Label x:Name="HistoryLabel" Text="History"
+                       FontFamily="InterMedium" FontSize="10"
+                       HorizontalOptions="Center"
+                       TextColor="{AppThemeBinding Light={StaticResource Gray400}, Dark={StaticResource Gray500}}"/>
+                <VerticalStackLayout.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnHistoryTapped"/>
+                </VerticalStackLayout.GestureRecognizers>
+            </VerticalStackLayout>
+
+            <!-- Friends Tab -->
+            <VerticalStackLayout Grid.Column="2" Spacing="3" HorizontalOptions="Center">
+                <Border x:Name="FriendsIndicator"
+                        WidthRequest="40" HeightRequest="32"
+                        StrokeThickness="0"
+                        StrokeShape="RoundRectangle 12"
+                        BackgroundColor="Transparent"
+                        HorizontalOptions="Center">
+                    <Label x:Name="FriendsIcon" Text="👥"
+                           FontSize="18"
+                           HorizontalOptions="Center" VerticalOptions="Center"
+                           TextColor="{AppThemeBinding Light={StaticResource Gray400}, Dark={StaticResource Gray500}}"/>
+                </Border>
+                <Label x:Name="FriendsLabel" Text="Friends"
+                       FontFamily="InterMedium" FontSize="10"
+                       HorizontalOptions="Center"
+                       TextColor="{AppThemeBinding Light={StaticResource Gray400}, Dark={StaticResource Gray500}}"/>
+                <VerticalStackLayout.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnFriendsTapped"/>
+                </VerticalStackLayout.GestureRecognizers>
+            </VerticalStackLayout>
+
+            <!-- Profile Tab -->
+            <VerticalStackLayout Grid.Column="3" Spacing="3" HorizontalOptions="Center">
+                <Border x:Name="ProfileIndicator"
+                        WidthRequest="40" HeightRequest="32"
+                        StrokeThickness="0"
+                        StrokeShape="RoundRectangle 12"
+                        BackgroundColor="Transparent"
+                        HorizontalOptions="Center">
+                    <Label x:Name="ProfileIcon" Text="👤"
+                           FontSize="18"
+                           HorizontalOptions="Center" VerticalOptions="Center"
+                           TextColor="{AppThemeBinding Light={StaticResource Gray400}, Dark={StaticResource Gray500}}"/>
+                </Border>
+                <Label x:Name="ProfileLabel" Text="Profile"
+                       FontFamily="InterMedium" FontSize="10"
+                       HorizontalOptions="Center"
+                       TextColor="{AppThemeBinding Light={StaticResource Gray400}, Dark={StaticResource Gray500}}"/>
+                <VerticalStackLayout.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnProfileTapped"/>
+                </VerticalStackLayout.GestureRecognizers>
+            </VerticalStackLayout>
+
+        </Grid>
+    </Border>
+</ContentView>

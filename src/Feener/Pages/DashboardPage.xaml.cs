@@ -118,12 +118,6 @@ public partial class DashboardPage : ContentPage
     private void UpdateSessionIndicator()
     {
         bool valid = _sessionService.IsSessionValid();
-        SessionDot.BackgroundColor = valid
-            ? GetThemeColor("Success", "#22946E")
-            : GetThemeColor("Gray400", "#8B8F96");
-        SessionStatusLabel.Text = valid ? "Session active" : "Not logged in";
-        SessionActionLabel.IsVisible = !valid;
-
         MasterRunButton.IsEnabled = valid;
         MasterRunButton.Opacity = valid ? 1.0 : 0.5;
     }
@@ -393,7 +387,7 @@ public partial class DashboardPage : ContentPage
         };
         var deletePath = new Microsoft.Maui.Controls.Shapes.Path
         {
-            Data = (Microsoft.Maui.Controls.Shapes.Geometry)new Microsoft.Maui.Controls.Shapes.PathGeometryConverter().ConvertFromInvariantString("M15,3H9V4H3V6H21V4H15V3M5,7V20A2,2 0 0,0 7,22H17A2,2 0 0,0 19,20V7H5M7,20V9H17V20H7Z"),
+            Data = (Microsoft.Maui.Controls.Shapes.Geometry)(new Microsoft.Maui.Controls.Shapes.PathGeometryConverter().ConvertFromInvariantString("M15,3H9V4H3V6H21V4H15V3M5,7V20A2,2 0 0,0 7,22H17A2,2 0 0,0 19,20V7H5M7,20V9H17V20H7Z") ?? new Microsoft.Maui.Controls.Shapes.PathGeometry()),
             Fill = GetThemeColor("Gray500", "#6B7280"),
             Aspect = Stretch.Uniform,
             HeightRequest = 18,

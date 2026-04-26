@@ -202,7 +202,7 @@ public partial class HistoryPage : ContentPage
         var history = _settingsService.GetRunHistory();
         if (history.Count == 0) return;
         bool confirm = await DisplayAlert("Clear History", "Are you sure you want to clear your run history?", "Clear", "Cancel");
-        if (confirm) { _settingsService.ClearRunHistory(); LoadHistory(); UpdateSuccessChart(); }
+        if (confirm) { _settingsService.ClearRunHistory(); LoadHistory(); LoadStats(); }
     }
 
     private async void OnExportLogsClicked(object? sender, EventArgs e)

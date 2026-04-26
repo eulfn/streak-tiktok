@@ -51,7 +51,7 @@
                         StrokeShape="RoundRectangle 12"
                         BackgroundColor="Transparent"
                         HorizontalOptions="Center">
-                    <Label x:Name="HistoryIcon" Text="⏱"
+                    <Label x:Name="HistoryIcon" Text="◷"
                            FontSize="18"
                            HorizontalOptions="Center" VerticalOptions="Center"
                            TextColor="{AppThemeBinding Light={StaticResource Gray400}, Dark={StaticResource Gray500}}"/>
@@ -73,7 +73,7 @@
                         StrokeShape="RoundRectangle 12"
                         BackgroundColor="Transparent"
                         HorizontalOptions="Center">
-                    <Label x:Name="FriendsIcon" Text="👥"
+                    <Label x:Name="FriendsIcon" Text="⚭"
                            FontSize="18"
                            HorizontalOptions="Center" VerticalOptions="Center"
                            TextColor="{AppThemeBinding Light={StaticResource Gray400}, Dark={StaticResource Gray500}}"/>
@@ -95,7 +95,7 @@
                         StrokeShape="RoundRectangle 12"
                         BackgroundColor="Transparent"
                         HorizontalOptions="Center">
-                    <Label x:Name="ProfileIcon" Text="👤"
+                    <Label x:Name="ProfileIcon" Text="⌾"
                            FontSize="18"
                            HorizontalOptions="Center" VerticalOptions="Center"
                            TextColor="{AppThemeBinding Light={StaticResource Gray400}, Dark={StaticResource Gray500}}"/>

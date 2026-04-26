@@ -113,7 +113,7 @@ public partial class HistoryPage : ContentPage
             var skippedCount = totalCount - successCount;
             var infoLabel = new Label
             {
-                Text = skippedCount > 0 ? $"{successCount}/{totalCount} sent • {skippedCount} skipped" : $"{successCount}/{totalCount} messages sent",
+                Text = skippedCount > 0 ? $"{successCount}/{totalCount} sent | {skippedCount} skipped" : $"{successCount}/{totalCount} messages sent",
                 FontSize = 13
             };
             infoLabel.SetAppThemeColor(Label.TextColorProperty, GetThemeColor("Gray400"), GetThemeColor("Gray400"));

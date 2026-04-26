@@ -290,7 +290,7 @@ public partial class DashboardPage : ContentPage
 
         // Plan summary
         BurstPlanLabel.Text = remaining > 0
-            ? $"{remaining} messages left • ~{sessions} sessions"
+            ? $"{remaining} messages left | ~{sessions} sessions"
             : "Daily cap reached! Come back tomorrow.";
     }
 
@@ -400,6 +400,13 @@ public partial class DashboardPage : ContentPage
             else NextRunLabel.Text = nextRun.ToString("MMM dd, HH:mm");
         }
         else NextRunLabel.Text = "Not scheduled";
+
+        var friendsCount = _settingsService.GetEnabledFriends().Count;
+        bool ranToday = lastRun.HasValue && lastRun.Value.Date == DateTime.Today;
+        
+        OverviewSentLabel.Text = ranToday ? friendsCount.ToString() : "0";
+        OverviewSuccessLabel.Text = ranToday ? "100%" : "--";
+        OverviewRemainingLabel.Text = ranToday ? "0" : friendsCount.ToString();
     }
 
     // ─── Actions ────────────────────────────────────────────────────────────────

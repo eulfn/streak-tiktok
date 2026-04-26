@@ -11,53 +11,54 @@
 
     <Grid RowDefinitions="*, Auto">
 
-        <ScrollView Grid.Row="0">
-            <VerticalStackLayout Padding="20" Spacing="16">
+        <RefreshView x:Name="MainRefreshView" Refreshing="OnRefreshing" Grid.Row="0">
+            <ScrollView>
+                <VerticalStackLayout Padding="20" Spacing="16">
 
-                <!-- ─── Header ─── -->
-                <VerticalStackLayout Spacing="2" Margin="0,8,0,0">
-                    <Label Text="Friends"
-                           Style="{StaticResource PageTitleLabel}"
-                           HorizontalOptions="Start"/>
-                    <Label Text="Manage your streak list"
-                           FontFamily="InterRegular"
-                           FontSize="13"
-                           TextColor="{AppThemeBinding Light={StaticResource Gray400}, Dark={StaticResource Gray400}}"
-                           HorizontalOptions="Start"/>
-                </VerticalStackLayout>
+                    <!-- ─── Header ─── -->
+                    <VerticalStackLayout Spacing="2" Margin="0,8,0,0">
+                        <Label Text="Friends"
+                               Style="{StaticResource PageTitleLabel}"
+                               HorizontalOptions="Start"/>
+                        <Label Text="Manage your streak list"
+                               FontFamily="InterRegular"
+                               FontSize="13"
+                               TextColor="{AppThemeBinding Light={StaticResource Gray400}, Dark={StaticResource Gray400}}"
+                               HorizontalOptions="Start"/>
+                    </VerticalStackLayout>
 
-                <!-- ─── Actions Card ─── -->
-                <Border Style="{StaticResource SectionCard}">
-                    <VerticalStackLayout Spacing="12">
+                    <!-- ─── Actions Card ─── -->
+                    <Border Style="{StaticResource SectionCard}">
+                        <VerticalStackLayout Spacing="12">
 
-                        <!-- Action Buttons Row -->
-                        <Grid ColumnDefinitions="*, Auto, Auto, Auto, Auto" ColumnSpacing="10">
-                            <Label Text="Streaks"
-                                   Style="{StaticResource SectionLabel}" VerticalOptions="Center"/>
-                            <Button Grid.Column="1"
-                                    Text="Import"
-                                    Style="{StaticResource TextButton}"
-                                    Clicked="OnImportFriendsClicked"/>
-                            <Button Grid.Column="2"
-                                    Text="Export"
-                                    Style="{StaticResource TextButton}"
-                                    Clicked="OnExportFriendsClicked"/>
-                            <Button Grid.Column="3"
-                                    Text="Add"
-                                    Style="{StaticResource TextButton}"
-                                    Clicked="OnAddFriendClicked"/>
-                            <Button Grid.Column="4"
-                                    Text="Clear"
-                                    Style="{StaticResource TextButton}"
-                                    TextColor="{AppThemeBinding Light={StaticResource DeleteColor}, Dark={StaticResource DeleteColor}}"
-                                    Clicked="OnDeleteAllFriendsClicked"/>
-                        </Grid>
+                            <!-- Action Buttons Row -->
+                            <Grid x:Name="ActionButtonsGrid" ColumnDefinitions="*, Auto, Auto, Auto, Auto" ColumnSpacing="10">
+                                <Label Text="Streaks"
+                                       Style="{StaticResource SectionLabel}" VerticalOptions="Center"/>
+                                <Button Grid.Column="1"
+                                        Text="Import"
+                                        Style="{StaticResource TextButton}"
+                                        Clicked="OnImportFriendsClicked"/>
+                                <Button Grid.Column="2"
+                                        Text="Export"
+                                        Style="{StaticResource TextButton}"
+                                        Clicked="OnExportFriendsClicked"/>
+                                <Button Grid.Column="3"
+                                        Text="Add"
+                                        Style="{StaticResource TextButton}"
+                                        Clicked="OnAddFriendClicked"/>
+                                <Button Grid.Column="4"
+                                        Text="Clear"
+                                        Style="{StaticResource TextButton}"
+                                        TextColor="{AppThemeBinding Light={StaticResource DeleteColor}, Dark={StaticResource DeleteColor}}"
+                                        Clicked="OnDeleteAllFriendsClicked"/>
+                            </Grid>
 
-                        <!-- Search & Bulk Toggle Row -->
-                        <Grid x:Name="SearchAndBulkRow" IsVisible="False"
-                              ColumnDefinitions="*, Auto, Auto" ColumnSpacing="8" Margin="0,4,0,0">
-                            <Border Grid.Column="0"
-                                    Stroke="{AppThemeBinding Light={StaticResource BorderColorLight}, Dark={StaticResource BorderColorDark}}"
+                            <!-- Search & Bulk Toggle Row -->
+                            <Grid x:Name="SearchAndBulkRow" IsVisible="False"
+                                  ColumnDefinitions="*, Auto, Auto" ColumnSpacing="8" Margin="0,4,0,0">
+                                <Border Grid.Column="0"
+                                        Stroke="{AppThemeBinding Light={StaticResource BorderColorLight}, Dark={StaticResource BorderColorDark}}"
                                     StrokeThickness="1"
                                     StrokeShape="RoundRectangle 14"
                                     BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource Gray900}}">
@@ -152,6 +153,7 @@
 
             </VerticalStackLayout>
         </ScrollView>
+        </RefreshView>
 
         <!-- ─── Floating Nav Bar ─── -->
         <views:FloatingNavBar Grid.Row="1" CurrentTab="Friends"/>

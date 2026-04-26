@@ -22,6 +22,9 @@ public partial class FriendsPage : ContentPage
         return Color.FromArgb(fallbackHex);
     }
 
+    private bool _lastIsRunning = false;
+    private IDispatcherTimer? _statusTimer;
+
     protected override async void OnAppearing()
     {
         base.OnAppearing();
@@ -31,6 +34,51 @@ public partial class FriendsPage : ContentPage
             this.FadeTo(1, 280, Easing.SinInOut),
             this.TranslateTo(0, 0, 280, Easing.SinInOut));
         LoadFriendsList();
+
+        if (_statusTimer == null)
+        {
+            _statusTimer = Dispatcher.CreateTimer();
+            _statusTimer.Interval = TimeSpan.FromSeconds(1);
+            _statusTimer.Tick += OnStatusTimerTick;
+        }
+        _statusTimer.Start();
+        OnStatusTimerTick(null, EventArgs.Empty);
+    }
+
+    protected override void OnDisappearing()
+    {
+        base.OnDisappearing();
+        _statusTimer?.Stop();
+    }
+
+    private void OnStatusTimerTick(object? sender, EventArgs e)
+    {
+        bool isRunning = false;
+#if ANDROID
+        isRunning = Feener.Platforms.Android.Services.StreakService.IsRunning;
+#endif
+        if (_lastIsRunning != isRunning)
+        {
+            _lastIsRunning = isRunning;
+            LoadFriendsList();
+
+            SearchAndBulkRow.IsEnabled = !isRunning;
+            SearchAndBulkRow.Opacity = isRunning ? 0.6 : 1.0;
+            
+            ActionButtonsGrid.IsEnabled = !isRunning;
+            ActionButtonsGrid.Opacity = isRunning ? 0.6 : 1.0;
+
+            if (AddFriendPanel.IsVisible && isRunning)
+            {
+                AddFriendPanel.IsVisible = false;
+            }
+        }
+    }
+
+    private void OnRefreshing(object? sender, EventArgs e)
+    {
+        LoadFriendsList();
+        MainRefreshView.IsRefreshing = false;
     }
 
     private void LoadFriendsList()
@@ -116,7 +164,7 @@ public partial class FriendsPage : ContentPage
             infoStack.Children.Add(new Label { Text = $"Last sent: {friend.LastMessageSent.Value:MMM dd}", FontSize = 12, TextColor = GetThemeColor("Gray400", "#8B8F96") });
         grid.Children.Add(infoStack);
 
-        var editButton = new Button { Text = "Edit", BackgroundColor = Colors.Transparent, FontSize = 12, Padding = new Thickness(8), HeightRequest = 44, VerticalOptions = LayoutOptions.Center };
+        var editButton = new Button { Text = "Edit", BackgroundColor = Colors.Transparent, FontSize = 12, Padding = new Thickness(8), HeightRequest = 44, VerticalOptions = LayoutOptions.Center, IsEnabled = !_lastIsRunning, Opacity = _lastIsRunning ? 0.6 : 1.0 };
         editButton.SetAppThemeColor(Button.TextColorProperty, GetThemeColor("Gray400"), GetThemeColor("Gray400"));
         editButton.Clicked += async (s, e) =>
         {
@@ -125,7 +173,7 @@ public partial class FriendsPage : ContentPage
         };
         Grid.SetColumn(editButton, 1); grid.Children.Add(editButton);
 
-        var deleteButton = new Button { Text = "Delete", BackgroundColor = Colors.Transparent, FontSize = 12, Padding = new Thickness(8), HeightRequest = 44, VerticalOptions = LayoutOptions.Center };
+        var deleteButton = new Button { Text = "Delete", BackgroundColor = Colors.Transparent, FontSize = 12, Padding = new Thickness(8), HeightRequest = 44, VerticalOptions = LayoutOptions.Center, IsEnabled = !_lastIsRunning, Opacity = _lastIsRunning ? 0.6 : 1.0 };
         deleteButton.TextColor = GetThemeColor("DeleteColor", "#EE1D52");
         deleteButton.Clicked += async (s, e) =>
         {
@@ -134,7 +182,7 @@ public partial class FriendsPage : ContentPage
         };
         Grid.SetColumn(deleteButton, 2); grid.Children.Add(deleteButton);
 
-        var toggleSwitch = new Switch { IsToggled = friend.IsEnabled, VerticalOptions = LayoutOptions.Center };
+        var toggleSwitch = new Switch { IsToggled = friend.IsEnabled, VerticalOptions = LayoutOptions.Center, IsEnabled = !_lastIsRunning, Opacity = _lastIsRunning ? 0.6 : 1.0 };
         toggleSwitch.SetAppThemeColor(Switch.ThumbColorProperty, GetThemeColor("White"), GetThemeColor("White"));
         toggleSwitch.SetAppThemeColor(Switch.OnColorProperty, GetThemeColor("Primary", "#FE2C55"), GetThemeColor("Primary", "#FE2C55"));
         toggleSwitch.Toggled += (s, e) => { friend.IsEnabled = e.Value; _settingsService.UpdateFriend(friend); };

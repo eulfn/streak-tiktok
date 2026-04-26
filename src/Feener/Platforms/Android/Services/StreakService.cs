@@ -250,7 +250,7 @@ public class StreakService : Service
         {
             var allEnabled = _settingsService?.GetEnabledFriends() ?? new List<FriendConfig>();
             _currentFriendIndex = 0;
-            _runResult = new StreakRunResult();
+            _runResult = new StreakRunResult { IsBurstMode = _isBurstMode };
             _cooldownSkippedCount = 0;
             _logs.Clear();
 

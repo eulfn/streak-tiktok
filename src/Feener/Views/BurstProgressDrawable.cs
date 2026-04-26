@@ -34,8 +34,21 @@ public class BurstProgressDrawable : IDrawable
         {
             var fillWidth = Math.Max(cornerRadius * 2, dirtyRect.Width * Progress);
             var fillRect = new RectF(dirtyRect.X, dirtyRect.Y, fillWidth, dirtyRect.Height);
-            canvas.FillColor = FillColor;
+            
+            canvas.SetShadow(new SizeF(0, 2), 6, FillColor.WithAlpha(0.5f));
+            
+            var gradientPaint = new LinearGradientPaint
+            {
+                StartColor = Color.FromArgb("#A78BFA"),
+                EndColor = FillColor,
+                StartPoint = new Point(0, 0.5),
+                EndPoint = new Point(1, 0.5)
+            };
+            canvas.SetFillPaint(gradientPaint, fillRect);
+            
             canvas.FillRoundedRectangle(fillRect, cornerRadius);
+            
+            canvas.SetShadow(SizeF.Zero, 0, Colors.Transparent);
         }
 
         // Draw session markers

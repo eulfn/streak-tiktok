@@ -27,6 +27,8 @@ public partial class HistoryPage : ContentPage
         return Color.FromArgb(fallbackHex);
     }
 
+    private bool _isBurstModeActive = false;
+
     protected override async void OnAppearing()
     {
         base.OnAppearing();
@@ -36,13 +38,56 @@ public partial class HistoryPage : ContentPage
             this.FadeTo(1, 280, Easing.SinInOut),
             this.TranslateTo(0, 0, 280, Easing.SinInOut));
 
+        _isBurstModeActive = _settingsService.IsBurstModeActive();
+        if (_isBurstModeActive) SetBurstModeUI();
+        else SetNormalModeUI();
+
         UpdateSuccessChart();
         LoadHistory();
     }
 
+    private void OnNormalModeTapped(object? sender, TappedEventArgs e)
+    {
+        _isBurstModeActive = false;
+        SetNormalModeUI();
+        UpdateSuccessChart();
+        LoadHistory();
+    }
+
+    private void OnBurstModeTapped(object? sender, TappedEventArgs e)
+    {
+        _isBurstModeActive = true;
+        SetBurstModeUI();
+        UpdateSuccessChart();
+        LoadHistory();
+    }
+
+    private void SetNormalModeUI()
+    {
+        NormalModeTabBorder.BackgroundColor = GetThemeColor("Primary", "#FE2C55");
+        NormalModeTabLabel.TextColor = GetThemeColor("White", "#FFFFFF");
+        BurstModeTabBorder.BackgroundColor = Colors.Transparent;
+        BurstModeTabLabel.TextColor = GetThemeColor("Gray600", "#4B5563");
+    }
+
+    private void SetBurstModeUI()
+    {
+        BurstModeTabBorder.BackgroundColor = GetThemeColor("BurstAccent", "#8B5CF6");
+        BurstModeTabLabel.TextColor = Colors.White;
+        NormalModeTabBorder.BackgroundColor = Colors.Transparent;
+        NormalModeTabLabel.TextColor = GetThemeColor("Gray600", "#4B5563");
+    }
+
+    private void OnRefreshing(object? sender, EventArgs e)
+    {
+        UpdateSuccessChart();
+        LoadHistory();
+        MainRefreshView.IsRefreshing = false;
+    }
+
     private void UpdateSuccessChart()
     {
-        var history = _settingsService.GetRunHistory();
+        var history = _settingsService.GetRunHistory().Where(r => r.IsBurstMode == _isBurstModeActive).ToList();
         int total = history.Count;
         int success = history.Count(r => r.Success);
         float rate = total > 0 ? (float)success / total : 0;
@@ -59,13 +104,17 @@ public partial class HistoryPage : ContentPage
             SuccessRateLabel.Text = $"{success} of {total} runs successful";
             TotalRunsLabel.Text = $"Last {Math.Min(total, 50)} runs tracked";
             var lastRun = history.FirstOrDefault();
-            if (lastRun != null && lastRun.FriendResults.Count > 0)
+            if (lastRun != null && lastRun.FriendResults != null && lastRun.FriendResults.Count > 0)
             {
                 var lastTs = lastRun.FriendResults.Max(r => r.Timestamp);
                 var dur = lastTs - lastRun.RunTime;
                 AvgDurationLabel.Text = dur.TotalMinutes > 1
                     ? $"Last run: ~{(int)dur.TotalMinutes}m {dur.Seconds}s"
                     : $"Last run: ~{(int)dur.TotalSeconds}s";
+            }
+            else
+            {
+                AvgDurationLabel.Text = "Last run duration unknown";
             }
         }
         else
@@ -78,7 +127,7 @@ public partial class HistoryPage : ContentPage
 
     private void LoadHistory()
     {
-        var allHistory = _settingsService.GetRunHistory();
+        var allHistory = _settingsService.GetRunHistory().Where(r => r.IsBurstMode == _isBurstModeActive).ToList();
         var itemsToRemove = HistoryContainer.Children.Where(c => c != NoHistoryLabel).ToList();
         foreach (var item in itemsToRemove) HistoryContainer.Children.Remove(item);
         NoHistoryLabel.IsVisible = allHistory.Count == 0;
@@ -111,17 +160,35 @@ public partial class HistoryPage : ContentPage
         if (totalCount > 0)
         {
             var skippedCount = totalCount - successCount;
-            var infoLabel = new Label
+            if (skippedCount > 0)
             {
-                Text = skippedCount > 0 ? $"{successCount}/{totalCount} sent | {skippedCount} skipped" : $"{successCount}/{totalCount} messages sent",
-                FontSize = 13
-            };
-            infoLabel.SetAppThemeColor(Label.TextColorProperty, GetThemeColor("Gray400"), GetThemeColor("Gray400"));
-            infoStack.Children.Add(infoLabel);
+                var hStack = new HorizontalStackLayout { Spacing = 16 };
+                var l1 = new Label { Text = $"{successCount}/{totalCount} sent", FontSize = 13 };
+                l1.SetAppThemeColor(Label.TextColorProperty, GetThemeColor("Gray400"), GetThemeColor("Gray400"));
+                var l2 = new Label { Text = $"{skippedCount} skipped", FontSize = 13 };
+                l2.SetAppThemeColor(Label.TextColorProperty, GetThemeColor("Gray400"), GetThemeColor("Gray400"));
+                hStack.Children.Add(l1);
+                hStack.Children.Add(l2);
+                infoStack.Children.Add(hStack);
+            }
+            else
+            {
+                var infoLabel = new Label
+                {
+                    Text = $"{successCount}/{totalCount} messages sent",
+                    FontSize = 13
+                };
+                infoLabel.SetAppThemeColor(Label.TextColorProperty, GetThemeColor("Gray400"), GetThemeColor("Gray400"));
+                infoStack.Children.Add(infoLabel);
+            }
         }
         else if (!string.IsNullOrEmpty(run.ErrorMessage))
         {
             infoStack.Children.Add(new Label { Text = run.ErrorMessage, FontSize = 12, TextColor = statusColor, LineBreakMode = LineBreakMode.TailTruncation });
+        }
+        else if (run.IsBurstMode && run.Success)
+        {
+            infoStack.Children.Add(new Label { Text = "Burst session completed", FontSize = 13, TextColor = GetThemeColor("Gray400"), LineBreakMode = LineBreakMode.TailTruncation });
         }
         Grid.SetColumn(infoStack, 1);
         grid.Children.Add(infoStack);

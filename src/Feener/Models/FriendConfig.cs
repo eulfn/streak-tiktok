@@ -48,6 +48,7 @@ public class StreakRunResult
 {
     public DateTime RunTime { get; set; } = DateTime.Now;
     public bool Success { get; set; }
+    public bool IsBurstMode { get; set; }
     public string? ErrorMessage { get; set; }
     public string? FriendsErrorMessage => string.Join(',',FriendResults?.Where(x => x.Failed)?.Select(x => x.ErrorMessage)??[]);
     public List<FriendMessageResult> FriendResults { get; set; } = new();

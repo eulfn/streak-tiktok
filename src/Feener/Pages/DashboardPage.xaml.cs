@@ -79,6 +79,11 @@ public partial class DashboardPage : ContentPage
         _statusTimer?.Stop();
     }
 
+    private async void OnCheckProfileTapped(object? sender, EventArgs e)
+    {
+        await Shell.Current.GoToAsync("//ProfilePage");
+    }
+
     // ─── Profile Photo ──────────────────────────────────────────────────────────
 
     private void LoadProfilePhoto()
@@ -127,11 +132,32 @@ public partial class DashboardPage : ContentPage
 #endif
         RunButtonsContainer.IsVisible = !isRunning;
         StopServiceButton.IsVisible = isRunning;
+        
+        // ─── The "Running" State Lock ───
+        MessageEditor.IsEnabled = !isRunning;
+        MessageEditor.Opacity = isRunning ? 0.6 : 1.0;
+        
+        BurstTargetUserEntry.IsEnabled = !isRunning;
+        BurstTargetUserEntry.Opacity = isRunning ? 0.6 : 1.0;
+        
+        BurstDailyLimitEntry.IsEnabled = !isRunning;
+        BurstDailyLimitEntry.Opacity = isRunning ? 0.6 : 1.0;
+        
+        foreach (var child in BurstMessagesStack.Children)
+        {
+            if (child is Border b && b.Content is Grid g)
+            {
+                if (g.Children.Count > 0 && g.Children[0] is Editor ed) { ed.IsEnabled = !isRunning; ed.Opacity = isRunning ? 0.6 : 1.0; }
+                if (g.Children.Count > 1 && g.Children[1] is Button btn) btn.IsVisible = !isRunning;
+            }
+        }
+        AddBurstMessageButton.IsVisible = !isRunning && BurstMessagesStack.Children.Count < 5;
+
         UpdateStatus();
-        UpdateBurstPlanDisplay();
+        UpdateBurstPlanDisplay(isRunning);
     }
 
-    // ─── Update / Startup Popup Logic ───────────────────────────────────────────
+    // ─── Update / Startup Popup Logic ───
 
     private static string NormalizeVersion(string raw)
         => raw.StartsWith("v", StringComparison.OrdinalIgnoreCase) ? raw.Substring(1) : raw;
@@ -200,7 +226,7 @@ public partial class DashboardPage : ContentPage
         finally { _isCheckingForUpdates = false; }
     }
 
-    // ─── Settings / Mode Switching ──────────────────────────────────────────────
+    // ─── Settings / Mode Switching ───
 
     private void LoadSettings()
     {
@@ -262,12 +288,22 @@ public partial class DashboardPage : ContentPage
         MasterRunButton.BackgroundColor = GetThemeColor("BurstAccent", "#8B5CF6");
     }
 
-    // ─── Burst Plan / Messages ──────────────────────────────────────────────────
+    // ─── Burst Plan / Messages ───
 
-    private void UpdateBurstPlanDisplay()
+    private int _lockedDailyLimit = 0;
+
+    private void UpdateBurstPlanDisplay(bool isRunning = false)
     {
-        var (sessions, minutes, totalSeconds, remaining, dailyLimit) = _settingsService.CalculateBurstPlan();
-        var dailySent = dailyLimit - remaining;
+        var dailyLimit = isRunning && _lockedDailyLimit > 0 ? _lockedDailyLimit : _settingsService.GetBurstDailyLimit();
+        var dailySent = _settingsService.GetBurstDailySentCount();
+        var remaining = Math.Max(0, dailyLimit - dailySent);
+        
+        int avgChunk = (SettingsService.BurstChunkSizeMin + SettingsService.BurstChunkSizeMax) / 2;
+        int sessions = remaining > 0 ? (int)Math.Ceiling((double)remaining / avgChunk) : 0;
+        
+        int hibernationAvg = (SettingsService.BurstHibernationMinMs + SettingsService.BurstHibernationMaxMs) / 2;
+        int totalSeconds = sessions > 1 ? (sessions - 1) * (hibernationAvg / 1000) : 0;
+        
         var hours = totalSeconds / 3600;
         var partMins = (totalSeconds % 3600) / 60;
         var partSecs = totalSeconds % 60;
@@ -288,10 +324,19 @@ public partial class DashboardPage : ContentPage
         BurstSessionsLabel.Text = remaining > 0 ? $"~{sessions}" : "0";
         BurstTimeEstimateLabel.Text = remaining > 0 ? timeStr : "0m 0s";
 
-        // Plan summary
-        BurstPlanLabel.Text = remaining > 0
-            ? $"{remaining} messages left | ~{sessions} sessions"
-            : "Daily cap reached! Come back tomorrow.";
+        // Plan summary using visual hierarchy
+        if (remaining > 0)
+        {
+            BurstPlanStack.IsVisible = true;
+            BurstPlanCapReachedLabel.IsVisible = false;
+            BurstPlanRemainingValue.Text = remaining.ToString();
+            BurstPlanSessionsValue.Text = $"~{sessions}";
+        }
+        else
+        {
+            BurstPlanStack.IsVisible = false;
+            BurstPlanCapReachedLabel.IsVisible = true;
+        }
     }
 
     private async void OnBurstLimitChanged(object? sender, EventArgs e)
@@ -439,7 +484,7 @@ public partial class DashboardPage : ContentPage
             await RequestNotificationPermission();
             var context = Platform.CurrentActivity ?? Android.App.Application.Context;
             bool started = Feener.Platforms.Android.StreakScheduler.RunNow(context, isBurstMode: true);
-            if (started) { await DisplayAlert("Burst Started", $"Sending {plan.remaining} messages in ~{plan.sessionsNeeded} sessions with hibernation breaks. Tap Stop to cancel anytime.", "OK"); UpdateStatus(); }
+            if (started) { _lockedDailyLimit = _settingsService.GetBurstDailyLimit(); await DisplayAlert("Burst Started", $"Sending {plan.remaining} messages in ~{plan.sessionsNeeded} sessions with hibernation breaks. Tap Stop to cancel anytime.", "OK"); UpdateStatus(); }
             else await DisplayAlert("Service Locked", "An automation process is already active.", "OK");
 #else
             await DisplayAlert("Info", "This feature is only available on Android", "OK");

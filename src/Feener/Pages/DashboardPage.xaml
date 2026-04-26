@@ -118,7 +118,11 @@
                                        Style="{StaticResource DataLabel}"
                                        TextColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}"
                                        VerticalOptions="Center"
-                                       FontFamily="InterSemiBold"/>
+                                       FontFamily="InterSemiBold">
+                                    <Label.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnCheckProfileTapped"/>
+                                    </Label.GestureRecognizers>
+                                </Label>
                             </Grid>
 
                             <Grid ColumnDefinitions="*,*,*" ColumnSpacing="12">
@@ -214,12 +218,22 @@
                                 </VerticalStackLayout>
                             </Grid>
 
-                            <Label x:Name="BurstPlanLabel"
-                                   Text="Calculating plan..."
-                                   FontFamily="InterRegular"
+                            <HorizontalStackLayout x:Name="BurstPlanStack" Spacing="24" IsVisible="True">
+                                <HorizontalStackLayout Spacing="6">
+                                    <Label x:Name="BurstPlanRemainingValue" Text="--" FontFamily="InterBold" FontSize="13" TextColor="{AppThemeBinding Light={StaticResource OffBlack}, Dark={StaticResource White}}"/>
+                                    <Label Text="Remaining" FontFamily="InterRegular" FontSize="13" TextColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray500}}"/>
+                                </HorizontalStackLayout>
+                                <HorizontalStackLayout Spacing="6">
+                                    <Label x:Name="BurstPlanSessionsValue" Text="--" FontFamily="InterBold" FontSize="13" TextColor="{AppThemeBinding Light={StaticResource OffBlack}, Dark={StaticResource White}}"/>
+                                    <Label Text="Sessions" FontFamily="InterRegular" FontSize="13" TextColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray500}}"/>
+                                </HorizontalStackLayout>
+                            </HorizontalStackLayout>
+                            <Label x:Name="BurstPlanCapReachedLabel"
+                                   Text="Daily cap reached! Come back tomorrow."
+                                   FontFamily="InterMedium"
                                    FontSize="13"
-                                   TextColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray500}}"
-                                   LineBreakMode="WordWrap"/>
+                                   TextColor="{AppThemeBinding Light={StaticResource BurstAccent}, Dark={StaticResource BurstAccentDark}}"
+                                   IsVisible="False"/>
                         </VerticalStackLayout>
                     </Border>
 

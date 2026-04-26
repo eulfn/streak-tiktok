@@ -11,22 +11,63 @@
 
     <Grid RowDefinitions="*, Auto">
 
-        <ScrollView Grid.Row="0">
-            <VerticalStackLayout Padding="20" Spacing="16">
+        <RefreshView x:Name="MainRefreshView" Refreshing="OnRefreshing" Grid.Row="0">
+            <ScrollView>
+                <VerticalStackLayout Padding="20" Spacing="16">
 
-                <!-- ─── Header ─── -->
-                <VerticalStackLayout Spacing="2" Margin="0,8,0,0">
-                    <Label Text="Activity"
-                           Style="{StaticResource PageTitleLabel}"
-                           HorizontalOptions="Start"/>
-                    <Label Text="Run history &amp; logs"
-                           FontFamily="InterRegular"
-                           FontSize="13"
-                           TextColor="{AppThemeBinding Light={StaticResource Gray400}, Dark={StaticResource Gray400}}"
-                           HorizontalOptions="Start"/>
-                </VerticalStackLayout>
+                    <!-- ─── Header ─── -->
+                    <VerticalStackLayout Spacing="2" Margin="0,8,0,0">
+                        <Label Text="Activity"
+                               Style="{StaticResource PageTitleLabel}"
+                               HorizontalOptions="Start"/>
+                        <Label Text="Run history &amp; logs"
+                               FontFamily="InterRegular"
+                               FontSize="13"
+                               TextColor="{AppThemeBinding Light={StaticResource Gray400}, Dark={StaticResource Gray400}}"
+                               HorizontalOptions="Start"/>
+                    </VerticalStackLayout>
 
-                <!-- ─── Success Overview ─── -->
+                    <!-- ─── Mode Switcher (Segmented Control) ─── -->
+                    <Border Stroke="{AppThemeBinding Light={StaticResource BorderColorLight}, Dark={StaticResource BorderColorDark}}"
+                            StrokeThickness="1"
+                            StrokeShape="RoundRectangle 22"
+                            BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray900}}"
+                            Margin="0,0,0,0">
+                        <Grid ColumnDefinitions="*,*" HeightRequest="44">
+                            <Border x:Name="NormalModeTabBorder"
+                                    Grid.Column="0"
+                                    StrokeThickness="0"
+                                    BackgroundColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}"
+                                    StrokeShape="RoundRectangle 22">
+                                <Label x:Name="NormalModeTabLabel"
+                                       Text="Normal"
+                                       TextColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource PrimaryDarkText}}"
+                                       FontFamily="InterSemiBold"
+                                       FontSize="14"
+                                       HorizontalOptions="Center" VerticalOptions="Center"/>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnNormalModeTapped" />
+                                </Border.GestureRecognizers>
+                            </Border>
+                            <Border x:Name="BurstModeTabBorder"
+                                    Grid.Column="1"
+                                    StrokeThickness="0"
+                                    BackgroundColor="Transparent"
+                                    StrokeShape="RoundRectangle 22">
+                                <Label x:Name="BurstModeTabLabel"
+                                       Text="Burst"
+                                       TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray400}}"
+                                       FontFamily="InterSemiBold"
+                                       FontSize="14"
+                                       HorizontalOptions="Center" VerticalOptions="Center"/>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnBurstModeTapped" />
+                                </Border.GestureRecognizers>
+                            </Border>
+                        </Grid>
+                    </Border>
+
+                    <!-- ─── Success Overview ─── -->
                 <Border Style="{StaticResource SectionCard}">
                     <Grid ColumnDefinitions="Auto, *" ColumnSpacing="16">
                         <GraphicsView x:Name="SuccessChartView"
@@ -76,6 +117,7 @@
 
             </VerticalStackLayout>
         </ScrollView>
+        </RefreshView>
 
         <!-- ─── Floating Nav Bar ─── -->
         <views:FloatingNavBar Grid.Row="1" CurrentTab="History" Margin="0,0,0,0"/>

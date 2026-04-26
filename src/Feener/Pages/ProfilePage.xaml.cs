@@ -91,7 +91,7 @@ public partial class ProfilePage : ContentPage
 
             if (result != null)
             {
-                var newFile = Path.Combine(FileSystem.AppDataDirectory, result.FileName);
+                var newFile = System.IO.Path.Combine(FileSystem.AppDataDirectory, result.FileName);
                 using (var stream = await result.OpenReadAsync())
                 using (var newStream = System.IO.File.OpenWrite(newFile))
                     await stream.CopyToAsync(newStream);

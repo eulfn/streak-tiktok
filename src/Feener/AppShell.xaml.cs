@@ -9,7 +9,6 @@ namespace Feener
 
             // Register routes for navigation
             Routing.RegisterRoute(nameof(LoginPage), typeof(LoginPage));
-            Routing.RegisterRoute("SettingsPage", typeof(SettingsPage));
         }
     }
 }

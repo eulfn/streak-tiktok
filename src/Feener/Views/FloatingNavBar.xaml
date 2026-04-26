@@ -6,15 +6,10 @@
              VerticalOptions="End">
 
     <Border x:Name="NavContainer"
-            StrokeThickness="0"
-            StrokeShape="RoundRectangle 28"
-            Padding="8,10"
-            Margin="24,0,24,16"
-            HorizontalOptions="Center"
-            BackgroundColor="{AppThemeBinding Light=#F0FFFFFF, Dark=#E81E1F23}">
+            Style="{StaticResource FloatingNavStyle}">
         <Border.Shadow>
-            <Shadow Brush="{AppThemeBinding Light=#22000000, Dark=#30000000}"
-                    Offset="0,4"
+            <Shadow Brush="{AppThemeBinding Light=#10000000, Dark=#50000000}"
+                    Offset="0,8"
                     Radius="24"
                     Opacity="1"/>
         </Border.Shadow>

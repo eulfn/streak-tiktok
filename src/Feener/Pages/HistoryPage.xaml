@@ -9,9 +9,9 @@
              NavigationPage.HasNavigationBar="False"
              BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource OffBlack}}">
 
-    <Grid RowDefinitions="*, Auto">
+    <Grid>
 
-        <RefreshView x:Name="MainRefreshView" Refreshing="OnRefreshing" Grid.Row="0">
+        <RefreshView x:Name="MainRefreshView" Refreshing="OnRefreshing">
             <ScrollView>
                 <VerticalStackLayout Padding="20" Spacing="16">
 
@@ -113,13 +113,13 @@
                 </Border>
 
                 <!-- Bottom spacer for nav bar clearance -->
-                <BoxView HeightRequest="80" BackgroundColor="Transparent"/>
+                <BoxView HeightRequest="100" BackgroundColor="Transparent"/>
 
             </VerticalStackLayout>
         </ScrollView>
         </RefreshView>
 
         <!-- ─── Floating Nav Bar ─── -->
-        <views:FloatingNavBar Grid.Row="1" CurrentTab="History" Margin="0,0,0,0"/>
+        <views:FloatingNavBar CurrentTab="History" VerticalOptions="End"/>
     </Grid>
 </ContentPage>

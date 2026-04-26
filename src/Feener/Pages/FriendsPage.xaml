@@ -9,9 +9,9 @@
              NavigationPage.HasNavigationBar="False"
              BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource OffBlack}}">
 
-    <Grid RowDefinitions="*, Auto">
+    <Grid>
 
-        <RefreshView x:Name="MainRefreshView" Refreshing="OnRefreshing" Grid.Row="0">
+        <RefreshView x:Name="MainRefreshView" Refreshing="OnRefreshing">
             <ScrollView>
                 <VerticalStackLayout Padding="20" Spacing="16">
 
@@ -58,17 +58,17 @@
                             <Grid x:Name="SearchAndBulkRow" IsVisible="False"
                                   ColumnDefinitions="*, Auto, Auto" ColumnSpacing="8" Margin="0,4,0,0">
                                 <Border Grid.Column="0"
-                                        Stroke="{AppThemeBinding Light={StaticResource BorderColorLight}, Dark={StaticResource BorderColorDark}}"
-                                    StrokeThickness="1"
-                                    StrokeShape="RoundRectangle 14"
-                                    BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource Gray900}}">
-                                <Entry x:Name="SearchFriendEntry"
-                                       Placeholder="Search friends..."
-                                       Margin="12,0"
-                                       VerticalOptions="Center"
-                                       ClearButtonVisibility="WhileEditing"
-                                       TextChanged="OnSearchFriendTextChanged"/>
-                            </Border>
+                                        StrokeThickness="0"
+                                        StrokeShape="RoundRectangle 16"
+                                        BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray900}}">
+                                    <Entry x:Name="SearchFriendEntry"
+                                           Placeholder="Search friends..."
+                                           Margin="12,0"
+                                           VerticalOptions="Center"
+                                           ClearButtonVisibility="WhileEditing"
+                                           BackgroundColor="Transparent"
+                                           TextChanged="OnSearchFriendTextChanged"/>
+                                </Border>
                             <Button Grid.Column="1"
                                     Text="Enable All"
                                     Style="{StaticResource TextButton}"
@@ -84,21 +84,21 @@
 
                         <!-- Add Friend Input Panel (hidden by default) -->
                         <VerticalStackLayout x:Name="AddFriendPanel" IsVisible="False" Spacing="8">
-                            <Border Stroke="{AppThemeBinding Light={StaticResource BorderColorLight}, Dark={StaticResource BorderColorDark}}"
-                                    StrokeThickness="1"
-                                    StrokeShape="RoundRectangle 14"
-                                    BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource Gray900}}">
+                            <Border StrokeThickness="0"
+                                    StrokeShape="RoundRectangle 16"
+                                    BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray900}}">
                                 <Entry x:Name="NewFriendUsernameEntry"
                                        Placeholder="TikTok username (without @)"
-                                       Margin="12,4"/>
+                                       Margin="12,4"
+                                       BackgroundColor="Transparent"/>
                             </Border>
-                            <Border Stroke="{AppThemeBinding Light={StaticResource BorderColorLight}, Dark={StaticResource BorderColorDark}}"
-                                    StrokeThickness="1"
-                                    StrokeShape="RoundRectangle 14"
-                                    BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource Gray900}}">
+                            <Border StrokeThickness="0"
+                                    StrokeShape="RoundRectangle 16"
+                                    BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray900}}">
                                 <Entry x:Name="NewFriendDisplayNameEntry"
                                        Placeholder="Display name (optional)"
-                                       Margin="12,4"/>
+                                       Margin="12,4"
+                                       BackgroundColor="Transparent"/>
                             </Border>
                             <Grid ColumnDefinitions="*, *" ColumnSpacing="8">
                                 <Button Text="Cancel"
@@ -149,13 +149,13 @@
                 </Border>
 
                 <!-- Nav bar clearance -->
-                <BoxView HeightRequest="70" BackgroundColor="Transparent"/>
+                <BoxView HeightRequest="100" BackgroundColor="Transparent"/>
 
             </VerticalStackLayout>
         </ScrollView>
         </RefreshView>
 
         <!-- ─── Floating Nav Bar ─── -->
-        <views:FloatingNavBar Grid.Row="1" CurrentTab="Friends"/>
+        <views:FloatingNavBar CurrentTab="Friends" VerticalOptions="End"/>
     </Grid>
 </ContentPage>

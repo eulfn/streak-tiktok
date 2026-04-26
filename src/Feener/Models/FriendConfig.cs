@@ -47,6 +47,7 @@ public class FriendConfig
 public class StreakRunResult
 {
     public DateTime RunTime { get; set; } = DateTime.Now;
+    public TimeSpan? Duration { get; set; }
     public bool Success { get; set; }
     public bool IsBurstMode { get; set; }
     public string? ErrorMessage { get; set; }

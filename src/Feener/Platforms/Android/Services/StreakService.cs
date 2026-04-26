@@ -677,6 +677,7 @@ public class StreakService : Service
             {
                 _runResult.Success = success;
                 _runResult.ErrorMessage = success ? null : message;
+                _runResult.Duration = DateTime.Now - _runResult.RunTime;
                 _settingsService.AddRunResult(_runResult);
 
                 if (!_isBurstMode)

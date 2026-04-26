@@ -42,7 +42,7 @@ public partial class HistoryPage : ContentPage
         if (_isBurstModeActive) SetBurstModeUI();
         else SetNormalModeUI();
 
-        UpdateSuccessChart();
+        LoadStats();
         LoadHistory();
     }
 
@@ -50,7 +50,7 @@ public partial class HistoryPage : ContentPage
     {
         _isBurstModeActive = false;
         SetNormalModeUI();
-        UpdateSuccessChart();
+        LoadStats();
         LoadHistory();
     }
 
@@ -58,7 +58,7 @@ public partial class HistoryPage : ContentPage
     {
         _isBurstModeActive = true;
         SetBurstModeUI();
-        UpdateSuccessChart();
+        LoadStats();
         LoadHistory();
     }
 
@@ -80,48 +80,50 @@ public partial class HistoryPage : ContentPage
 
     private void OnRefreshing(object? sender, EventArgs e)
     {
-        UpdateSuccessChart();
+        LoadStats();
         LoadHistory();
         MainRefreshView.IsRefreshing = false;
     }
 
-    private void UpdateSuccessChart()
+    private void LoadStats()
     {
         var history = _settingsService.GetRunHistory().Where(r => r.IsBurstMode == _isBurstModeActive).ToList();
-        int total = history.Count;
-        int success = history.Count(r => r.Success);
-        float rate = total > 0 ? (float)success / total : 0;
+        
+        // Success Calculation: TotalSuccessfulMessages / TotalAttemptedMessages
+        int totalMessages = history.Sum(r => r.FriendResults?.Count ?? 0);
+        int successMessages = history.Sum(r => r.FriendResults?.Count(f => f.Success) ?? 0);
+        float rate = totalMessages > 0 ? (float)successMessages / totalMessages : 0;
 
         bool isDark = Application.Current?.RequestedTheme == AppTheme.Dark;
         _chartDrawable.IsDarkTheme = isDark;
         _chartDrawable.SuccessRate = rate;
-        _chartDrawable.RateText = total > 0 ? $"{(int)(rate * 100)}%" : "—";
-        _chartDrawable.SubText = total > 0 ? "success" : "";
+        _chartDrawable.RateText = totalMessages > 0 ? $"{(int)(rate * 100)}%" : "—";
+        _chartDrawable.SubText = totalMessages > 0 ? "success" : "";
         SuccessChartView.Invalidate();
 
-        if (total > 0)
+        if (history.Count > 0)
         {
-            SuccessRateLabel.Text = $"{success} of {total} runs successful";
-            TotalRunsLabel.Text = $"Last {Math.Min(total, 50)} runs tracked";
+            SuccessRateLabel.Text = totalMessages > 0 ? $"{successMessages} of {totalMessages} messages successful" : $"{history.Count(r => r.Success)} of {history.Count} runs successful";
+            TotalRunsLabel.Text = $"Last {Math.Min(history.Count, 50)} runs tracked";
+            
             var lastRun = history.FirstOrDefault();
-            if (lastRun != null && lastRun.FriendResults != null && lastRun.FriendResults.Count > 0)
+            if (lastRun != null && lastRun.Duration.HasValue && lastRun.Duration.Value.TotalSeconds > 0)
             {
-                var lastTs = lastRun.FriendResults.Max(r => r.Timestamp);
-                var dur = lastTs - lastRun.RunTime;
-                AvgDurationLabel.Text = dur.TotalMinutes > 1
+                var dur = lastRun.Duration.Value;
+                AvgDurationLabel.Text = dur.TotalMinutes >= 1
                     ? $"Last run: ~{(int)dur.TotalMinutes}m {dur.Seconds}s"
                     : $"Last run: ~{(int)dur.TotalSeconds}s";
             }
             else
             {
-                AvgDurationLabel.Text = "Last run duration unknown";
+                AvgDurationLabel.Text = "Calculating...";
             }
         }
         else
         {
             SuccessRateLabel.Text = "No data yet";
             TotalRunsLabel.Text = "";
-            AvgDurationLabel.Text = "";
+            AvgDurationLabel.Text = "N/A";
         }
     }
 

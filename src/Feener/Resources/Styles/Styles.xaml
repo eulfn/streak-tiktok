@@ -541,4 +541,13 @@
         </Setter>
     </Style>
 
+    <Style x:Key="FloatingNavStyle" TargetType="Border">
+        <Setter Property="StrokeThickness" Value="0"/>
+        <Setter Property="StrokeShape" Value="RoundRectangle 28"/>
+        <Setter Property="Padding" Value="8,10"/>
+        <Setter Property="Margin" Value="24,0,24,16"/>
+        <Setter Property="HorizontalOptions" Value="Center"/>
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#CCFFFFFF, Dark=#CC1E1F23}"/>
+    </Style>
+
 </ResourceDictionary>

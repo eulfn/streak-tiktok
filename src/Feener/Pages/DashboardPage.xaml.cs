@@ -15,6 +15,7 @@ public partial class DashboardPage : ContentPage
     private bool _isAppInForeground = false;
     private IDispatcherTimer? _statusTimer;
     private readonly BurstProgressDrawable _burstProgressDrawable;
+    private readonly NormalProgressDrawable _normalProgressDrawable;
 
     public DashboardPage()
     {
@@ -25,6 +26,9 @@ public partial class DashboardPage : ContentPage
         
         _burstProgressDrawable = new BurstProgressDrawable();
         BurstProgressGraphicsView.Drawable = _burstProgressDrawable;
+
+        _normalProgressDrawable = new NormalProgressDrawable();
+        OverviewProgressGraphicsView.Drawable = _normalProgressDrawable;
     }
 
     private Color GetThemeColor(string key, string fallbackHex = "#92979E")
@@ -379,17 +383,41 @@ public partial class DashboardPage : ContentPage
         };
         var editor = new Editor { Text = initialText, Placeholder = "Enter burst message...", HeightRequest = 60, Margin = new Thickness(12, 8) };
         editor.TextChanged += OnBurstSettingsChanged;
-        var removeBtn = new Button
+        var removeBtn = new Border
         {
-            Text = "✕", BackgroundColor = Colors.Transparent,
-            TextColor = GetThemeColor("DeleteColor", "#EF4444"),
-            FontAttributes = FontAttributes.Bold, WidthRequest = 40, VerticalOptions = LayoutOptions.Center
+            BackgroundColor = Colors.Transparent,
+            StrokeThickness = 0,
+            Padding = 12,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center
         };
-        removeBtn.Clicked += (s, e) =>
+        var deletePath = new Microsoft.Maui.Controls.Shapes.Path
+        {
+            Data = (Microsoft.Maui.Controls.Shapes.Geometry)new Microsoft.Maui.Controls.Shapes.PathGeometryConverter().ConvertFromInvariantString("M15,3H9V4H3V6H21V4H15V3M5,7V20A2,2 0 0,0 7,22H17A2,2 0 0,0 19,20V7H5M7,20V9H17V20H7Z"),
+            Fill = GetThemeColor("Gray500", "#6B7280"),
+            Aspect = Stretch.Uniform,
+            HeightRequest = 18,
+            WidthRequest = 18,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center
+        };
+        removeBtn.Content = deletePath;
+
+        var tapGesture = new TapGestureRecognizer();
+        tapGesture.Tapped += (s, e) =>
         {
             if (BurstMessagesStack.Children.Count > 1) { BurstMessagesStack.Children.Remove(border); SaveBurstSettings(); UpdateAddBurstMessageButtonVisibility(); }
             else DisplayAlert("Limit Reached", "You must have at least one burst message.", "OK");
         };
+        removeBtn.GestureRecognizers.Add(tapGesture);
+
+#if WINDOWS || MACCATALYST
+        var pointerGesture = new PointerGestureRecognizer();
+        pointerGesture.PointerEntered += (s, e) => deletePath.Fill = GetThemeColor("DeleteColor", "#EF4444");
+        pointerGesture.PointerExited += (s, e) => deletePath.Fill = GetThemeColor("Gray500", "#6B7280");
+        removeBtn.GestureRecognizers.Add(pointerGesture);
+#endif
+
         grid.Children.Add(editor); Grid.SetColumn(editor, 0);
         grid.Children.Add(removeBtn); Grid.SetColumn(removeBtn, 1);
         border.Content = grid;
@@ -452,6 +480,12 @@ public partial class DashboardPage : ContentPage
         OverviewSentLabel.Text = ranToday ? friendsCount.ToString() : "0";
         OverviewSuccessLabel.Text = ranToday ? "100%" : "--";
         OverviewRemainingLabel.Text = ranToday ? "0" : friendsCount.ToString();
+
+        OverviewProgressLabel.Text = ranToday ? $"{friendsCount}/{friendsCount}" : $"0/{friendsCount}";
+        float progress = friendsCount > 0 ? (ranToday ? 1f : 0f) : 0f;
+        _normalProgressDrawable.Progress = progress;
+        _normalProgressDrawable.IsDarkTheme = Application.Current?.RequestedTheme == AppTheme.Dark;
+        OverviewProgressGraphicsView.Invalidate();
     }
 
     // ─── Actions ────────────────────────────────────────────────────────────────

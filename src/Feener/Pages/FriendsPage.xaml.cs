@@ -139,8 +139,8 @@ public partial class FriendsPage : ContentPage
             Opacity = 0, TranslationY = 10
         };
         border.SetAppThemeColor(Border.BackgroundColorProperty,
-            GetThemeColor("ListItemLight", "#F5F5F7"),
-            GetThemeColor("ListItemDark", "#252629"));
+            GetThemeColor("Gray100", "#F3F4F6"),
+            GetThemeColor("Gray900", "#111827"));
         _ = border.FadeTo(1, 300, Easing.CubicOut);
         _ = border.TranslateTo(0, 0, 300, Easing.CubicOut);
 
@@ -294,7 +294,7 @@ public partial class FriendsPage : ContentPage
             }
             _settingsService.SaveFriendsList(existing);
             LoadFriendsList();
-            await DisplayAlert("Import Complete", $"Import complete.\n\nAdded: {added}  |  Updated: {updated}  |  Skipped: {skipped}", "OK");
+            await DisplayAlert("Import Complete", $"Import complete.\n\nAdded: {added}\nUpdated: {updated}\nSkipped: {skipped}", "OK");
         }
         catch (Exception ex) { await DisplayAlert("Import Failed", $"Unexpected error: {ex.Message}", "OK"); }
     }

@@ -15,14 +15,23 @@
                 
                 <!-- Header -->
                 <VerticalStackLayout VerticalOptions="Center" Spacing="2">
-                        <Label Text="Feener" 
-                               Style="{StaticResource PageTitleLabel}"
-                               HorizontalOptions="Start"/>
-                        <Label Text="TikTok Streak Automation"
-                               FontFamily="InterRegular"
-                               FontSize="12"
-                               TextColor="{AppThemeBinding Light={StaticResource Gray400}, Dark={StaticResource Gray500}}"
-                               HorizontalOptions="Start"/>
+                        <Grid ColumnDefinitions="*, Auto">
+                            <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                <Label Text="Feener" 
+                                       Style="{StaticResource PageTitleLabel}"
+                                       HorizontalOptions="Start"/>
+                                <Label Text="TikTok Streak Automation"
+                                       FontFamily="InterRegular"
+                                       FontSize="12"
+                                       TextColor="{AppThemeBinding Light={StaticResource Gray400}, Dark={StaticResource Gray500}}"
+                                       HorizontalOptions="Start"/>
+                            </VerticalStackLayout>
+                            <Button Grid.Column="1" 
+                                    Text="⚙ Settings" 
+                                    Style="{StaticResource TextButton}"
+                                    VerticalOptions="Center"
+                                    Clicked="OnSettingsClicked"/>
+                        </Grid>
                         
                         <!-- Mode Switcher -->
                         <Border Stroke="{AppThemeBinding Light={StaticResource BorderColorLight}, Dark={StaticResource BorderColorDark}}"
@@ -248,19 +257,6 @@
                     </VerticalStackLayout>
                 </Border>
 
-                <!-- Skip Unreachable Users (moved from bottom bar) -->
-                <Border Style="{StaticResource SectionCard}">
-                    <Grid ColumnDefinitions="*, Auto" ColumnSpacing="12">
-                        <VerticalStackLayout VerticalOptions="Center" Spacing="4">
-                            <Label Text="Skip Unreachable" Style="{StaticResource SectionLabel}"/>
-                            <Label Text="Continue to remaining users when one is not found" Style="{StaticResource DataLabel}" LineBreakMode="WordWrap"/>
-                        </VerticalStackLayout>
-                        <Switch x:Name="SkipUnreachableSwitch" 
-                                Grid.Column="1"
-                                VerticalOptions="Center"
-                                Toggled="OnSkipUnreachableToggled"/>
-                    </Grid>
-                </Border>
                 </VerticalStackLayout>
                 
                 <VerticalStackLayout x:Name="BurstModeContainer" IsVisible="False" Spacing="16">
@@ -401,20 +397,7 @@
                      Color="{AppThemeBinding Light={StaticResource BorderColorLight}, Dark={StaticResource BorderColorDark}}"
                      Margin="-20,-16,-20,0"/>
 
-            <!-- Dynamic Settings Container (Hidden in Burst Mode) -->
-            <VerticalStackLayout x:Name="NormalAutomationSettingsPanel" Spacing="16">
-                <!-- Toggle Header -->
-                <Grid ColumnDefinitions="*, Auto" ColumnSpacing="12">
-                    <VerticalStackLayout VerticalOptions="Center" Spacing="4">
-                        <Label Text="Background Automation" Style="{StaticResource SectionLabel}"/>
-                        <Label Text="Keep streaks alive automatically" Style="{StaticResource DataLabel}" LineBreakMode="WordWrap"/>
-                    </VerticalStackLayout>
-                    <Switch x:Name="ScheduleSwitch" 
-                            Grid.Column="1"
-                            VerticalOptions="Center"
-                            Toggled="OnScheduleToggled"/>
-                </Grid>
-            </VerticalStackLayout>
+            <!-- Dynamic Settings Container was moved to SettingsPage -->
 
             <!-- Burst Chat Mode Toggle is removed because Mode switcher is at the top now -->
 

@@ -508,7 +508,7 @@ public class StreakService : Service
                 _failureAttemptsForCurrentFriend++;
 
                 // Retry before giving up (skip retries in burst — same target each time)
-                if (!_isBurstMode && _failureAttemptsForCurrentFriend < MaxSendAttemptsPerFriend)
+                if (!_isBurstMode && _failureAttemptsForCurrentFriend < MaxSendAttemptsPerFriend && error != UserNotFoundError)
                 {
                     AppLog("RETRY", $"@{username}", $"Attempt {_failureAttemptsForCurrentFriend}/{MaxSendAttemptsPerFriend}: {error}");
                     _mainHandler?.PostDelayed(SendCurrentFriendMessage, 3000);

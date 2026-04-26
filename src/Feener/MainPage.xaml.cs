@@ -85,11 +85,11 @@ public partial class MainPage : ContentPage
         {
             RunButtonsContainer.IsVisible = true;
             StopServiceButton.IsVisible = false;
-            
-            // Refresh labels if run just ended
-            UpdateStatus();
-            UpdateBurstPlanDisplay();
         }
+
+        // Always update status for real-time progress during normal/burst runs
+        UpdateStatus();
+        UpdateBurstPlanDisplay();
     }
 
     // ─── Normalizes "v1.6.0" → "1.6.0" to ensure consistent Preferences storage ─────
@@ -213,6 +213,15 @@ public partial class MainPage : ContentPage
             return;
         }
 
+#if ANDROID
+        // If automation is currently running, skip the live check to prevent resource contention timeouts
+        if (Feener.Platforms.Android.Services.StreakService.IsRunning)
+        {
+            UpdateLoginButtonState(_sessionService.IsSessionValid());
+            return;
+        }
+#endif
+
         // Start session validation
         _isCheckingSession = true;
         _navigationCount = 0;
@@ -256,6 +265,21 @@ public partial class MainPage : ContentPage
         
         if (_isCheckingSession)
         {
+#if ANDROID
+            // Ignore timeout if an automation run started while checking (resource contention)
+            if (Feener.Platforms.Android.Services.StreakService.IsRunning)
+            {
+                _isCheckingSession = false;
+                _sessionCheckCompleted = true;
+                
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    UpdateLoginButtonState(_sessionService.IsSessionValid());
+                });
+                return;
+            }
+#endif
+
             // Timeout reached - assume not logged in for safety
             _isCheckingSession = false;
             _sessionCheckCompleted = true;
@@ -364,10 +388,6 @@ public partial class MainPage : ContentPage
         // Load messages
         MessageEditor.Text = _settingsService.GetMessageText();
 
-        // Load schedule state
-        ScheduleSwitch.IsToggled = _settingsService.IsScheduled();
-        SkipUnreachableSwitch.IsToggled = _settingsService.GetSkipUnreachableUsers();
-
         // Load mode state
         var isBurstActive = _settingsService.IsBurstModeActive();
         if (isBurstActive)
@@ -419,9 +439,6 @@ public partial class MainPage : ContentPage
         NormalModeContainer.Opacity = 0;
         NormalModeContainer.IsVisible = true;
         await NormalModeContainer.FadeTo(1, 200, Easing.CubicOut);
-        
-        if (NormalAutomationSettingsPanel != null)
-            NormalAutomationSettingsPanel.IsVisible = true;
 
         // Button style
         MasterRunButton.Text = "Run Normal";
@@ -448,9 +465,6 @@ public partial class MainPage : ContentPage
         BurstModeContainer.Opacity = 0;
         BurstModeContainer.IsVisible = true;
         await BurstModeContainer.FadeTo(1, 200, Easing.CubicOut);
-        
-        if (NormalAutomationSettingsPanel != null)
-            NormalAutomationSettingsPanel.IsVisible = false;
 
         // Button style
         MasterRunButton.Text = "Run Burst";
@@ -619,7 +633,6 @@ public partial class MainPage : ContentPage
     {
         var isScheduled = _settingsService.IsScheduled();
         var lastRun = _settingsService.GetLastRunTime();
-        var friendsCount = _settingsService.GetEnabledFriends().Count;
 
         // Update last run
         if (lastRun.HasValue)
@@ -942,21 +955,9 @@ public partial class MainPage : ContentPage
         return grid;
     }
 
-    private void OnScheduleToggled(object? sender, ToggledEventArgs e)
+    private async void OnSettingsClicked(object? sender, EventArgs e)
     {
-#if ANDROID
-        var context = Platform.CurrentActivity ?? Android.App.Application.Context;
-        if (e.Value)
-            Feener.Platforms.Android.StreakScheduler.ScheduleNextRun(context);
-        else
-            Feener.Platforms.Android.StreakScheduler.CancelSchedule(context);
-#endif
-        UpdateStatus();
-    }
-
-    private void OnSkipUnreachableToggled(object? sender, ToggledEventArgs e)
-    {
-        _settingsService.SetSkipUnreachableUsers(e.Value);
+        await Navigation.PushAsync(new SettingsPage());
     }
 
     private void OnMessageChanged(object? sender, TextChangedEventArgs e)

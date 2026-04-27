@@ -107,16 +107,23 @@ public partial class HistoryPage : ContentPage
             TotalRunsLabel.Text = $"Last {Math.Min(history.Count, 50)} runs tracked";
             
             var lastRun = history.FirstOrDefault();
-            if (lastRun != null && lastRun.Duration.HasValue && lastRun.Duration.Value.TotalSeconds > 0)
+            if (lastRun != null && lastRun.Duration.HasValue)
             {
                 var dur = lastRun.Duration.Value;
-                AvgDurationLabel.Text = dur.TotalMinutes >= 1
-                    ? $"Last run: ~{(int)dur.TotalMinutes}m {dur.Seconds}s"
-                    : $"Last run: ~{(int)dur.TotalSeconds}s";
+                if (dur.TotalSeconds < 1)
+                {
+                    AvgDurationLabel.Text = "Last run: < 1s";
+                }
+                else
+                {
+                    AvgDurationLabel.Text = dur.TotalMinutes >= 1
+                        ? $"Last run: ~{(int)dur.TotalMinutes}m {dur.Seconds}s"
+                        : $"Last run: ~{(int)dur.TotalSeconds}s";
+                }
             }
             else
             {
-                AvgDurationLabel.Text = "Calculating...";
+                AvgDurationLabel.Text = "Last run: N/A";
             }
         }
         else
@@ -141,6 +148,15 @@ public partial class HistoryPage : ContentPage
         var successCount = run.FriendResults.Count(r => r.Success);
         var totalCount = run.FriendResults.Count;
         var statusColor = run.Success ? GetThemeColor("Success", "#22946E") : GetThemeColor("Error", "#9C2121");
+        var border = new Border
+        {
+            StrokeThickness = 0,
+            StrokeShape = new RoundRectangle { CornerRadius = 16 },
+            Padding = new Thickness(14, 12),
+            Margin = new Thickness(0, 4)
+        };
+        border.SetAppThemeColor(Border.BackgroundColorProperty, GetThemeColor("Gray100", "#F3F4F6"), GetThemeColor("Gray900", "#111827"));
+        
         var grid = new Grid
         {
             ColumnDefinitions = new ColumnDefinitionCollection
@@ -148,7 +164,8 @@ public partial class HistoryPage : ContentPage
                 new ColumnDefinition { Width = GridLength.Auto },
                 new ColumnDefinition { Width = GridLength.Star },
             },
-            ColumnSpacing = 12, Padding = new Thickness(0, 6)
+            ColumnSpacing = 12,
+            VerticalOptions = LayoutOptions.Center
         };
         var statusDot = new Border
         {
@@ -188,13 +205,17 @@ public partial class HistoryPage : ContentPage
         {
             infoStack.Children.Add(new Label { Text = run.ErrorMessage, FontSize = 12, TextColor = statusColor, LineBreakMode = LineBreakMode.TailTruncation });
         }
-        else if (run.IsBurstMode && run.Success)
+        else if (run.IsBurstMode)
         {
-            infoStack.Children.Add(new Label { Text = "Burst session completed", FontSize = 13, TextColor = GetThemeColor("Gray400"), LineBreakMode = LineBreakMode.TailTruncation });
+            var msg = run.Success 
+                ? $"Burst session completed — {run.BurstMessagesSent} messages sent"
+                : $"Burst failed: {run.ErrorMessage}";
+            infoStack.Children.Add(new Label { Text = msg, FontSize = 13, TextColor = GetThemeColor("Gray400"), LineBreakMode = LineBreakMode.TailTruncation });
         }
         Grid.SetColumn(infoStack, 1);
         grid.Children.Add(infoStack);
-        return grid;
+        border.Content = grid;
+        return border;
     }
 
     private async void OnClearHistoryClicked(object? sender, EventArgs e)

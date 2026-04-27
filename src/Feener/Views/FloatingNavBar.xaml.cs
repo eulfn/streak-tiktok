@@ -65,10 +65,10 @@ public partial class FloatingNavBar : ContentView
         FriendsIndicator.BackgroundColor = Colors.Transparent;
         ProfileIndicator.BackgroundColor = Colors.Transparent;
 
-        DashboardIcon.TextColor = inactiveText;
-        HistoryIcon.TextColor = inactiveText;
-        FriendsIcon.TextColor = inactiveText;
-        ProfileIcon.TextColor = inactiveText;
+        DashboardIcon.Fill = new SolidColorBrush(inactiveText);
+        HistoryIcon.Fill = new SolidColorBrush(inactiveText);
+        FriendsIcon.Fill = new SolidColorBrush(inactiveText);
+        ProfileIcon.Fill = new SolidColorBrush(inactiveText);
 
         DashboardLabel.TextColor = inactiveText;
         HistoryLabel.TextColor = inactiveText;
@@ -77,7 +77,7 @@ public partial class FloatingNavBar : ContentView
 
         // Activate selected
         Border activeIndicator;
-        Label activeIcon, activeLabel;
+        Microsoft.Maui.Controls.Shapes.Path activeIcon; Label activeLabel;
         switch (activeTab)
         {
             case "History":
@@ -90,7 +90,7 @@ public partial class FloatingNavBar : ContentView
                 activeIndicator = DashboardIndicator; activeIcon = DashboardIcon; activeLabel = DashboardLabel; break;
         }
         activeIndicator.BackgroundColor = activeBg;
-        activeIcon.TextColor = activeText;
+        activeIcon.Fill = new SolidColorBrush(activeText);
         activeLabel.TextColor = activeText;
     }
 

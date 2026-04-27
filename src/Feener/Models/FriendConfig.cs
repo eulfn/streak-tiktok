@@ -50,6 +50,7 @@ public class StreakRunResult
     public TimeSpan? Duration { get; set; }
     public bool Success { get; set; }
     public bool IsBurstMode { get; set; }
+    public int BurstMessagesSent { get; set; }
     public string? ErrorMessage { get; set; }
     public string? FriendsErrorMessage => string.Join(',',FriendResults?.Where(x => x.Failed)?.Select(x => x.ErrorMessage)??[]);
     public List<FriendMessageResult> FriendResults { get; set; } = new();

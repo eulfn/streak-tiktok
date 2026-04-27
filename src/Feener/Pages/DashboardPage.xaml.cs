@@ -17,6 +17,12 @@ public partial class DashboardPage : ContentPage
     private readonly BurstProgressDrawable _burstProgressDrawable;
     private readonly NormalProgressDrawable _normalProgressDrawable;
 
+    private bool _isCheckingSession = false;
+    private int _navigationCount = 0;
+#if ANDROID
+    private IDispatcherTimer? _sessionCheckTimeout;
+#endif
+
     public DashboardPage()
     {
         InitializeComponent();
@@ -61,6 +67,9 @@ public partial class DashboardPage : ContentPage
 
         LoadSettings();
         UpdateStatus();
+
+        // Check global session
+        CheckGlobalSessionStatus();
 
         await EvaluatePermissionsAsync();
 
@@ -120,6 +129,115 @@ public partial class DashboardPage : ContentPage
         bool valid = _sessionService.IsSessionValid();
         MasterRunButton.IsEnabled = valid;
         MasterRunButton.Opacity = valid ? 1.0 : 0.5;
+        if (!valid && !MasterRunButton.Text.Contains("Login Required"))
+        {
+            MasterRunButton.Text = "Login Required";
+        }
+    }
+
+    private void CheckGlobalSessionStatus()
+    {
+        // Don't check if we already checked within the last 5 minutes
+        var lastCheck = _sessionService.GetLastCheckTime();
+        if (lastCheck.HasValue && (DateTime.Now - lastCheck.Value).TotalMinutes < 5)
+        {
+            UpdateSessionIndicator();
+            return;
+        }
+
+#if ANDROID
+        if (Feener.Platforms.Android.Services.StreakService.IsRunning)
+        {
+            UpdateSessionIndicator();
+            return;
+        }
+
+        if (_isCheckingSession) return;
+        _isCheckingSession = true;
+        _navigationCount = 0;
+        MasterRunButton.IsEnabled = false;
+        MasterRunButton.Opacity = 0.5;
+        MasterRunButton.Text = "Validating Session...";
+
+        TikTokWebViewHelper.ConfigureWebView(GlobalSessionCheckWebView);
+        GlobalSessionCheckWebView.Source = TikTokWebViewHelper.MessagesUrl;
+
+        if (_sessionCheckTimeout != null)
+        {
+            _sessionCheckTimeout.Stop();
+            _sessionCheckTimeout.Tick -= OnGlobalSessionCheckTimeout;
+        }
+        _sessionCheckTimeout = Dispatcher.CreateTimer();
+        _sessionCheckTimeout.Interval = TimeSpan.FromSeconds(10);
+        _sessionCheckTimeout.Tick += OnGlobalSessionCheckTimeout;
+        _sessionCheckTimeout.Start();
+#else
+        UpdateSessionIndicator();
+#endif
+    }
+
+#if ANDROID
+    private void OnGlobalSessionCheckTimeout(object? sender, EventArgs e)
+    {
+        _sessionCheckTimeout?.Stop();
+        if (_isCheckingSession)
+        {
+            _isCheckingSession = false;
+            if (!Feener.Platforms.Android.Services.StreakService.IsRunning)
+            {
+                _sessionService.SetSessionValid(false);
+            }
+            MainThread.BeginInvokeOnMainThread(() => 
+            {
+                UpdateSessionIndicator();
+                UpdateStatus(); // Re-render Run button text
+            });
+        }
+    }
+#endif
+
+    private void OnGlobalSessionCheckNavigated(object? sender, WebNavigatedEventArgs e)
+    {
+        if (!_isCheckingSession) return;
+        _navigationCount++;
+        var result = TikTokWebViewHelper.CheckLoginStatus(e.Url);
+
+        if (result.IsValidUrl && e.Url?.ToLower().Contains("/login") == true)
+        {
+#if ANDROID
+            _sessionCheckTimeout?.Stop();
+#endif
+            _isCheckingSession = false;
+            TikTokWebViewHelper.UpdateSessionStatus(_sessionService, false);
+            MainThread.BeginInvokeOnMainThread(() => 
+            {
+                UpdateSessionIndicator();
+                UpdateStatus();
+            });
+            return;
+        }
+
+        if (result.IsLoggedIn && _navigationCount >= 1)
+        {
+            Task.Delay(2000).ContinueWith(_ =>
+            {
+                if (_isCheckingSession)
+                {
+#if ANDROID
+                    _sessionCheckTimeout?.Stop();
+#endif
+                    _isCheckingSession = false;
+                    TikTokWebViewHelper.UpdateSessionStatus(_sessionService, true);
+                    MainThread.BeginInvokeOnMainThread(() => 
+                    {
+                        LoadProfilePhoto(); // Reload photo if just fetched
+                        GreetingLabel.Text = $"Hi, {_sessionService.GetDisplayName()}";
+                        UpdateSessionIndicator();
+                        UpdateStatus();
+                    });
+                }
+            });
+        }
     }
 
     private void OnStatusTimerTick(object? sender, EventArgs e)

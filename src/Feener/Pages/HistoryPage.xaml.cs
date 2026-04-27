@@ -2,6 +2,7 @@ using Microsoft.Maui.Controls.Shapes;
 using Feener.Models;
 using Feener.Services;
 using Feener.Views;
+using CommunityToolkit.Mvvm.Messaging;
 
 namespace Feener.Pages;
 
@@ -46,7 +47,7 @@ public partial class HistoryPage : ContentPage
         LoadStats();
         LoadHistory();
 
-        CommunityToolkit.Mvvm.Messaging.WeakReferenceMessenger.Default.Register<StatusUpdateMessage>(this, (r, m) =>
+        WeakReferenceMessenger.Default.Register<StatusUpdateMessage>(this, (r, m) =>
         {
             if (!m.IsRunning)
             {
@@ -62,7 +63,7 @@ public partial class HistoryPage : ContentPage
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
-        CommunityToolkit.Mvvm.Messaging.WeakReferenceMessenger.Default.Unregister<StatusUpdateMessage>(this);
+        WeakReferenceMessenger.Default.Unregister<StatusUpdateMessage>(this);
     }
 
     private void OnNormalModeTapped(object? sender, TappedEventArgs e)

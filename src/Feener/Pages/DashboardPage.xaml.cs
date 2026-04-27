@@ -135,6 +135,31 @@ public partial class DashboardPage : ContentPage
         }
     }
 
+    private void StartValidationAnimation()
+    {
+        ProfileValidationRing.SetAppThemeColor(Border.StrokeProperty, Color.FromArgb("#44000000"), Color.FromArgb("#44FFFFFF"));
+        ProfileValidationRing.IsVisible = true;
+        ProfileValidationRing.Opacity = 1;
+        var animation = new Animation(v => ProfileValidationRing.Rotation = v, 0, 360);
+        animation.Commit(this, "ValidationSpin", length: 2000, easing: Easing.Linear, repeat: () => true);
+    }
+
+    private async void StopValidationAnimation(bool success)
+    {
+        this.AbortAnimation("ValidationSpin");
+        
+        if (success)
+        {
+            await ProfileValidationRing.FadeTo(0, 300);
+            ProfileValidationRing.IsVisible = false;
+        }
+        else
+        {
+            ProfileValidationRing.Rotation = 0;
+            ProfileValidationRing.Stroke = GetThemeColor("Error", "#9C2121");
+        }
+    }
+
     private void CheckGlobalSessionStatus()
     {
         // Don't check if we already checked within the last 5 minutes
@@ -158,6 +183,7 @@ public partial class DashboardPage : ContentPage
         MasterRunButton.IsEnabled = false;
         MasterRunButton.Opacity = 0.5;
         MasterRunButton.Text = "Validating Session...";
+        StartValidationAnimation();
 
         TikTokWebViewHelper.ConfigureWebView(GlobalSessionCheckWebView);
         GlobalSessionCheckWebView.Source = TikTokWebViewHelper.MessagesUrl;
@@ -189,6 +215,7 @@ public partial class DashboardPage : ContentPage
             }
             MainThread.BeginInvokeOnMainThread(() => 
             {
+                StopValidationAnimation(false);
                 UpdateSessionIndicator();
                 UpdateStatus(); // Re-render Run button text
             });
@@ -211,6 +238,7 @@ public partial class DashboardPage : ContentPage
             TikTokWebViewHelper.UpdateSessionStatus(_sessionService, false);
             MainThread.BeginInvokeOnMainThread(() => 
             {
+                StopValidationAnimation(false);
                 UpdateSessionIndicator();
                 UpdateStatus();
             });
@@ -230,6 +258,7 @@ public partial class DashboardPage : ContentPage
                     TikTokWebViewHelper.UpdateSessionStatus(_sessionService, true);
                     MainThread.BeginInvokeOnMainThread(() => 
                     {
+                        StopValidationAnimation(true);
                         LoadProfilePhoto(); // Reload photo if just fetched
                         GreetingLabel.Text = $"Hi, {_sessionService.GetDisplayName()}";
                         UpdateSessionIndicator();

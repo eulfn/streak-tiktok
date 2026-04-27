@@ -143,6 +143,18 @@ public partial class HistoryPage : ContentPage
         foreach (var run in allHistory) HistoryContainer.Children.Add(CreateHistoryView(run));
     }
 
+    private string ShortenErrorMessage(string originalMsg)
+    {
+        if (string.IsNullOrEmpty(originalMsg)) return "";
+        if (originalMsg.Contains("login required", StringComparison.OrdinalIgnoreCase)) return "Login required";
+        if (originalMsg.Contains("navigate to", StringComparison.OrdinalIgnoreCase)) return "Navigation failed";
+        if (originalMsg.Contains("No network", StringComparison.OrdinalIgnoreCase)) return "No network";
+        if (originalMsg.Contains("stopped by user", StringComparison.OrdinalIgnoreCase)) return "Stopped by user";
+        if (originalMsg.Contains("WebView", StringComparison.OrdinalIgnoreCase)) return "WebView error";
+        if (originalMsg.Contains("target username", StringComparison.OrdinalIgnoreCase)) return "No target set";
+        return originalMsg;
+    }
+
     private View CreateHistoryView(StreakRunResult run)
     {
         var successCount = run.FriendResults.Count(r => r.Success);
@@ -203,13 +215,14 @@ public partial class HistoryPage : ContentPage
         }
         else if (!string.IsNullOrEmpty(run.ErrorMessage))
         {
-            infoStack.Children.Add(new Label { Text = run.ErrorMessage, FontSize = 12, TextColor = statusColor, LineBreakMode = LineBreakMode.TailTruncation });
+            var shortMsg = ShortenErrorMessage(run.ErrorMessage);
+            infoStack.Children.Add(new Label { Text = shortMsg, FontSize = 12, TextColor = statusColor, LineBreakMode = LineBreakMode.TailTruncation });
         }
         else if (run.IsBurstMode)
         {
             var msg = run.Success 
                 ? $"Burst session completed — {run.BurstMessagesSent} messages sent"
-                : $"Burst failed: {run.ErrorMessage}";
+                : $"Burst failed: {ShortenErrorMessage(run.ErrorMessage)}";
             infoStack.Children.Add(new Label { Text = msg, FontSize = 13, TextColor = GetThemeColor("Gray400"), LineBreakMode = LineBreakMode.TailTruncation });
         }
         Grid.SetColumn(infoStack, 1);

@@ -16,7 +16,7 @@ public class SuccessRateDrawable : IDrawable
     // Track color adapts to theme but we use muted defaults here
     private static readonly Color TrackLight = Color.FromArgb("#E5E7EB");
     private static readonly Color TrackDark = Color.FromArgb("#2E3036");
-    private static readonly Color ArcColor = Color.FromArgb("#22946E");
+    private static readonly Color ArcColor = Color.FromArgb("#22C55E");
     private static readonly Color TextLight = Color.FromArgb("#141517");
     private static readonly Color TextDark = Color.FromArgb("#FFFFFF");
 

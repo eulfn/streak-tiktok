@@ -101,31 +101,10 @@
                                     HeightRequest="48"
                                     Clicked="OnLoginClicked"/>
 
-                            <!-- Session checking indicator -->
-                            <HorizontalStackLayout x:Name="SessionCheckingIndicator"
-                                                   IsVisible="False"
-                                                   HorizontalOptions="Center"
-                                                   VerticalOptions="Center"
-                                                   Spacing="8">
-                                <ActivityIndicator IsRunning="True"
-                                                   Color="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource White}}"
-                                                   HeightRequest="20"
-                                                   WidthRequest="20"/>
-                                <Label Text="Validating session..."
-                                       TextColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource White}}"
-                                       Style="{StaticResource DataLabel}"
-                                       VerticalOptions="Center"/>
-                            </HorizontalStackLayout>
                         </Grid>
                     </VerticalStackLayout>
                 </Border>
 
-                <!-- Hidden WebView for session validation -->
-                <WebView x:Name="SessionCheckWebView"
-                         HeightRequest="0"
-                         WidthRequest="0"
-                         IsVisible="False"
-                         Navigated="OnSessionCheckNavigated"/>
 
                 <!-- ─── Settings Card ─── -->
                 <Border Style="{StaticResource SectionCard}">

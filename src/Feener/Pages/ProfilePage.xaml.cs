@@ -8,13 +8,6 @@ public partial class ProfilePage : ContentPage
 {
     private readonly SessionService _sessionService;
     private readonly SettingsService _settingsService;
-    private bool _isCheckingSession = false;
-    private bool _sessionCheckCompleted = false;
-    private int _navigationCount = 0;
-#if ANDROID
-    private IDispatcherTimer? _sessionCheckTimeout;
-#endif
-
     public ProfilePage()
     {
         InitializeComponent();
@@ -48,11 +41,11 @@ public partial class ProfilePage : ContentPage
         ScheduleSwitch.IsToggled = _settingsService.IsScheduled();
         SkipUnreachableSwitch.IsToggled = _settingsService.GetSkipUnreachableUsers();
 
-        // Version
+        // Load version
         VersionLabel.Text = $"v{AppInfo.Current.VersionString}";
 
-        // Check session
-        CheckSessionStatus();
+        // Update UI based on current session status
+        UpdateLoginButtonState(_sessionService.IsSessionValid());
     }
 
     // ─── Profile Photo ──────────────────────────────────────────────────────────
@@ -113,127 +106,11 @@ public partial class ProfilePage : ContentPage
         _sessionService.SetDisplayName(DisplayNameEntry.Text ?? "User");
     }
 
-    // ─── Session Check (moved from MainPage) ────────────────────────────────────
-
-    private void CheckSessionStatus()
-    {
-        if (_sessionCheckCompleted)
-        {
-            UpdateLoginButtonState(_sessionService.IsSessionValid());
-            return;
-        }
-
-        var lastCheck = _sessionService.GetLastCheckTime();
-        if (lastCheck == null)
-        {
-            _sessionCheckCompleted = true;
-            UpdateLoginButtonState(false);
-            return;
-        }
-
-#if ANDROID
-        if (Feener.Platforms.Android.Services.StreakService.IsRunning)
-        {
-            UpdateLoginButtonState(_sessionService.IsSessionValid());
-            return;
-        }
-#endif
-
-        _isCheckingSession = true;
-        _navigationCount = 0;
-        UpdateLoginButtonState(false, isChecking: true);
-
-#if ANDROID
-        TikTokWebViewHelper.ConfigureWebView(SessionCheckWebView);
-        SessionCheckWebView.Source = TikTokWebViewHelper.MessagesUrl;
-
-        if (_sessionCheckTimeout != null)
-        {
-            _sessionCheckTimeout.Stop();
-            _sessionCheckTimeout.Tick -= OnSessionCheckTimeout;
-        }
-        _sessionCheckTimeout = Dispatcher.CreateTimer();
-        _sessionCheckTimeout.Interval = TimeSpan.FromSeconds(10);
-        _sessionCheckTimeout.Tick += OnSessionCheckTimeout;
-        _sessionCheckTimeout.Start();
-#else
-        _sessionCheckCompleted = true;
-        UpdateLoginButtonState(_sessionService.IsSessionValid());
-#endif
-    }
-
-#if ANDROID
-    private void OnSessionCheckTimeout(object? sender, EventArgs e)
-    {
-        _sessionCheckTimeout?.Stop();
-        if (_isCheckingSession)
-        {
-            if (Feener.Platforms.Android.Services.StreakService.IsRunning)
-            {
-                _isCheckingSession = false;
-                _sessionCheckCompleted = true;
-                MainThread.BeginInvokeOnMainThread(() => UpdateLoginButtonState(_sessionService.IsSessionValid()));
-                return;
-            }
-            _isCheckingSession = false;
-            _sessionCheckCompleted = true;
-            _sessionService.SetSessionValid(false);
-            MainThread.BeginInvokeOnMainThread(() => UpdateLoginButtonState(false));
-        }
-    }
-#endif
-
-    private void OnSessionCheckNavigated(object? sender, WebNavigatedEventArgs e)
-    {
-        if (!_isCheckingSession) return;
-        _navigationCount++;
-        var result = TikTokWebViewHelper.CheckLoginStatus(e.Url);
-
-        if (result.IsValidUrl && e.Url?.ToLower().Contains("/login") == true)
-        {
-#if ANDROID
-            _sessionCheckTimeout?.Stop();
-#endif
-            _isCheckingSession = false;
-            _sessionCheckCompleted = true;
-            TikTokWebViewHelper.UpdateSessionStatus(_sessionService, false);
-            MainThread.BeginInvokeOnMainThread(() => UpdateLoginButtonState(false));
-            return;
-        }
-
-        if (result.IsLoggedIn && _navigationCount >= 1)
-        {
-            Task.Delay(2000).ContinueWith(_ =>
-            {
-                if (_isCheckingSession)
-                {
-#if ANDROID
-                    _sessionCheckTimeout?.Stop();
-#endif
-                    _isCheckingSession = false;
-                    _sessionCheckCompleted = true;
-                    TikTokWebViewHelper.UpdateSessionStatus(_sessionService, true);
-                    MainThread.BeginInvokeOnMainThread(() => UpdateLoginButtonState(true));
-                }
-            });
-        }
-    }
-
-    private async void UpdateLoginButtonState(bool isSessionValid, bool isChecking = false)
+    private async void UpdateLoginButtonState(bool isSessionValid)
     {
         await LoginButton.FadeTo(0.5, 100);
 
-        if (isChecking)
-        {
-            LoginButton.Text = string.Empty;
-            LoginButton.BackgroundColor = GetThemeColor("Gray400");
-            LoginButton.IsEnabled = false;
-            SessionCheckingIndicator.IsVisible = true;
-            SessionDot.BackgroundColor = GetThemeColor("Gray400");
-            SessionStatusLabel.Text = "Validating...";
-            SessionLastCheckLabel.Text = "";
-        }
-        else if (isSessionValid)
+        if (isSessionValid)
         {
             LoginButton.Text = "Session OK";
             LoginButton.BackgroundColor = GetThemeColor("Success", "#22946E");
@@ -262,7 +139,6 @@ public partial class ProfilePage : ContentPage
 
     private async void OnLoginClicked(object? sender, EventArgs e)
     {
-        _sessionCheckCompleted = false;
         await Navigation.PushAsync(new LoginPage());
     }
 
@@ -295,8 +171,7 @@ public partial class ProfilePage : ContentPage
         if (confirm)
         {
             _sessionService.ClearSession();
-            _sessionCheckCompleted = false;
-            CheckSessionStatus();
+            UpdateLoginButtonState(false);
         }
     }
 }

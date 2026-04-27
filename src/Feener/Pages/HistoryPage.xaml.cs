@@ -143,7 +143,7 @@ public partial class HistoryPage : ContentPage
         foreach (var run in allHistory) HistoryContainer.Children.Add(CreateHistoryView(run));
     }
 
-    private string ShortenErrorMessage(string originalMsg)
+    private string ShortenErrorMessage(string? originalMsg)
     {
         if (string.IsNullOrEmpty(originalMsg)) return "";
         if (originalMsg.Contains("login required", StringComparison.OrdinalIgnoreCase)) return "Login required";

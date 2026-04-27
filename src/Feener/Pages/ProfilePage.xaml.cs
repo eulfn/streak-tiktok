@@ -115,7 +115,6 @@ public partial class ProfilePage : ContentPage
             LoginButton.Text = "Session OK";
             LoginButton.BackgroundColor = GetThemeColor("Success", "#22946E");
             LoginButton.IsEnabled = false;
-            SessionCheckingIndicator.IsVisible = false;
             SessionDot.BackgroundColor = GetThemeColor("Success", "#22946E");
             SessionStatusLabel.Text = "Session active";
             var lastCheck = _sessionService.GetLastCheckTime();
@@ -126,7 +125,6 @@ public partial class ProfilePage : ContentPage
             LoginButton.Text = "Login to TikTok";
             LoginButton.BackgroundColor = GetThemeColor("Primary", "#FE2C55");
             LoginButton.IsEnabled = true;
-            SessionCheckingIndicator.IsVisible = false;
             SessionDot.BackgroundColor = GetThemeColor("Error", "#9C2121");
             SessionStatusLabel.Text = "Not logged in";
             SessionLastCheckLabel.Text = "Tap below to login";

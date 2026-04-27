@@ -485,7 +485,6 @@ public class StreakService : Service
             CompleteService(false, $"Fatal error during page load: {ex.Message} - {stack}");
         }
     }
-    }
 
     private void ProcessNextFriend()
     {

@@ -110,9 +110,9 @@ public partial class DashboardPage : ContentPage
             // Clip the image to the circle
             ProfileAvatarImage.Clip = new EllipseGeometry
             {
-                Center = new Point(20, 20),
-                RadiusX = 20,
-                RadiusY = 20
+                Center = new Point(22, 22),
+                RadiusX = 22,
+                RadiusY = 22
             };
         }
         else
@@ -135,45 +135,7 @@ public partial class DashboardPage : ContentPage
         }
     }
 
-    private void StartValidationAnimation()
-    {
-        ProfileValidationRing.IsVisible = true;
-        ProfileValidationRing.Opacity = 1;
-        ProfileValidationRing.Scale = 1.0;
 
-        // Pulse animation: scale 1.0→1.1→1.0 with opacity breathing
-        var pulseAnim = new Animation
-        {
-            { 0, 0.5, new Animation(v => ProfileValidationRing.Scale = v, 1.0, 1.1, Easing.SinInOut) },
-            { 0.5, 1.0, new Animation(v => ProfileValidationRing.Scale = v, 1.1, 1.0, Easing.SinInOut) },
-            { 0, 0.5, new Animation(v => ProfileValidationRing.Opacity = v, 0.5, 1.0, Easing.SinInOut) },
-            { 0.5, 1.0, new Animation(v => ProfileValidationRing.Opacity = v, 1.0, 0.5, Easing.SinInOut) },
-        };
-        pulseAnim.Commit(this, "ValidationPulse", length: 1500, repeat: () => true);
-    }
-
-    private async void StopValidationAnimation(bool success)
-    {
-        this.AbortAnimation("ValidationPulse");
-        
-        if (success)
-        {
-            // Briefly flash green then fade out
-            ProfileValidationRing.Stroke = Color.FromArgb("#22C55E");
-            ProfileValidationRing.Scale = 1.0;
-            ProfileValidationRing.Opacity = 1;
-            await Task.Delay(400);
-            await ProfileValidationRing.FadeTo(0, 300);
-            ProfileValidationRing.IsVisible = false;
-        }
-        else
-        {
-            // Stop pulsing, show solid red ring
-            ProfileValidationRing.Scale = 1.0;
-            ProfileValidationRing.Opacity = 1;
-            ProfileValidationRing.Stroke = Color.FromArgb("#EF4444");
-        }
-    }
 
     private void CheckGlobalSessionStatus()
     {
@@ -198,7 +160,7 @@ public partial class DashboardPage : ContentPage
         MasterRunButton.IsEnabled = false;
         MasterRunButton.Opacity = 0.5;
         MasterRunButton.Text = "Validating Session...";
-        StartValidationAnimation();
+
 
         TikTokWebViewHelper.ConfigureWebView(GlobalSessionCheckWebView);
         GlobalSessionCheckWebView.Source = TikTokWebViewHelper.MessagesUrl;
@@ -230,7 +192,7 @@ public partial class DashboardPage : ContentPage
             }
             MainThread.BeginInvokeOnMainThread(() => 
             {
-                StopValidationAnimation(false);
+
                 UpdateSessionIndicator();
                 UpdateStatus(); // Re-render Run button text
             });
@@ -253,7 +215,7 @@ public partial class DashboardPage : ContentPage
             TikTokWebViewHelper.UpdateSessionStatus(_sessionService, false);
             MainThread.BeginInvokeOnMainThread(() => 
             {
-                StopValidationAnimation(false);
+
                 UpdateSessionIndicator();
                 UpdateStatus();
             });
@@ -273,7 +235,7 @@ public partial class DashboardPage : ContentPage
                     TikTokWebViewHelper.UpdateSessionStatus(_sessionService, true);
                     MainThread.BeginInvokeOnMainThread(() => 
                     {
-                        StopValidationAnimation(true);
+
                         LoadProfilePhoto(); // Reload photo if just fetched
                         GreetingLabel.Text = $"Hi, {_sessionService.GetDisplayName()}";
                         UpdateSessionIndicator();

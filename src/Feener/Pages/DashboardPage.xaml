@@ -30,37 +30,23 @@
                                HorizontalOptions="Start"/>
                     </VerticalStackLayout>
 
-                    <!-- Profile avatar container for validation animation -->
-                    <Grid Grid.Column="1" WidthRequest="52" HeightRequest="52" VerticalOptions="Center">
-                        <!-- Profile avatar circle (renders first = below) -->
+                    <!-- Profile avatar container -->
+                    <Grid Grid.Column="1" WidthRequest="44" HeightRequest="44" VerticalOptions="Center">
                         <Border x:Name="ProfileAvatarBorder"
-                                WidthRequest="40" HeightRequest="40"
+                                WidthRequest="44" HeightRequest="44"
                                 StrokeThickness="0"
-                                StrokeShape="RoundRectangle 20"
+                                StrokeShape="RoundRectangle 22"
                                 BackgroundColor="{AppThemeBinding Light={StaticResource PrimarySubtle}, Dark={StaticResource Gray800}}"
                                 HorizontalOptions="Center" VerticalOptions="Center">
                             <Image x:Name="ProfileAvatarImage"
                                    IsVisible="False"
                                    Aspect="AspectFill"
-                                   WidthRequest="40" HeightRequest="40"/>
+                                   WidthRequest="44" HeightRequest="44"/>
                         </Border>
-                        <!-- Fallback emoji shown when no photo set -->
                         <Label x:Name="ProfileAvatarEmoji"
-                               Text="🎵" FontSize="18"
+                               Text="🎵" FontSize="20"
                                HorizontalOptions="Center" VerticalOptions="Center"
                                IsVisible="False"/>
-
-                        <!-- The animated validating ring (renders last = on top) -->
-                        <Border x:Name="ProfileValidationRing"
-                                WidthRequest="52" HeightRequest="52"
-                                Stroke="{AppThemeBinding Light=#AAFB923C, Dark=#AA8B5CF6}"
-                                StrokeThickness="2.5"
-                                StrokeShape="RoundRectangle 26"
-                                BackgroundColor="Transparent"
-                                HorizontalOptions="Center"
-                                VerticalOptions="Center"
-                                IsVisible="False"
-                                Opacity="0" />
                     </Grid>
                 </Grid>
 

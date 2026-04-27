@@ -110,9 +110,9 @@ public partial class DashboardPage : ContentPage
             // Clip the image to the circle
             ProfileAvatarImage.Clip = new EllipseGeometry
             {
-                Center = new Point(22, 22),
-                RadiusX = 22,
-                RadiusY = 22
+                Center = new Point(20, 20),
+                RadiusX = 20,
+                RadiusY = 20
             };
         }
         else
@@ -137,26 +137,41 @@ public partial class DashboardPage : ContentPage
 
     private void StartValidationAnimation()
     {
-        ProfileValidationRing.SetAppThemeColor(Border.StrokeProperty, Color.FromArgb("#44000000"), Color.FromArgb("#44FFFFFF"));
         ProfileValidationRing.IsVisible = true;
         ProfileValidationRing.Opacity = 1;
-        var animation = new Animation(v => ProfileValidationRing.Rotation = v, 0, 360);
-        animation.Commit(this, "ValidationSpin", length: 2000, easing: Easing.Linear, repeat: () => true);
+        ProfileValidationRing.Scale = 1.0;
+
+        // Pulse animation: scale 1.0→1.1→1.0 with opacity breathing
+        var pulseAnim = new Animation
+        {
+            { 0, 0.5, new Animation(v => ProfileValidationRing.Scale = v, 1.0, 1.1, Easing.SinInOut) },
+            { 0.5, 1.0, new Animation(v => ProfileValidationRing.Scale = v, 1.1, 1.0, Easing.SinInOut) },
+            { 0, 0.5, new Animation(v => ProfileValidationRing.Opacity = v, 0.5, 1.0, Easing.SinInOut) },
+            { 0.5, 1.0, new Animation(v => ProfileValidationRing.Opacity = v, 1.0, 0.5, Easing.SinInOut) },
+        };
+        pulseAnim.Commit(this, "ValidationPulse", length: 1500, repeat: () => true);
     }
 
     private async void StopValidationAnimation(bool success)
     {
-        this.AbortAnimation("ValidationSpin");
+        this.AbortAnimation("ValidationPulse");
         
         if (success)
         {
+            // Briefly flash green then fade out
+            ProfileValidationRing.Stroke = Color.FromArgb("#22C55E");
+            ProfileValidationRing.Scale = 1.0;
+            ProfileValidationRing.Opacity = 1;
+            await Task.Delay(400);
             await ProfileValidationRing.FadeTo(0, 300);
             ProfileValidationRing.IsVisible = false;
         }
         else
         {
-            ProfileValidationRing.Rotation = 0;
-            ProfileValidationRing.Stroke = GetThemeColor("Error", "#9C2121");
+            // Stop pulsing, show solid red ring
+            ProfileValidationRing.Scale = 1.0;
+            ProfileValidationRing.Opacity = 1;
+            ProfileValidationRing.Stroke = Color.FromArgb("#EF4444");
         }
     }
 

@@ -42,13 +42,20 @@ public class SuccessRateDrawable : IDrawable
             canvas.StrokeSize = stroke;
             canvas.StrokeLineCap = LineCap.Round;
 
-            var sweepAngle = SuccessRate * 360f;
-            canvas.DrawArc(
-                cx - radius, cy - radius,
-                radius * 2, radius * 2,
-                90f,                       // start from top (MAUI: 90° = 12 o'clock)
-                90f - sweepAngle,          // sweep clockwise
-                true, false);
+            if (SuccessRate >= 0.999f)
+            {
+                canvas.DrawCircle(cx, cy, radius);
+            }
+            else
+            {
+                var sweepAngle = SuccessRate * 360f;
+                canvas.DrawArc(
+                    cx - radius, cy - radius,
+                    radius * 2, radius * 2,
+                    90f,                       // start from top (MAUI: 90° = 12 o'clock)
+                    90f - sweepAngle,          // sweep clockwise
+                    true, false);
+            }
         }
 
         // Center text — rate

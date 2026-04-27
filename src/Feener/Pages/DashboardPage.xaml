@@ -31,36 +31,36 @@
                     </VerticalStackLayout>
 
                     <!-- Profile avatar container for validation animation -->
-                    <Grid Grid.Column="1" WidthRequest="48" HeightRequest="48" VerticalOptions="Center">
-                        <!-- The animated validating ring -->
-                        <Border x:Name="ProfileValidationRing"
-                                Stroke="{AppThemeBinding Light=#44000000, Dark=#44FFFFFF}"
-                                StrokeThickness="2"
-                                StrokeDashArray="4,2"
-                                StrokeShape="RoundRectangle 24"
-                                BackgroundColor="Transparent"
-                                HorizontalOptions="Fill"
-                                VerticalOptions="Fill"
-                                IsVisible="False"
-                                Opacity="0" />
-
-                        <!-- Profile avatar circle -->
+                    <Grid Grid.Column="1" WidthRequest="52" HeightRequest="52" VerticalOptions="Center">
+                        <!-- Profile avatar circle (renders first = below) -->
                         <Border x:Name="ProfileAvatarBorder"
-                                WidthRequest="44" HeightRequest="44"
+                                WidthRequest="40" HeightRequest="40"
                                 StrokeThickness="0"
-                                StrokeShape="RoundRectangle 22"
+                                StrokeShape="RoundRectangle 20"
                                 BackgroundColor="{AppThemeBinding Light={StaticResource PrimarySubtle}, Dark={StaticResource Gray800}}"
                                 HorizontalOptions="Center" VerticalOptions="Center">
                             <Image x:Name="ProfileAvatarImage"
                                    IsVisible="False"
                                    Aspect="AspectFill"
-                                   WidthRequest="44" HeightRequest="44"/>
+                                   WidthRequest="40" HeightRequest="40"/>
                         </Border>
                         <!-- Fallback emoji shown when no photo set -->
                         <Label x:Name="ProfileAvatarEmoji"
-                               Text="🎵" FontSize="20"
+                               Text="🎵" FontSize="18"
                                HorizontalOptions="Center" VerticalOptions="Center"
                                IsVisible="False"/>
+
+                        <!-- The animated validating ring (renders last = on top) -->
+                        <Border x:Name="ProfileValidationRing"
+                                WidthRequest="52" HeightRequest="52"
+                                Stroke="{AppThemeBinding Light=#AAFB923C, Dark=#AA8B5CF6}"
+                                StrokeThickness="2.5"
+                                StrokeShape="RoundRectangle 26"
+                                BackgroundColor="Transparent"
+                                HorizontalOptions="Center"
+                                VerticalOptions="Center"
+                                IsVisible="False"
+                                Opacity="0" />
                     </Grid>
                 </Grid>
 

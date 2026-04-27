@@ -88,11 +88,26 @@ public partial class HistoryPage : ContentPage
     private void LoadStats()
     {
         var history = _settingsService.GetRunHistory().Where(r => r.IsBurstMode == _isBurstModeActive).ToList();
-        
-        // Success Calculation: TotalSuccessfulMessages / TotalAttemptedMessages
-        int totalMessages = history.Sum(r => r.FriendResults?.Count ?? 0);
-        int successMessages = history.Sum(r => r.FriendResults?.Count(f => f.Success) ?? 0);
-        float rate = totalMessages > 0 ? (float)successMessages / totalMessages : 0;
+
+        int totalMessages;
+        int successMessages;
+        float rate;
+
+        if (_isBurstModeActive)
+        {
+            // Burst: use BurstMessagesSent for successful runs vs daily limit as the target
+            int burstTarget = _settingsService.GetBurstDailyLimit();
+            totalMessages = history.Sum(r => r.BurstMessagesSent);
+            successMessages = history.Where(r => r.Success).Sum(r => r.BurstMessagesSent);
+            rate = totalMessages > 0 ? (float)successMessages / totalMessages : 0;
+        }
+        else
+        {
+            // Normal: use FriendResults for per-friend message tracking
+            totalMessages = history.Sum(r => r.FriendResults?.Count ?? 0);
+            successMessages = history.Sum(r => r.FriendResults?.Count(f => f.Success) ?? 0);
+            rate = totalMessages > 0 ? (float)successMessages / totalMessages : 0;
+        }
 
         bool isDark = Application.Current?.RequestedTheme == AppTheme.Dark;
         _chartDrawable.IsDarkTheme = isDark;
@@ -103,9 +118,11 @@ public partial class HistoryPage : ContentPage
 
         if (history.Count > 0)
         {
-            SuccessRateLabel.Text = totalMessages > 0 ? $"{successMessages} of {totalMessages} messages successful" : $"{history.Count(r => r.Success)} of {history.Count} runs successful";
+            SuccessRateLabel.Text = totalMessages > 0
+                ? $"{successMessages} of {totalMessages} messages successful"
+                : $"{history.Count(r => r.Success)} of {history.Count} runs successful";
             TotalRunsLabel.Text = $"Last {Math.Min(history.Count, 50)} runs tracked";
-            
+
             var lastRun = history.FirstOrDefault();
             if (lastRun != null && lastRun.Duration.HasValue)
             {
@@ -157,9 +174,7 @@ public partial class HistoryPage : ContentPage
 
     private View CreateHistoryView(StreakRunResult run)
     {
-        var successCount = run.FriendResults.Count(r => r.Success);
-        var totalCount = run.FriendResults.Count;
-        var statusColor = run.Success ? GetThemeColor("Success", "#22946E") : GetThemeColor("Error", "#9C2121");
+        var statusColor = run.Success ? Color.FromArgb("#22C55E") : GetThemeColor("Error", "#9C2121");
         var border = new Border
         {
             StrokeThickness = 0,
@@ -168,7 +183,7 @@ public partial class HistoryPage : ContentPage
             Margin = new Thickness(0, 4)
         };
         border.SetAppThemeColor(Border.BackgroundColorProperty, GetThemeColor("Gray100", "#F3F4F6"), GetThemeColor("Gray900", "#111827"));
-        
+
         var grid = new Grid
         {
             ColumnDefinitions = new ColumnDefinitionCollection
@@ -188,43 +203,61 @@ public partial class HistoryPage : ContentPage
         grid.Children.Add(statusDot);
         var infoStack = new VerticalStackLayout { Spacing = 3 };
         infoStack.Children.Add(new Label { Text = run.RunTime.ToString("MMM dd, HH:mm"), FontSize = 15, FontFamily = "InterMedium" });
-        if (totalCount > 0)
+
+        // Build the detail line based on run type
+        if (run.IsBurstMode)
         {
-            var skippedCount = totalCount - successCount;
-            if (skippedCount > 0)
+            // Burst runs: use BurstMessagesSent for the detail line
+            string detail;
+            if (run.Success)
             {
-                var hStack = new HorizontalStackLayout { Spacing = 16 };
-                var l1 = new Label { Text = $"{successCount}/{totalCount} sent", FontSize = 13 };
-                l1.SetAppThemeColor(Label.TextColorProperty, GetThemeColor("Gray400"), GetThemeColor("Gray400"));
-                var l2 = new Label { Text = $"{skippedCount} skipped", FontSize = 13 };
-                l2.SetAppThemeColor(Label.TextColorProperty, GetThemeColor("Gray400"), GetThemeColor("Gray400"));
-                hStack.Children.Add(l1);
-                hStack.Children.Add(l2);
-                infoStack.Children.Add(hStack);
+                detail = $"{run.BurstMessagesSent} messages sent";
+            }
+            else if (!string.IsNullOrEmpty(run.ErrorMessage))
+            {
+                detail = ShortenErrorMessage(run.ErrorMessage);
             }
             else
             {
-                var infoLabel = new Label
+                detail = "Burst failed";
+            }
+            var detailLabel = new Label { Text = detail, FontSize = 13, LineBreakMode = LineBreakMode.TailTruncation };
+            detailLabel.TextColor = run.Success ? GetThemeColor("Gray400") : statusColor;
+            infoStack.Children.Add(detailLabel);
+        }
+        else
+        {
+            // Normal runs: use FriendResults
+            var successCount = run.FriendResults.Count(r => r.Success);
+            var totalCount = run.FriendResults.Count;
+            if (totalCount > 0)
+            {
+                var skippedCount = totalCount - successCount;
+                if (skippedCount > 0)
                 {
-                    Text = $"{successCount}/{totalCount} messages sent",
-                    FontSize = 13
-                };
-                infoLabel.SetAppThemeColor(Label.TextColorProperty, GetThemeColor("Gray400"), GetThemeColor("Gray400"));
-                infoStack.Children.Add(infoLabel);
+                    var hStack = new HorizontalStackLayout { Spacing = 16 };
+                    var l1 = new Label { Text = $"{successCount}/{totalCount} sent", FontSize = 13 };
+                    l1.SetAppThemeColor(Label.TextColorProperty, GetThemeColor("Gray400"), GetThemeColor("Gray400"));
+                    var l2 = new Label { Text = $"{skippedCount} skipped", FontSize = 13 };
+                    l2.SetAppThemeColor(Label.TextColorProperty, GetThemeColor("Gray400"), GetThemeColor("Gray400"));
+                    hStack.Children.Add(l1);
+                    hStack.Children.Add(l2);
+                    infoStack.Children.Add(hStack);
+                }
+                else
+                {
+                    var infoLabel = new Label { Text = $"{successCount}/{totalCount} messages sent", FontSize = 13 };
+                    infoLabel.SetAppThemeColor(Label.TextColorProperty, GetThemeColor("Gray400"), GetThemeColor("Gray400"));
+                    infoStack.Children.Add(infoLabel);
+                }
+            }
+            else if (!string.IsNullOrEmpty(run.ErrorMessage))
+            {
+                var shortMsg = ShortenErrorMessage(run.ErrorMessage);
+                infoStack.Children.Add(new Label { Text = shortMsg, FontSize = 12, TextColor = statusColor, LineBreakMode = LineBreakMode.TailTruncation });
             }
         }
-        else if (!string.IsNullOrEmpty(run.ErrorMessage))
-        {
-            var shortMsg = ShortenErrorMessage(run.ErrorMessage);
-            infoStack.Children.Add(new Label { Text = shortMsg, FontSize = 12, TextColor = statusColor, LineBreakMode = LineBreakMode.TailTruncation });
-        }
-        else if (run.IsBurstMode)
-        {
-            var msg = run.Success 
-                ? $"Burst session completed — {run.BurstMessagesSent} messages sent"
-                : $"Burst failed: {ShortenErrorMessage(run.ErrorMessage)}";
-            infoStack.Children.Add(new Label { Text = msg, FontSize = 13, TextColor = GetThemeColor("Gray400"), LineBreakMode = LineBreakMode.TailTruncation });
-        }
+
         Grid.SetColumn(infoStack, 1);
         grid.Children.Add(infoStack);
         border.Content = grid;

@@ -67,7 +67,7 @@
                                            Unfocused="OnDisplayNameChanged"/>
                                 </Border>
                                 <Label x:Name="DisplayNameHint"
-                                       Text="Tap photo to change. Name used for greeting."
+                                       Text="Photo and name can be changed anytime."
                                        Style="{StaticResource DataLabel}"/>
                             </VerticalStackLayout>
                         </Grid>

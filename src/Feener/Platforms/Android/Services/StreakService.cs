@@ -12,6 +12,7 @@ using Microsoft.Maui.Controls.Internals;
 using RandomUserAgent;
 using Feener.Models;
 using Feener.Services;
+using CommunityToolkit.Mvvm.Messaging;
 using System.Threading.Tasks;
 using AsyncAwaitBestPractices;
 using WebView = Android.Webkit.WebView;
@@ -46,12 +47,12 @@ public class StreakService : Service
     private int _burstCurrentChunkSize = 35;
     private int _burstSessionCount = 0;
     private int _burstRemaining = 0;
-    private bool _isHibernating = false;
-    private long _hibernationEndTimeMs = 0;
 
     // ── Service lifecycle flags ──
     private bool _isCancelRequested = false;
     private bool _automationStarted = false;
+    private bool _isNetworkPaused = false;
+    private bool _isWaitingForNetwork = false;
 
 
     // ── Run-level mutex: prevents concurrent automation sessions ──
@@ -75,11 +76,20 @@ public class StreakService : Service
         return _logs ?? new List<string>();
     }
 
-    private static void AppLog(string phase, string username, string message)
+    private void AppLog(string phase, string username, string message)
     {
         var entry = $"[{DateTime.Now:HH:mm:ss}] [{phase}] [{username}] {message}";
         _logs.Add(entry);
         System.Diagnostics.Debug.WriteLine(entry);
+
+        // Broadcast to UI
+        WeakReferenceMessenger.Default.Send(new StatusUpdateMessage(
+            StatusText: message,
+            IsRunning: _isRunning,
+            LogEntry: entry,
+            IsBurstMode: _isBurstMode,
+            SessionCount: _burstSessionCount
+        ));
     }
 
     public override void OnCreate()
@@ -93,6 +103,8 @@ public class StreakService : Service
         _settingsService = new SettingsService();
         AcquireWakeLock();
 
+        Microsoft.Maui.Networking.Connectivity.Current.ConnectivityChanged += OnConnectivityChanged;
+
         // Start foreground IMMEDIATELY in OnCreate to avoid ANR
         StartForegroundServiceImmediate();
     }
@@ -103,12 +115,22 @@ public class StreakService : Service
         {
             _isCancelRequested = true;
             AppLog("SYSTEM", "-", "Service stop requested by user");
+
+            // Unconditionally clear any burst state and wakeups in case we are stopping during hibernation
+            _settingsService?.SetBurstSessionActive(false);
+            _settingsService?.SetBurstSessionCount(0);
+            _settingsService?.SetBurstTotalSent(0);
+            StreakScheduler.CancelAllScheduledAlarms(this);
+
             CompleteService(false, "Run stopped by user.");
             return StartCommandResult.NotSticky;
         }
 
-        // Handle Burst Mode flag
-        _isBurstMode = intent?.GetBooleanExtra("IsBurstMode", false) ?? false;
+        if (intent?.GetBooleanExtra("IsManualRun", false) == true)
+        {
+            StreakScheduler.CancelAllScheduledAlarms(this);
+            AppLog("SYSTEM", "-", "Manual run initiated: Cancelled all scheduled alarms.");
+        }
 
         // Ensure we're in foreground mode (in case OnCreate didn't complete it)
         StartForegroundServiceImmediate();
@@ -122,12 +144,37 @@ public class StreakService : Service
                 return StartCommandResult.NotSticky;
             }
             _isRunning = true;
+            
+            // Extract configuration only after acquiring the lock for a new session
+            _isBurstMode = intent?.GetBooleanExtra("IsBurstMode", false) ?? false;
         }
 
         // Start the WebView automation on main thread
         _mainHandler?.Post(StartWebViewAutomation);
 
         return StartCommandResult.Sticky;
+    }
+
+    private void OnConnectivityChanged(object? sender, Microsoft.Maui.Networking.ConnectivityChangedEventArgs e)
+    {
+        if (e.NetworkAccess != Microsoft.Maui.Networking.NetworkAccess.Internet)
+        {
+            AppLog("NETWORK", "-", "Network Interrupted — pausing automation...");
+            _isNetworkPaused = true;
+        }
+        else
+        {
+            if (_isNetworkPaused)
+            {
+                AppLog("NETWORK", "-", "Network Restored — resuming automation...");
+                _isNetworkPaused = false;
+                if (_isRunning && !_isCancelRequested && _isWaitingForNetwork)
+                {
+                    _isWaitingForNetwork = false;
+                    _mainHandler?.Post(SendCurrentFriendMessage);
+                }
+            }
+        }
     }
 
     private void StartForegroundServiceImmediate()
@@ -156,6 +203,7 @@ public class StreakService : Service
 
     public override void OnDestroy()
     {
+        Microsoft.Maui.Networking.Connectivity.Current.ConnectivityChanged -= OnConnectivityChanged;
         ReleaseWakeLock();
         CleanupWebView();
         base.OnDestroy();
@@ -280,14 +328,28 @@ public class StreakService : Service
                 _friendsToProcess.Add(new FriendConfig { Username = target, IsEnabled = true });
                 _burstMessages = _settingsService?.GetBurstMessages() ?? new List<string> { SettingsService.DefaultMessage };
                 if (_burstMessages.Count == 0) _burstMessages.Add(SettingsService.DefaultMessage);
-                _burstTotalSent = 0;
-                _burstChunkSent = 0;
-                _burstSessionCount = 0;
-                _burstCurrentChunkSize = new Random().Next(SettingsService.BurstChunkSizeMin, SettingsService.BurstChunkSizeMax + 1);
                 
-                var avgChunk = (SettingsService.BurstChunkSizeMin + SettingsService.BurstChunkSizeMax) / 2;
-                var estSessions = (int)Math.Ceiling((double)_burstRemaining / avgChunk);
-                AppLog("SYSTEM", "-", $"Starting SMART BURST targeting @{target}: {_burstRemaining} msgs remaining, ~{estSessions} sessions, {_burstMessages.Count} message variants.");
+                _burstChunkSent = 0;
+                _burstCurrentChunkSize = new Random().Next(SettingsService.BurstChunkSizeMin, SettingsService.BurstChunkSizeMax + 1);
+
+                if (_settingsService?.IsBurstSessionActive() == true)
+                {
+                    _burstTotalSent = _settingsService.GetBurstTotalSent();
+                    _burstSessionCount = _settingsService.GetBurstSessionCount();
+                    AppLog("SYSTEM", "-", $"Resuming Burst Session {_burstSessionCount + 1} targeting @{target}: {_burstRemaining} msgs remaining.");
+                }
+                else
+                {
+                    _burstTotalSent = 0;
+                    _burstSessionCount = 0;
+                    _settingsService?.SetBurstSessionActive(true);
+                    _settingsService?.SetBurstSessionCount(0);
+                    _settingsService?.SetBurstTotalSent(0);
+                    
+                    var avgChunk = (SettingsService.BurstChunkSizeMin + SettingsService.BurstChunkSizeMax) / 2;
+                    var estSessions = (int)Math.Ceiling((double)_burstRemaining / avgChunk);
+                    AppLog("SYSTEM", "-", $"Starting SMART BURST targeting @{target}: {_burstRemaining} msgs remaining, ~{estSessions} sessions, {_burstMessages.Count} message variants.");
+                }
             }
             else
             {
@@ -379,7 +441,8 @@ public class StreakService : Service
         }
         catch (Exception ex)
         {
-            CompleteService(false, $"Error starting WebView: {ex.Message}");
+            string stack = ex.StackTrace != null ? ex.StackTrace.Substring(0, Math.Min(200, ex.StackTrace.Length)) : "No StackTrace";
+            CompleteService(false, $"Error starting WebView: {ex.Message} - {stack}");
         }
     }
 
@@ -395,91 +458,123 @@ public class StreakService : Service
 
     internal void OnPageLoaded(string url)
     {
-        // Check if we're on the messages page
-        if (url.Contains("tiktok.com/messages"))
+        try
         {
-            // Guard: only start the automation chain once (first page load)
-            if (_automationStarted) return;
-            _automationStarted = true;
+            // Check if we're on the messages page
+            if (url.Contains("tiktok.com/messages"))
+            {
+                // Guard: only start the automation chain once (first page load)
+                if (_automationStarted) return;
+                _automationStarted = true;
 
-            UpdateNotification("Connecting to TikTok...");
-            AppLog("NAVIGATION", "-", "Messages page ready");
-            // Wait a bit for the page to fully render, then start automation
-            _mainHandler?.PostDelayed(ProcessNextFriend, 3000);
+                UpdateNotification("Connecting to TikTok...");
+                AppLog("NAVIGATION", "-", "Messages page ready");
+                // Wait a bit for the page to fully render, then start automation
+                _mainHandler?.PostDelayed(ProcessNextFriend, 3000);
+            }
+            else if (url.Contains("login"))
+            {
+                AppLog("NAVIGATION", "-", "TikTok login required");
+                // User needs to login
+                CompleteService(false, "TikTok login required. Please login via the app first.");
+            }
         }
-        else if (url.Contains("login"))
+        catch (Exception ex)
         {
-            AppLog("NAVIGATION", "-", "TikTok login required");
-            // User needs to login
-            CompleteService(false, "TikTok login required. Please login via the app first.");
+            string stack = ex.StackTrace != null ? ex.StackTrace.Substring(0, Math.Min(200, ex.StackTrace.Length)) : "No StackTrace";
+            CompleteService(false, $"Fatal error during page load: {ex.Message} - {stack}");
         }
+    }
     }
 
     private void ProcessNextFriend()
     {
-        if (_isCancelRequested) return;
-
-        // When "Skip Unreachable Users" is OFF, abort the entire run on any per-user failure
-        bool skipUnreachable = _settingsService?.GetSkipUnreachableUsers() ?? false;
-        if (!skipUnreachable && _runResult is not null && _runResult.Failed)
+        try
         {
-            CompleteService(false, $"Run stopped: {_runResult.ErrorMessage ?? _runResult.FriendsErrorMessage}");
-            return;
-        }
+            if (_isCancelRequested) return;
 
-        if (_friendsToProcess == null || _currentFriendIndex >= _friendsToProcess.Count)
+            // When "Skip Unreachable Users" is OFF, abort the entire run on any per-user failure
+            bool skipUnreachable = _settingsService?.GetSkipUnreachableUsers() ?? false;
+            if (!skipUnreachable && _runResult is not null && _runResult.Failed)
+            {
+                CompleteService(false, $"Run stopped: {_runResult.ErrorMessage ?? _runResult.FriendsErrorMessage}");
+                return;
+            }
+
+            if (_friendsToProcess == null || _currentFriendIndex >= _friendsToProcess.Count)
+            {
+                // All friends processed — mark success only if every friend succeeded
+                var allSucceeded = _runResult?.FriendResults.All(r => r.Success) ?? false;
+                var completionMessage = allSucceeded
+                    ? "All messages sent successfully"
+                    : $"{_runResult?.FriendResults.Count(r => r.Success) ?? 0} of {_runResult?.FriendResults.Count ?? 0} sent";
+                CompleteService(allSucceeded, completionMessage);
+                return;
+            }
+
+            var friend = _friendsToProcess[_currentFriendIndex];
+
+            if (!_isBurstMode)
+            {
+                AppLog("PROCESS", $"@{friend.Username}", $"Starting normal messaging");
+            }
+
+            SendCurrentFriendMessage();
+        }
+        catch (Exception ex)
         {
-            // All friends processed — mark success only if every friend succeeded
-            var allSucceeded = _runResult?.FriendResults.All(r => r.Success) ?? false;
-            var completionMessage = allSucceeded
-                ? "All messages sent successfully"
-                : $"{_runResult?.FriendResults.Count(r => r.Success) ?? 0} of {_runResult?.FriendResults.Count ?? 0} sent";
-            CompleteService(allSucceeded, completionMessage);
-            return;
+            string stack = ex.StackTrace != null ? ex.StackTrace.Substring(0, Math.Min(200, ex.StackTrace.Length)) : "No StackTrace";
+            CompleteService(false, $"Fatal error in process loop: {ex.Message} - {stack}");
         }
-
-        var friend = _friendsToProcess[_currentFriendIndex];
-
-        if (!_isBurstMode)
-        {
-            AppLog("PROCESS", $"@{friend.Username}", $"Starting normal messaging");
-        }
-
-        SendCurrentFriendMessage();
     }
 
     private void SendCurrentFriendMessage()
     {
-        if (_isCancelRequested) return;
-
-        var friend = _friendsToProcess![_currentFriendIndex];
-        string message = "";
-
-        if (_isBurstMode)
+        try
         {
-            // Pick a message, avoiding the exact same as last time if we have >1 option
-            int nextIdx = 0;
-            if (_burstMessages.Count > 1)
+            if (_isCancelRequested) return;
+
+            if (_isNetworkPaused)
             {
-                var r = new Random();
-                do { nextIdx = r.Next(_burstMessages.Count); } while (nextIdx == _lastBurstMessageIndex);
+                AppLog("NETWORK", "-", "Waiting for network to resume...");
+                _isWaitingForNetwork = true;
+                return;
             }
-            
-            _lastBurstMessageIndex = nextIdx;
-            message = _burstMessages[nextIdx];
-            
-            UpdateNotification($"Bursting @{friend.Username} (Total: {_burstTotalSent})...");
-            AppLog("BURST", $"@{friend.Username}", $"Injecting random message: {message}");
-        }
-        else
-        {
-            message = _settingsService?.GetMessageText() ?? SettingsService.DefaultMessage;
-            UpdateNotification($"{_currentFriendIndex + 1}/{_friendsToProcess.Count} \u2014 Processing: @{friend.Username}", _currentFriendIndex, _friendsToProcess.Count);
-        }
 
-        // Inject JavaScript to find and message the friend
-        var js = GetFriendMessageScript(friend.Username, message);
-        _webView?.EvaluateJavascript(js, null);
+            var friend = _friendsToProcess![_currentFriendIndex];
+            string message = "";
+
+            if (_isBurstMode)
+            {
+                // Pick a message, avoiding the exact same as last time if we have >1 option
+                int nextIdx = 0;
+                if (_burstMessages.Count > 1)
+                {
+                    var r = new Random();
+                    do { nextIdx = r.Next(_burstMessages.Count); } while (nextIdx == _lastBurstMessageIndex);
+                }
+                
+                _lastBurstMessageIndex = nextIdx;
+                message = _burstMessages[nextIdx];
+                
+                UpdateNotification($"Bursting @{friend.Username} (Total: {_burstTotalSent})...");
+                AppLog("BURST", $"@{friend.Username}", $"Injecting random message: {message}");
+            }
+            else
+            {
+                message = _settingsService?.GetMessageText() ?? SettingsService.DefaultMessage;
+                UpdateNotification($"{_currentFriendIndex + 1}/{_friendsToProcess.Count} \u2014 Processing: @{friend.Username}", _currentFriendIndex, _friendsToProcess.Count);
+            }
+
+            // Inject JavaScript to find and message the friend
+            var js = GetFriendMessageScript(friend.Username, message);
+            _webView?.EvaluateJavascript(js, null);
+        }
+        catch (Exception ex)
+        {
+            string stack = ex.StackTrace != null ? ex.StackTrace.Substring(0, Math.Min(200, ex.StackTrace.Length)) : "No StackTrace";
+            CompleteService(false, $"Fatal error sending message: {ex.Message} - {stack}");
+        }
     }
 
     private string GetFriendMessageScript(string username, string message)
@@ -496,56 +591,59 @@ public class StreakService : Service
 
     internal void OnMessageResult(string username, bool success, string error)
     {
-        if (_isCancelRequested) return;
-        if (_friendsToProcess == null || _settingsService == null) return;
-
-        var friend = _friendsToProcess.FirstOrDefault(f => f.Username.Equals(username, StringComparison.OrdinalIgnoreCase));
-
-        if (friend != null)
+        try
         {
-            if (!success)
-            {
-                _failureAttemptsForCurrentFriend++;
+            if (_isCancelRequested) return;
+            if (_friendsToProcess == null || _settingsService == null) return;
 
-                // Retry before giving up (skip retries in burst — same target each time)
-                if (!_isBurstMode && _failureAttemptsForCurrentFriend < MaxSendAttemptsPerFriend && error != UserNotFoundError)
+            var friend = _friendsToProcess.FirstOrDefault(f => f.Username.Equals(username, StringComparison.OrdinalIgnoreCase));
+
+            if (friend != null)
+            {
+                if (!success)
                 {
-                    AppLog("RETRY", $"@{username}", $"Attempt {_failureAttemptsForCurrentFriend}/{MaxSendAttemptsPerFriend}: {error}");
-                    _mainHandler?.PostDelayed(SendCurrentFriendMessage, 3000);
+                    _failureAttemptsForCurrentFriend++;
+
+                    // Retry before giving up (skip retries in burst — same target each time)
+                    if (!_isBurstMode && _failureAttemptsForCurrentFriend < MaxSendAttemptsPerFriend && error != UserNotFoundError)
+                    {
+                        AppLog("RETRY", $"@{username}", $"Attempt {_failureAttemptsForCurrentFriend}/{MaxSendAttemptsPerFriend}: {error}");
+                        _mainHandler?.PostDelayed(SendCurrentFriendMessage, 3000);
+                        return;
+                    }
+
+                    // Max retries exceeded — record failure and move on
+                    friend.FailureCount++;
+                    AppLog("FAIL", $"@{username}", error);
+
+                    // Auto-disable users not found in chat list when skip is enabled
+                    bool skipUnreachable = _settingsService.GetSkipUnreachableUsers();
+                    if (skipUnreachable && error == UserNotFoundError)
+                    {
+                        friend.IsEnabled = false;
+                        _disabledUsernames.Add($"@{username}");
+                        AppLog("DISABLED", $"@{username}", "Auto-disabled \u2014 not found in chat list");
+                    }
+                    _settingsService.UpdateFriend(friend);
+
+                    _runResult?.FriendResults.Add(new FriendMessageResult
+                    {
+                        FriendId = friend.Id,
+                        Username = username,
+                        Success = false,
+                        ErrorMessage = error
+                    });
+
+                    _failureAttemptsForCurrentFriend = 0;
+                    _currentFriendIndex++;
+                    if (!_isBurstMode)
+                    {
+                        UpdateNotification($"{_currentFriendIndex}/{_friendsToProcess.Count} : Failed: @{username}", _currentFriendIndex, _friendsToProcess.Count);
+                    }
+                    _mainHandler?.PostDelayed(ProcessNextFriend, 3000);
                     return;
                 }
-
-                // Max retries exceeded — record failure and move on
-                friend.FailureCount++;
-                AppLog("FAIL", $"@{username}", error);
-
-                // Auto-disable users not found in chat list when skip is enabled
-                bool skipUnreachable = _settingsService.GetSkipUnreachableUsers();
-                if (skipUnreachable && error == UserNotFoundError)
-                {
-                    friend.IsEnabled = false;
-                    _disabledUsernames.Add($"@{username}");
-                    AppLog("DISABLED", $"@{username}", "Auto-disabled \u2014 not found in chat list");
-                }
-                _settingsService.UpdateFriend(friend);
-
-                _runResult?.FriendResults.Add(new FriendMessageResult
-                {
-                    FriendId = friend.Id,
-                    Username = username,
-                    Success = false,
-                    ErrorMessage = error
-                });
-
-                _failureAttemptsForCurrentFriend = 0;
-                _currentFriendIndex++;
-                if (!_isBurstMode)
-                {
-                    UpdateNotification($"{_currentFriendIndex}/{_friendsToProcess.Count} : Failed: @{username}", _currentFriendIndex, _friendsToProcess.Count);
-                }
-                _mainHandler?.PostDelayed(ProcessNextFriend, 3000);
-                return;
-            }
+// ...
 
             // SUCCESS
             if (_isBurstMode)
@@ -565,17 +663,29 @@ public class StreakService : Service
                     return;
                 }
                 
-                // Check chunk boundary \u2014 enter hibernation
+                // Check chunk boundary — enter hibernation
                 if (_burstChunkSent >= _burstCurrentChunkSize)
                 {
                     _burstSessionCount++;
+                    _settingsService.SetBurstSessionCount(_burstSessionCount);
+                    _settingsService.SetBurstTotalSent(_burstTotalSent);
+                    _settingsService.SetBurstSessionActive(true);
+                    
                     var rng = new Random();
                     var hibernationMs = rng.Next(SettingsService.BurstHibernationMinMs, SettingsService.BurstHibernationMaxMs + 1);
                     var hibernationMin = hibernationMs / 60000.0;
                     AppLog("HIBERNATE", $"@{username}", $"Session {_burstSessionCount} complete ({_burstChunkSent} msgs). Hibernating {hibernationMin:F1} min...");
                     
-                    StartHibernationCountdown(hibernationMs);
-                    _mainHandler?.PostDelayed(StartNextBurstChunk, hibernationMs);
+                    StreakScheduler.ScheduleBurstWakeup(this, hibernationMs);
+                    
+                    // Exit cleanly without saving run result to allow the OS to reclaim memory
+                    lock (_runLock)
+                    {
+                        _isRunning = false;
+                    }
+                    CleanupWebView();
+                    StopForeground(StopForegroundFlags.Remove);
+                    StopSelf();
                     return;
                 }
                 
@@ -587,29 +697,35 @@ public class StreakService : Service
                 
                 if (!_isCancelRequested)
                 {
-                    _mainHandler?.PostDelayed(SendCurrentFriendMessage, delayMs);
-                }
-                return;
+                _mainHandler?.PostDelayed(SendCurrentFriendMessage, delayMs);
             }
-
-            // All simple burst chunks done — record success
-            friend.SuccessCount++;
-            friend.LastMessageSent = DateTime.Now;
-            AppLog("SUCCESS", $"@{username}", "Message sequence complete");
-
-            _settingsService.UpdateFriend(friend);
-
-            _runResult?.FriendResults.Add(new FriendMessageResult
-            {
-                FriendId = friend.Id,
-                Username = username,
-                Success = true,
-                ErrorMessage = null
-            });
+            return;
         }
 
-        // ── Normal flow: advance to next friend ──
-        AdvanceToNextFriend(username);
+        // All simple burst chunks done — record success
+        friend.SuccessCount++;
+        friend.LastMessageSent = DateTime.Now;
+        AppLog("SUCCESS", $"@{username}", "Message sequence complete");
+
+        _settingsService.UpdateFriend(friend);
+
+        _runResult?.FriendResults.Add(new FriendMessageResult
+        {
+            FriendId = friend.Id,
+            Username = username,
+            Success = true,
+            ErrorMessage = null
+        });
+    }
+
+    // ── Normal flow: advance to next friend ──
+    AdvanceToNextFriend(username);
+}
+catch (Exception ex)
+{
+    string stack = ex.StackTrace != null ? ex.StackTrace.Substring(0, Math.Min(200, ex.StackTrace.Length)) : "No StackTrace";
+    CompleteService(false, $"Fatal error processing result: {ex.Message} - {stack}");
+}
     }
 
     /// <summary>
@@ -625,47 +741,6 @@ public class StreakService : Service
         var resultText = $"{completedCount}/{totalCount} : Sent to @{username}";
         UpdateNotification(resultText, completedCount, totalCount);
         _mainHandler?.PostDelayed(ProcessNextFriend, 3000);
-    }
-
-    /// <summary>
-    /// Wake from hibernation and start the next burst chunk.
-    /// </summary>
-    private void StartNextBurstChunk()
-    {
-        if (_isCancelRequested) return;
-        StopHibernationCountdown();
-        
-        _burstCurrentChunkSize = new Random().Next(SettingsService.BurstChunkSizeMin, SettingsService.BurstChunkSizeMax + 1);
-        _burstChunkSent = 0;
-        
-        var target = _friendsToProcess?[0]?.Username ?? "unknown";
-        AppLog("BURST", $"@{target}", $"Waking from hibernation. Starting session {_burstSessionCount + 1}, chunk size: {_burstCurrentChunkSize}");
-        UpdateNotification($"Bursting @{target} \u2014 Resuming session {_burstSessionCount + 1}...");
-        
-        SendCurrentFriendMessage();
-    }
-
-    private void StartHibernationCountdown(int totalMs)
-    {
-        _isHibernating = true;
-        _hibernationEndTimeMs = Java.Lang.JavaSystem.CurrentTimeMillis() + totalMs;
-        TickHibernationCountdown();
-    }
-
-    private void StopHibernationCountdown()
-    {
-        _isHibernating = false;
-    }
-
-    private void TickHibernationCountdown()
-    {
-        if (!_isHibernating || _isCancelRequested) return;
-        var remainingMs = _hibernationEndTimeMs - Java.Lang.JavaSystem.CurrentTimeMillis();
-        if (remainingMs <= 0) return;
-        var remainingMin = remainingMs / 60000;
-        var remainingSec = (remainingMs % 60000) / 1000;
-        UpdateNotification($"Hibernating \u2014 Session {_burstSessionCount} done \u2022 {_burstTotalSent} sent \u2022 Next in {remainingMin}m {remainingSec}s");
-        _mainHandler?.PostDelayed(TickHibernationCountdown, 30_000);
     }
 
     private void CompleteService(bool success, string message)
@@ -694,6 +769,12 @@ public class StreakService : Service
             string finalText;
             if (_isBurstMode)
             {
+                // Clear unfinished session state if we actually finished or stopped manually
+                _settingsService?.SetBurstSessionActive(false);
+                _settingsService?.SetBurstSessionCount(0);
+                _settingsService?.SetBurstTotalSent(0);
+                StreakScheduler.CancelAllScheduledAlarms(this);
+
                 // Burst mode tracks progress in _burstTotalSent, not FriendResults
                 var dailyTotal = _settingsService?.GetBurstDailySentCount() ?? _burstTotalSent;
                 var dailyLimit = _settingsService?.GetBurstDailyLimit() ?? 0;
@@ -752,11 +833,23 @@ public class StreakService : Service
         }
         finally
         {
+            Microsoft.Maui.Networking.Connectivity.Current.ConnectivityChanged -= OnConnectivityChanged;
+
             // ── Clear the run-level mutex on ALL exit paths ──
             lock (_runLock)
             {
                 _isRunning = false;
             }
+            
+            // Broadcast final status
+            string finalStatus = _isCancelRequested ? "Service Stopped" : (success ? "Service Complete" : $"Error: {message}");
+            WeakReferenceMessenger.Default.Send(new StatusUpdateMessage(
+                StatusText: finalStatus,
+                IsRunning: false,
+                LogEntry: null,
+                IsBurstMode: _isBurstMode,
+                SessionCount: _burstSessionCount
+            ));
 
             CleanupWebView();
             StopForeground(StopForegroundFlags.Remove);
@@ -822,8 +915,7 @@ public class StreakService : Service
         [Export("log")]
         public void Log(string message)
         {
-            var entry = $"[{DateTime.Now:HH:mm:ss}] {message}";
-            StreakService._logs.Add(entry);
+            _service.AppLog("JS", "-", message);
         }
     }
 }

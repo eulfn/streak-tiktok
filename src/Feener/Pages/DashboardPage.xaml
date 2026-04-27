@@ -19,10 +19,17 @@
                 <!-- ─── Header ─── -->
                 <Grid ColumnDefinitions="*, Auto" Margin="0,8,0,0">
                     <VerticalStackLayout Grid.Column="0" Spacing="2">
-                        <Label x:Name="GreetingLabel"
-                               Text="Hi, User"
-                               Style="{StaticResource PageTitleLabel}"
-                               HorizontalOptions="Start"/>
+                        <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
+                            <Ellipse x:Name="HeartbeatIndicator" 
+                                     WidthRequest="8" HeightRequest="8" 
+                                     Fill="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}"
+                                     VerticalOptions="Center" 
+                                     Opacity="0.5"/>
+                            <Label x:Name="GreetingLabel"
+                                   Text="Hi, User"
+                                   Style="{StaticResource PageTitleLabel}"
+                                   HorizontalOptions="Start"/>
+                        </HorizontalStackLayout>
                         <Label Text="TikTok Streak Automation"
                                FontFamily="InterRegular"
                                FontSize="13"

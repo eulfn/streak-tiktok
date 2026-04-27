@@ -18,6 +18,7 @@ public partial class HistoryPage : ContentPage
         _settingsService = new SettingsService();
         _chartDrawable = new SuccessRateDrawable();
         SuccessChartView.Drawable = _chartDrawable;
+
     }
 
     private Color GetThemeColor(string key, string fallbackHex = "#92979E")
@@ -44,6 +45,24 @@ public partial class HistoryPage : ContentPage
 
         LoadStats();
         LoadHistory();
+
+        CommunityToolkit.Mvvm.Messaging.WeakReferenceMessenger.Default.Register<StatusUpdateMessage>(this, (r, m) =>
+        {
+            if (!m.IsRunning)
+            {
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    LoadStats();
+                    LoadHistory();
+                });
+            }
+        });
+    }
+
+    protected override void OnDisappearing()
+    {
+        base.OnDisappearing();
+        CommunityToolkit.Mvvm.Messaging.WeakReferenceMessenger.Default.Unregister<StatusUpdateMessage>(this);
     }
 
     private void OnNormalModeTapped(object? sender, TappedEventArgs e)

@@ -14,6 +14,7 @@ namespace Feener.Platforms.Android;
 public static class StreakScheduler
 {
     private const int AlarmRequestCode = 1001;
+    private const int BurstAlarmRequestCode = 1002;
 
     /// <summary>
     /// Schedule the next streak run based on settings
@@ -122,8 +123,69 @@ public static class StreakScheduler
 
         var settingsService = new SettingsService();
         settingsService.SetScheduled(false);
+    }
 
+    /// <summary>
+    /// Cancel ALL scheduled alarms (Normal and Burst). Does not alter settings.
+    /// </summary>
+    public static void CancelAllScheduledAlarms(Context context)
+    {
+        var alarmManager = (AlarmManager?)context.GetSystemService(Context.AlarmService);
+        if (alarmManager == null) return;
 
+        var normalIntent = new Intent(context, typeof(AlarmReceiver));
+        normalIntent.SetAction(AlarmReceiver.ActionStreakAlarm);
+        var normalPending = PendingIntent.GetBroadcast(context, AlarmRequestCode, normalIntent, PendingIntentFlags.UpdateCurrent | PendingIntentFlags.Immutable);
+        if (normalPending != null) alarmManager.Cancel(normalPending);
+
+        var burstIntent = new Intent(context, typeof(AlarmReceiver));
+        burstIntent.SetAction(Receivers.AlarmReceiver.ActionBurstWakeup);
+        var burstPending = PendingIntent.GetBroadcast(context, BurstAlarmRequestCode, burstIntent, PendingIntentFlags.UpdateCurrent | PendingIntentFlags.Immutable);
+        if (burstPending != null) alarmManager.Cancel(burstPending);
+    }
+
+    /// <summary>
+    /// Schedule a burst wakeup alarm
+    /// </summary>
+    public static void ScheduleBurstWakeup(Context context, int delayMs)
+    {
+        var alarmManager = (AlarmManager?)context.GetSystemService(Context.AlarmService);
+        if (alarmManager == null) return;
+
+        var intent = new Intent(context, typeof(AlarmReceiver));
+        intent.SetAction(Receivers.AlarmReceiver.ActionBurstWakeup);
+
+        var pendingIntent = PendingIntent.GetBroadcast(
+            context,
+            BurstAlarmRequestCode,
+            intent,
+            PendingIntentFlags.UpdateCurrent | PendingIntentFlags.Immutable
+        );
+
+        if (pendingIntent == null) return;
+
+        var triggerAtMillis = Java.Lang.JavaSystem.CurrentTimeMillis() + delayMs;
+
+        // Use exact alarm for precise timing
+        if (Build.VERSION.SdkInt >= BuildVersionCodes.S)
+        {
+            if (alarmManager.CanScheduleExactAlarms())
+                alarmManager.SetExactAndAllowWhileIdle(AlarmType.RtcWakeup, triggerAtMillis, pendingIntent);
+            else
+                alarmManager.SetAndAllowWhileIdle(AlarmType.RtcWakeup, triggerAtMillis, pendingIntent);
+        }
+        else if (Build.VERSION.SdkInt >= BuildVersionCodes.M)
+        {
+            alarmManager.SetExactAndAllowWhileIdle(AlarmType.RtcWakeup, triggerAtMillis, pendingIntent);
+        }
+        else if (Build.VERSION.SdkInt >= BuildVersionCodes.Kitkat)
+        {
+            alarmManager.SetExact(AlarmType.RtcWakeup, triggerAtMillis, pendingIntent);
+        }
+        else
+        {
+            alarmManager.Set(AlarmType.RtcWakeup, triggerAtMillis, pendingIntent);
+        }
     }
 
     /// <summary>
@@ -136,21 +198,21 @@ public static class StreakScheduler
         if (Services.StreakService.IsRunning)
             return false;
 
-        // If scheduling is enabled, cancel the stale alarm and reschedule
-        // from now so the next scheduled run fires intervalHours after this
-        // manual run — not at the old alarm time.
+        // UNCONDITIONALLY cancel any existing ghost alarms to ensure a clean slate.
+        // If it was already scheduled, we restore the flag so it re-arms after completion.
         var settingsService = new SettingsService();
-        if (settingsService.IsScheduled())
+        bool wasScheduled = settingsService.IsScheduled();
+        
+        CancelSchedule(context);
+        
+        if (wasScheduled)
         {
-            CancelSchedule(context);
             settingsService.SetScheduled(true); // keep the schedule flag ON
-            // The alarm will be re-armed by CompleteService after the run finishes.
-            // We don't ScheduleNextRun here because last_run hasn't been set yet;
-            // CompleteService sets last_run and then calls ScheduleNextRun.
         }
 
         var serviceIntent = new Intent(context, typeof(Services.StreakService));
         serviceIntent.PutExtra("IsBurstMode", isBurstMode);
+        serviceIntent.PutExtra("IsManualRun", true);
 
         if (Build.VERSION.SdkInt >= BuildVersionCodes.O)
             context.StartForegroundService(serviceIntent);

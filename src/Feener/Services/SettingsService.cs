@@ -344,6 +344,19 @@ public class SettingsService
         Preferences.Set(BurstDailySentCountKey, count);
     }
 
+    private const string BurstSessionActiveKey = "burst_session_active";
+    private const string BurstSessionCountKey = "burst_session_count";
+    private const string BurstTotalSentKey = "burst_total_sent";
+
+    public bool IsBurstSessionActive() => Preferences.Get(BurstSessionActiveKey, false);
+    public void SetBurstSessionActive(bool active) => Preferences.Set(BurstSessionActiveKey, active);
+
+    public int GetBurstSessionCount() => Preferences.Get(BurstSessionCountKey, 0);
+    public void SetBurstSessionCount(int count) => Preferences.Set(BurstSessionCountKey, count);
+
+    public int GetBurstTotalSent() => Preferences.Get(BurstTotalSentKey, 0);
+    public void SetBurstTotalSent(int count) => Preferences.Set(BurstTotalSentKey, count);
+
     /// <summary>
     /// Increment burst daily sent count by 1
     /// </summary>

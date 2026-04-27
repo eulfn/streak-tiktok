@@ -2,6 +2,7 @@ using Microsoft.Maui.Controls.Shapes;
 using Feener.Models;
 using Feener.Services;
 using Feener.Views;
+using CommunityToolkit.Mvvm.Messaging;
 
 namespace Feener.Pages;
 
@@ -13,7 +14,7 @@ public partial class DashboardPage : ContentPage
     private readonly UpdateService _updateService;
     private bool _isCheckingForUpdates = false;
     private bool _isAppInForeground = false;
-    private IDispatcherTimer? _statusTimer;
+
     private readonly BurstProgressDrawable _burstProgressDrawable;
     private readonly NormalProgressDrawable _normalProgressDrawable;
 
@@ -35,6 +36,7 @@ public partial class DashboardPage : ContentPage
 
         _normalProgressDrawable = new NormalProgressDrawable();
         OverviewProgressGraphicsView.Drawable = _normalProgressDrawable;
+
     }
 
     private Color GetThemeColor(string key, string fallbackHex = "#92979E")
@@ -73,14 +75,25 @@ public partial class DashboardPage : ContentPage
 
         await EvaluatePermissionsAsync();
 
-        if (_statusTimer == null)
+        WeakReferenceMessenger.Default.Register<StatusUpdateMessage>(this, (r, m) =>
         {
-            _statusTimer = Dispatcher.CreateTimer();
-            _statusTimer.Interval = TimeSpan.FromSeconds(1);
-            _statusTimer.Tick += OnStatusTimerTick;
-        }
-        _statusTimer.Start();
-        OnStatusTimerTick(null, EventArgs.Empty);
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                TriggerHeartbeatAnimation();
+                UpdateUIForRunningState(m.IsRunning);
+                UpdateStatus();
+                UpdateBurstPlanDisplay(m.IsRunning);
+            });
+        });
+
+        // Initial UI update based on current state
+        bool isRunning = false;
+#if ANDROID
+        isRunning = Feener.Platforms.Android.Services.StreakService.IsRunning;
+#endif
+        UpdateUIForRunningState(isRunning);
+        UpdateStatus();
+        UpdateBurstPlanDisplay(isRunning);
 
         _ = CheckStartupPopupAsync();
     }
@@ -89,12 +102,26 @@ public partial class DashboardPage : ContentPage
     {
         base.OnDisappearing();
         _isAppInForeground = false;
-        _statusTimer?.Stop();
+        WeakReferenceMessenger.Default.Unregister<StatusUpdateMessage>(this);
     }
 
     private async void OnCheckProfileTapped(object? sender, EventArgs e)
     {
         await Shell.Current.GoToAsync("//ProfilePage");
+    }
+
+    private DateTime _lastHeartbeatTime = DateTime.MinValue;
+
+    private async void TriggerHeartbeatAnimation()
+    {
+        if ((DateTime.Now - _lastHeartbeatTime).TotalMilliseconds < 300) return;
+        _lastHeartbeatTime = DateTime.Now;
+
+        HeartbeatIndicator.CancelAnimations();
+        HeartbeatIndicator.Opacity = 1;
+        await HeartbeatIndicator.ScaleTo(1.5, 100, Easing.CubicOut);
+        await HeartbeatIndicator.ScaleTo(1.0, 300, Easing.CubicIn);
+        HeartbeatIndicator.Opacity = 0.5;
     }
 
     // ─── Profile Photo ──────────────────────────────────────────────────────────
@@ -246,12 +273,8 @@ public partial class DashboardPage : ContentPage
         }
     }
 
-    private void OnStatusTimerTick(object? sender, EventArgs e)
+    private void UpdateUIForRunningState(bool isRunning)
     {
-        bool isRunning = false;
-#if ANDROID
-        isRunning = Feener.Platforms.Android.Services.StreakService.IsRunning;
-#endif
         RunButtonsContainer.IsVisible = !isRunning;
         StopServiceButton.IsVisible = isRunning;
         
@@ -274,9 +297,6 @@ public partial class DashboardPage : ContentPage
             }
         }
         AddBurstMessageButton.IsVisible = !isRunning && BurstMessagesStack.Children.Count < 5;
-
-        UpdateStatus();
-        UpdateBurstPlanDisplay(isRunning);
     }
 
     // ─── Update / Startup Popup Logic ───
@@ -585,10 +605,18 @@ public partial class DashboardPage : ContentPage
         if (isScheduled)
         {
             var nextRun = _settingsService.GetNextRunTime();
-            var timeUntil = nextRun - DateTime.Now;
-            if (timeUntil.TotalMinutes < 60) NextRunLabel.Text = $"In {(int)timeUntil.TotalMinutes} minutes";
-            else if (timeUntil.TotalHours < 24) NextRunLabel.Text = $"In {(int)timeUntil.TotalHours} hours";
-            else NextRunLabel.Text = nextRun.ToString("MMM dd, HH:mm");
+            if (Feener.Platforms.Android.Services.StreakService.IsRunning)
+            {
+                NextRunLabel.Text = "Running now...";
+            }
+            else
+            {
+                var timeUntil = nextRun - DateTime.Now;
+                if (timeUntil.TotalMinutes < 0) NextRunLabel.Text = "Calculating...";
+                else if (timeUntil.TotalMinutes < 60) NextRunLabel.Text = $"In {(int)timeUntil.TotalMinutes} minutes";
+                else if (timeUntil.TotalHours < 24) NextRunLabel.Text = $"In {(int)timeUntil.TotalHours} hours";
+                else NextRunLabel.Text = nextRun.ToString("MMM dd, HH:mm");
+            }
         }
         else NextRunLabel.Text = "Not scheduled";
 

@@ -485,16 +485,43 @@ public partial class DashboardPage : ContentPage
         }
         else NextRunLabel.Text = "Not scheduled";
 
-        var friendsCount = _settingsService.GetEnabledFriends().Count;
-        bool ranToday = lastRun.HasValue && lastRun.Value.Date == DateTime.Today;
+        var history = _settingsService.GetRunHistory();
+        var latestResult = history.FirstOrDefault(r => !r.IsBurstMode);
+        var currentEnabledFriends = _settingsService.GetEnabledFriends();
         
-        OverviewSentLabel.Text = ranToday ? friendsCount.ToString() : "0";
-        OverviewSuccessLabel.Text = ranToday ? "100%" : "--";
-        OverviewRemainingLabel.Text = ranToday ? "0" : friendsCount.ToString();
+        bool ranToday = latestResult != null && latestResult.RunTime.Date == DateTime.Today;
+        
+        int sentToday = 0;
+        int successPercent = 0;
+        int remainingToday = currentEnabledFriends.Count;
+        string progressText = $"0/{currentEnabledFriends.Count}";
+        float progressFraction = 0f;
 
-        OverviewProgressLabel.Text = ranToday ? $"{friendsCount}/{friendsCount}" : $"0/{friendsCount}";
-        float progress = friendsCount > 0 ? (ranToday ? 1f : 0f) : 0f;
-        _normalProgressDrawable.Progress = progress;
+        if (ranToday && latestResult != null)
+        {
+            sentToday = latestResult.FriendResults.Count(r => r.Success);
+            int totalAttempted = latestResult.FriendResults.Count;
+            
+            if (totalAttempted > 0)
+            {
+                successPercent = (int)((double)sentToday / totalAttempted * 100);
+            }
+            else
+            {
+                successPercent = 0;
+            }
+
+            remainingToday = Math.Max(0, currentEnabledFriends.Count - sentToday);
+            progressText = $"{sentToday}/{currentEnabledFriends.Count}";
+            progressFraction = currentEnabledFriends.Count > 0 ? (float)sentToday / currentEnabledFriends.Count : 0f;
+        }
+
+        OverviewSentLabel.Text = sentToday.ToString();
+        OverviewSuccessLabel.Text = ranToday ? $"{successPercent}%" : "--";
+        OverviewRemainingLabel.Text = remainingToday.ToString();
+
+        OverviewProgressLabel.Text = progressText;
+        _normalProgressDrawable.Progress = progressFraction;
         _normalProgressDrawable.IsDarkTheme = Application.Current?.RequestedTheme == AppTheme.Dark;
         OverviewProgressGraphicsView.Invalidate();
     }
@@ -526,7 +553,9 @@ public partial class DashboardPage : ContentPage
                 "Start Bursting", "Cancel");
             if (!confirm) return;
 #if ANDROID
-            await RequestNotificationPermission();
+            bool permissionGranted = await RequestNotificationPermission();
+            if (!permissionGranted) return;
+
             var context = Platform.CurrentActivity ?? Android.App.Application.Context;
             bool started = Feener.Platforms.Android.StreakScheduler.RunNow(context, isBurstMode: true);
             if (started) { _lockedDailyLimit = _settingsService.GetBurstDailyLimit(); await DisplayAlert("Burst Started", $"Sending {plan.remaining} messages in ~{plan.sessionsNeeded} sessions with hibernation breaks. Tap Stop to cancel anytime.", "OK"); UpdateStatus(); }
@@ -542,7 +571,9 @@ public partial class DashboardPage : ContentPage
             var confirm = await DisplayAlert("Run Now", $"This will send your streak message to {friends.Count} friend{(friends.Count != 1 ? "s" : "")}. Continue?", "Run", "Cancel");
             if (!confirm) return;
 #if ANDROID
-            await RequestNotificationPermission();
+            bool permissionGranted = await RequestNotificationPermission();
+            if (!permissionGranted) return;
+
             var context = Platform.CurrentActivity ?? Android.App.Application.Context;
             bool started = Feener.Platforms.Android.StreakScheduler.RunNow(context, isBurstMode: false);
             if (started) { await DisplayAlert("Started", "Normal streak run started. Check the notification for progress.", "OK"); UpdateStatus(); }
@@ -621,15 +652,19 @@ public partial class DashboardPage : ContentPage
         await EvaluatePermissionsAsync();
     }
 
-    private async Task RequestNotificationPermission()
+    private async Task<bool> RequestNotificationPermission()
     {
 #if ANDROID
         if (Android.OS.Build.VERSION.SdkInt >= Android.OS.BuildVersionCodes.Tiramisu)
         {
             var status = await Permissions.RequestAsync<Permissions.PostNotifications>();
             if (status != PermissionStatus.Granted)
+            {
                 await DisplayAlert("Permission Required", "Notification permission is required to show status while sending streaks.", "OK");
+                return false;
+            }
         }
 #endif
+        return true;
     }
 }

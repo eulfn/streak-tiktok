@@ -15,8 +15,10 @@ public static class TikTokWebViewHelper
     public class LoginStatusResult
     {
         public bool IsLoggedIn { get; set; }
+        public bool IsLoggedOut { get; set; }
         public string Url { get; set; } = string.Empty;
         public bool IsValidUrl { get; set; }
+        public bool NeedsDomCheck { get; set; }
     }
 
     /// <summary>
@@ -81,7 +83,7 @@ public static class TikTokWebViewHelper
     }
 
     /// <summary>
-    /// Check login status from a navigated URL
+    /// Check login status from a navigated URL with exhaustive state detection
     /// </summary>
     public static LoginStatusResult CheckLoginStatus(string? url)
     {
@@ -93,40 +95,51 @@ public static class TikTokWebViewHelper
         if (string.IsNullOrEmpty(url))
         {
             result.IsValidUrl = false;
-            result.IsLoggedIn = false;
             return result;
         }
 
         var urlLower = url.ToLower();
-
-        // Check if it's a valid HTTP URL
         if (!urlLower.StartsWith("http"))
         {
             result.IsValidUrl = false;
-            result.IsLoggedIn = false;
             return result;
         }
 
         result.IsValidUrl = true;
 
-        // Check if we're on login page (not logged in)
-        if (urlLower.Contains("/login"))
+        // 1. HARD NEGATIVES: Explicit login/signup or known logged-out landing pages
+        if (urlLower.Contains("/login") || 
+            urlLower.Contains("/signup") || 
+            urlLower.Contains("passport.tiktok.com") ||
+            urlLower.Contains("account.tiktok.com"))
         {
+            result.IsLoggedOut = true;
             result.IsLoggedIn = false;
             return result;
         }
 
-        // Check if we're on an authenticated page (logged in)
-        if (urlLower.Contains("tiktok.com/messages") ||
-            urlLower.Contains("tiktok.com/foryou") ||
-            urlLower.Contains("tiktok.com/@"))
+        // 2. PUBLIC PAGES: If we are on these and NOT on /messages, it's a strong indicator of NO session
+        if (urlLower.EndsWith("tiktok.com/") || 
+            urlLower.Contains("/explore") || 
+            urlLower.Contains("/trending") ||
+            urlLower.Contains("/foryou"))
         {
-            result.IsLoggedIn = true;
+            result.IsLoggedIn = false;
+            result.IsLoggedOut = true; 
             return result;
         }
 
-        // Unknown page state - assume not logged in
+        // 3. HARD POSITIVES (Ambiguous without DOM check): The messages page
+        if (urlLower.Contains("tiktok.com/messages"))
+        {
+            result.IsLoggedIn = true;
+            result.NeedsDomCheck = true;
+            return result;
+        }
+
+        // 4. UNKNOWN STATES
         result.IsLoggedIn = false;
+        result.IsLoggedOut = false; 
         return result;
     }
 

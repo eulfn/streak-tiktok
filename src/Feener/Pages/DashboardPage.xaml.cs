@@ -200,13 +200,15 @@ public partial class DashboardPage : ContentPage
     }
 #endif
 
-    private void OnGlobalSessionCheckNavigated(object? sender, WebNavigatedEventArgs e)
+    private async void OnGlobalSessionCheckNavigated(object? sender, WebNavigatedEventArgs e)
     {
         if (!_isCheckingSession) return;
         _navigationCount++;
+        
         var result = TikTokWebViewHelper.CheckLoginStatus(e.Url);
 
-        if (result.IsValidUrl && e.Url?.ToLower().Contains("/login") == true)
+        // 1. HARD LOGOUT DETECTION
+        if (result.IsLoggedOut)
         {
 #if ANDROID
             _sessionCheckTimeout?.Stop();
@@ -215,34 +217,62 @@ public partial class DashboardPage : ContentPage
             TikTokWebViewHelper.UpdateSessionStatus(_sessionService, false);
             MainThread.BeginInvokeOnMainThread(() => 
             {
-
                 UpdateSessionIndicator();
                 UpdateStatus();
+                _isCheckingSession = false;
             });
             return;
         }
 
+        // 2. POTENTIAL LOGIN DETECTION (Requires DOM verification)
         if (result.IsLoggedIn && _navigationCount >= 1)
         {
-            Task.Delay(2000).ContinueWith(_ =>
-            {
-                if (_isCheckingSession)
-                {
-#if ANDROID
-                    _sessionCheckTimeout?.Stop();
-#endif
-                    _isCheckingSession = false;
-                    TikTokWebViewHelper.UpdateSessionStatus(_sessionService, true);
-                    MainThread.BeginInvokeOnMainThread(() => 
-                    {
+            // Give TikTok a moment to hydrate the DOM
+            await Task.Delay(2000);
+            
+            if (!_isCheckingSession) return;
 
-                        LoadProfilePhoto(); // Reload photo if just fetched
-                        GreetingLabel.Text = $"Hi, {_sessionService.GetDisplayName()}";
-                        UpdateSessionIndicator();
-                        UpdateStatus();
-                    });
-                }
-            });
+            // ACTIVE VERIFICATION: Check for a protected element that only exists when logged in
+            // We check for the conversation list or a specific data-e2e attribute.
+            string checkJs = @"(function(){
+                return !!(document.querySelector('[data-e2e*=""conversation-list""]') || 
+                          document.querySelector('[class*=""ChatList""]') ||
+                          document.cookie.includes('sessionid'));
+            })()";
+            
+            string evalResult = await GlobalSessionCheckWebView.EvaluateJavascriptAsync(checkJs);
+            bool isActuallyLoggedIn = evalResult?.ToLower() == "true";
+
+            if (isActuallyLoggedIn)
+            {
+#if ANDROID
+                _sessionCheckTimeout?.Stop();
+#endif
+                _isCheckingSession = false;
+                TikTokWebViewHelper.UpdateSessionStatus(_sessionService, true);
+                MainThread.BeginInvokeOnMainThread(() => 
+                {
+                    LoadProfilePhoto();
+                    GreetingLabel.Text = $"Hi, {_sessionService.GetDisplayName()}";
+                    UpdateSessionIndicator();
+                    UpdateStatus();
+                });
+            }
+            else if (_navigationCount > 3)
+            {
+                // If we've navigated multiple times and still aren't "actually" logged in,
+                // it's likely a redirect loop or a false positive URL.
+#if ANDROID
+                _sessionCheckTimeout?.Stop();
+#endif
+                _isCheckingSession = false;
+                TikTokWebViewHelper.UpdateSessionStatus(_sessionService, false);
+                MainThread.BeginInvokeOnMainThread(() => 
+                {
+                    UpdateSessionIndicator();
+                    UpdateStatus();
+                });
+            }
         }
     }
 
@@ -572,13 +602,14 @@ public partial class DashboardPage : ContentPage
     private void UpdateStatus()
     {
         var isScheduled = _settingsService.IsScheduled();
-        var lastRun = _settingsService.GetLastRunTime();
-        if (lastRun.HasValue)
+        var lastRunTime = _settingsService.GetLastRunTime();
+        
+        if (lastRunTime.HasValue)
         {
-            var timeSince = DateTime.Now - lastRun.Value;
+            var timeSince = DateTime.Now - lastRunTime.Value;
             if (timeSince.TotalMinutes < 60) LastRunLabel.Text = $"{(int)timeSince.TotalMinutes} minutes ago";
             else if (timeSince.TotalHours < 24) LastRunLabel.Text = $"{(int)timeSince.TotalHours} hours ago";
-            else LastRunLabel.Text = lastRun.Value.ToString("MMM dd, HH:mm");
+            else LastRunLabel.Text = lastRunTime.Value.ToString("MMM dd, HH:mm");
         }
         else LastRunLabel.Text = "Never";
 
@@ -592,16 +623,45 @@ public partial class DashboardPage : ContentPage
         }
         else NextRunLabel.Text = "Not scheduled";
 
-        var friendsCount = _settingsService.GetEnabledFriends().Count;
-        bool ranToday = lastRun.HasValue && lastRun.Value.Date == DateTime.Today;
+        // PILLAR 3: TRUTH-BASED CALCULATIONS
+        var history = _settingsService.GetRunHistory();
+        var latestResult = history.FirstOrDefault(r => !r.IsBurstMode);
+        var currentEnabledFriends = _settingsService.GetEnabledFriends();
         
-        OverviewSentLabel.Text = ranToday ? friendsCount.ToString() : "0";
-        OverviewSuccessLabel.Text = ranToday ? "100%" : "--";
-        OverviewRemainingLabel.Text = ranToday ? "0" : friendsCount.ToString();
+        bool ranToday = latestResult != null && latestResult.RunTime.Date == DateTime.Today;
+        
+        int sentToday = 0;
+        int successPercent = 0;
+        int remainingToday = currentEnabledFriends.Count;
+        string progressText = $"0/{currentEnabledFriends.Count}";
+        float progressFraction = 0f;
 
-        OverviewProgressLabel.Text = ranToday ? $"{friendsCount}/{friendsCount}" : $"0/{friendsCount}";
-        float progress = friendsCount > 0 ? (ranToday ? 1f : 0f) : 0f;
-        _normalProgressDrawable.Progress = progress;
+        if (ranToday && latestResult != null)
+        {
+            // Calculate based on what actually happened in the last run
+            sentToday = latestResult.FriendResults.Count(r => r.Success);
+            int totalAttempted = latestResult.FriendResults.Count;
+            
+            if (totalAttempted > 0)
+            {
+                successPercent = (int)((double)sentToday / totalAttempted * 100);
+            }
+            else
+            {
+                successPercent = 0;
+            }
+
+            remainingToday = Math.Max(0, currentEnabledFriends.Count - sentToday);
+            progressText = $"{sentToday}/{currentEnabledFriends.Count}";
+            progressFraction = currentEnabledFriends.Count > 0 ? (float)sentToday / currentEnabledFriends.Count : 0f;
+        }
+
+        OverviewSentLabel.Text = sentToday.ToString();
+        OverviewSuccessLabel.Text = ranToday ? $"{successPercent}%" : "--";
+        OverviewRemainingLabel.Text = remainingToday.ToString();
+        OverviewProgressLabel.Text = progressText;
+
+        _normalProgressDrawable.Progress = progressFraction;
         _normalProgressDrawable.IsDarkTheme = Application.Current?.RequestedTheme == AppTheme.Dark;
         OverviewProgressGraphicsView.Invalidate();
     }
@@ -633,7 +693,9 @@ public partial class DashboardPage : ContentPage
                 "Start Bursting", "Cancel");
             if (!confirm) return;
 #if ANDROID
-            await RequestNotificationPermission();
+            bool permissionGranted = await RequestNotificationPermission();
+            if (!permissionGranted) return;
+
             var context = Platform.CurrentActivity ?? Android.App.Application.Context;
             bool started = Feener.Platforms.Android.StreakScheduler.RunNow(context, isBurstMode: true);
             if (started) { _lockedDailyLimit = _settingsService.GetBurstDailyLimit(); await DisplayAlert("Burst Started", $"Sending {plan.remaining} messages in ~{plan.sessionsNeeded} sessions with hibernation breaks. Tap Stop to cancel anytime.", "OK"); UpdateStatus(); }
@@ -649,7 +711,9 @@ public partial class DashboardPage : ContentPage
             var confirm = await DisplayAlert("Run Now", $"This will send your streak message to {friends.Count} friend{(friends.Count != 1 ? "s" : "")}. Continue?", "Run", "Cancel");
             if (!confirm) return;
 #if ANDROID
-            await RequestNotificationPermission();
+            bool permissionGranted = await RequestNotificationPermission();
+            if (!permissionGranted) return;
+
             var context = Platform.CurrentActivity ?? Android.App.Application.Context;
             bool started = Feener.Platforms.Android.StreakScheduler.RunNow(context, isBurstMode: false);
             if (started) { await DisplayAlert("Started", "Normal streak run started. Check the notification for progress.", "OK"); UpdateStatus(); }

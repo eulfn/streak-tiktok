@@ -16,22 +16,25 @@ public static class StreakScheduler
     private const int AlarmRequestCode = 1001;
 
     /// <summary>
-    /// Schedule the next streak run based on settings
+    /// Schedule the next streak run based on attempt history to avoid death-loops
     /// </summary>
     public static void ScheduleNextRun(Context context)
     {
         var settingsService = new SettingsService();
         var intervalHours = settingsService.GetIntervalHours();
-        var lastRun = settingsService.GetLastRunTime();
+        var lastAttempt = settingsService.GetLastAttemptTime();
 
         DateTime nextRunTime;
-        if (lastRun.HasValue)
+        if (lastAttempt.HasValue)
         {
-            nextRunTime = lastRun.Value.AddHours(intervalHours);
-            // If the calculated time is in the past, schedule for now + small delay
+            nextRunTime = lastAttempt.Value.AddHours(intervalHours);
+            
+            // PILLAR 2: If the calculated time is in the past, it means a run failed
+            // or was missed. We MUST NOT schedule for 'Now + 1 min' (the loop).
+            // We schedule for Now + Interval to maintain the 23h rhythm.
             if (nextRunTime < DateTime.Now)
             {
-                nextRunTime = DateTime.Now.AddMinutes(1);
+                nextRunTime = DateTime.Now.AddHours(intervalHours);
             }
         }
         else
@@ -145,8 +148,8 @@ public static class StreakScheduler
             CancelSchedule(context);
             settingsService.SetScheduled(true); // keep the schedule flag ON
             // The alarm will be re-armed by CompleteService after the run finishes.
-            // We don't ScheduleNextRun here because last_run hasn't been set yet;
-            // CompleteService sets last_run and then calls ScheduleNextRun.
+            // We don't ScheduleNextRun here because we want the interval to start 
+            // from the attempt time that will be set in OnStartCommand.
         }
 
         var serviceIntent = new Intent(context, typeof(Services.StreakService));

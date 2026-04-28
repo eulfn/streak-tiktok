@@ -127,7 +127,7 @@
                                 </VerticalStackLayout>
                                 <VerticalStackLayout Grid.Column="1" Spacing="4">
                                     <Label Text="Success" Style="{StaticResource DataLabel}"/>
-                                    <Label x:Name="OverviewSuccessLabel" Text="100%" Style="{StaticResource ValueLabel}"/>
+                                    <Label x:Name="OverviewSuccessLabel" Text="--" Style="{StaticResource ValueLabel}"/>
                                 </VerticalStackLayout>
                                 <VerticalStackLayout Grid.Column="2" Spacing="4">
                                     <Label Text="Remaining" Style="{StaticResource DataLabel}"/>

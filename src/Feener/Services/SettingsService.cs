@@ -12,7 +12,6 @@ public class SettingsService
     private const string FriendsListKey = "friends_list";
     private const string MessageTextKey = "message_text";
     private const string LastRunKey = "last_run";
-    private const string LastAttemptKey = "last_attempt";
     private const string IsScheduledKey = "is_scheduled";
     private const string RunHistoryKey = "run_history";
     private const string IntervalHoursKey = "interval_hours";
@@ -264,44 +263,20 @@ public class SettingsService
     }
 
     /// <summary>
-    /// Calculate the next run time based on last attempt and interval
+    /// Calculate the next run time based on last run and interval
     /// </summary>
     public DateTime GetNextRunTime()
     {
-        var lastAttempt = GetLastAttemptTime();
+        var lastRun = GetLastRunTime();
         var intervalHours = GetIntervalHours();
 
-        if (lastAttempt.HasValue)
+        if (lastRun.HasValue)
         {
-            var next = lastAttempt.Value.AddHours(intervalHours);
-            if (next < DateTime.Now) {
-                // If we somehow missed it, the next valid window is interval hours from now
-                next = DateTime.Now.AddHours(intervalHours);
-            }
-            return next;
+            return lastRun.Value.AddHours(intervalHours);
         }
 
         // If never run, schedule for now
         return DateTime.Now;
-    }
-
-    /// <summary>
-    /// Get the last attempt timestamp (regardless of success)
-    /// </summary>
-    public DateTime? GetLastAttemptTime()
-    {
-        var ticks = Preferences.Get(LastAttemptKey, 0L);
-        return ticks > 0 ? new DateTime(ticks) : null;
-    }
-
-    /// <summary>
-    /// Set the last attempt timestamp
-    /// </summary>
-    public void SetLastAttemptTime(DateTime time)
-    {
-        Preferences.Set(LastAttemptKey, time.Ticks);
-        // Also update the session check time to prevent immediate double-checks
-        Preferences.Set("session_last_check", time.Ticks);
     }
 
     #endregion
@@ -435,21 +410,6 @@ public class SettingsService
 
         var json = JsonSerializer.Serialize(history, JsonOptions);
         Preferences.Set(RunHistoryKey, json);
-
-        // PILLAR 3: Atomic update of last run time for dashboard accuracy
-        if (result.Success && !result.IsBurstMode)
-        {
-            SetLastRunTime(result.RunTime);
-        }
-    }
-
-    /// <summary>
-    /// Get the latest run result from history for truthful dashboard reporting
-    /// </summary>
-    public StreakRunResult? GetLatestRunResult()
-    {
-        var history = GetRunHistory();
-        return history.FirstOrDefault();
     }
 
     #endregion

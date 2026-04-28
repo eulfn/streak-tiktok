@@ -10,6 +10,16 @@ public static class TikTokWebViewHelper
     public const string MessagesUrl = "https://www.tiktok.com/messages";
 
     /// <summary>
+    /// Result of login status check
+    /// </summary>
+    public class LoginStatusResult
+    {
+        public bool IsLoggedIn { get; set; }
+        public string Url { get; set; } = string.Empty;
+        public bool IsValidUrl { get; set; }
+    }
+
+    /// <summary>
     /// Configure a WebView for TikTok with proper settings
     /// </summary>
     public static void ConfigureWebView(WebView webView, string? customUserAgent = null)
@@ -60,54 +70,6 @@ public static class TikTokWebViewHelper
     {
         Android.Webkit.CookieManager.Instance?.Flush();
     }
-
-    /// <summary>
-    /// Instantly check if a valid sessionid cookie exists for TikTok.
-    /// Fast, synchronous, and uses zero network.
-    /// </summary>
-    public static bool HasValidSessionCookie()
-    {
-        try
-        {
-            var cookieManager = Android.Webkit.CookieManager.Instance;
-            if (cookieManager == null) return false;
-
-            // Check primary domains where TikTok might store the auth cookie
-            string cookies1 = cookieManager.GetCookie("https://www.tiktok.com") ?? string.Empty;
-            string cookies2 = cookieManager.GetCookie("https://tiktok.com") ?? string.Empty;
-
-            // sessionid is the core authentication token for TikTok
-            return cookies1.Contains("sessionid=") || cookies2.Contains("sessionid=");
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Error checking session cookie: {ex.Message}");
-            return false;
-        }
-    }
-
-    /// <summary>
-    /// Physically destroy all WebView cookies to guarantee a clean logout.
-    /// </summary>
-    public static void ClearAllCookies()
-    {
-        try
-        {
-            var cookieManager = Android.Webkit.CookieManager.Instance;
-            if (cookieManager != null)
-            {
-                cookieManager.RemoveAllCookies(null);
-                cookieManager.Flush();
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Error clearing cookies: {ex.Message}");
-        }
-    }
-#else
-    public static bool HasValidSessionCookie() => false;
-    public static void ClearAllCookies() { }
 #endif
 
     /// <summary>
@@ -116,6 +78,56 @@ public static class TikTokWebViewHelper
     public static string GetDefaultUserAgent()
     {
         return "Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36";
+    }
+
+    /// <summary>
+    /// Check login status from a navigated URL
+    /// </summary>
+    public static LoginStatusResult CheckLoginStatus(string? url)
+    {
+        var result = new LoginStatusResult
+        {
+            Url = url ?? string.Empty
+        };
+
+        if (string.IsNullOrEmpty(url))
+        {
+            result.IsValidUrl = false;
+            result.IsLoggedIn = false;
+            return result;
+        }
+
+        var urlLower = url.ToLower();
+
+        // Check if it's a valid HTTP URL
+        if (!urlLower.StartsWith("http"))
+        {
+            result.IsValidUrl = false;
+            result.IsLoggedIn = false;
+            return result;
+        }
+
+        result.IsValidUrl = true;
+
+        // Check if we're on login page (not logged in)
+        if (urlLower.Contains("/login"))
+        {
+            result.IsLoggedIn = false;
+            return result;
+        }
+
+        // Check if we're on an authenticated page (logged in)
+        if (urlLower.Contains("tiktok.com/messages") ||
+            urlLower.Contains("tiktok.com/foryou") ||
+            urlLower.Contains("tiktok.com/@"))
+        {
+            result.IsLoggedIn = true;
+            return result;
+        }
+
+        // Unknown page state - assume not logged in
+        result.IsLoggedIn = false;
+        return result;
     }
 
     /// <summary>

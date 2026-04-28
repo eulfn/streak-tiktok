@@ -330,54 +330,26 @@
     };
 
     var checkNextChat = function () {
-        if (found) return;
-
-        log('Scanning ' + chatItems.length + ' visible items for @' + userName);
-        
-        // Optimized: Search for the target username directly within the list item text
-        var targetIdx = -1;
-        var cleanTarget = userName.toLowerCase();
-        for (var i = chatIndex; i < chatItems.length; i++) {
-            if (chatItems[i].textContent.toLowerCase().includes(cleanTarget)) {
-                targetIdx = i;
-                break;
+        if (found || chatIndex >= chatItems.length) {
+            if (!found) {
+                log('User not found in visible chats, trying scroll...');
+                scrollAndRetry();
             }
-        }
-
-        if (targetIdx !== -1) {
-            log('Found target user in list at index ' + (targetIdx + 1) + ', clicking...');
-            chatItems[targetIdx].click();
-            
-            setTimeout(function () {
-                var current = findCurrentChatUsername();
-                log('Opened chat: ' + current);
-                
-                if (isTargetUser(current)) {
-                    found = true;
-                    var input = findMessageInput();
-                    if (input) {
-                        typeMessage(input, function () {
-                            sendMessage(input);
-                            setTimeout(reportSuccess, 1000);
-                        });
-                    } else {
-                        reportError('Message input not found');
-                    }
-                } else {
-                    log('Username mismatch (found ' + current + '), continuing search...');
-                    chatIndex = targetIdx + 1;
-                    if (chatIndex < chatItems.length) {
-                        checkNextChat();
-                    } else {
-                        scrollAndRetry();
-                    }
-                }
-            }, 2000);
             return;
         }
 
-        log('User not found in visible list, trying scroll...');
-        scrollAndRetry();
+        var chatItem = chatItems[chatIndex];
+        log('Clicking chat item ' + (chatIndex + 1) + '/' + chatItems.length);
+        chatItem.click();
+
+        setTimeout(function () {
+            var userFound = searchForUserInCurrentChat();
+
+            if (!userFound) {
+                chatIndex++;
+                checkNextChat();
+            }
+        }, 1500);
     };
 
     var dumpPageDiagnostics = function () {
@@ -385,19 +357,61 @@
         log('URL: ' + window.location.href);
         log('Title: ' + document.title);
         
-        var listArea = document.querySelector("[data-e2e*='dm-new-conversation-list']") || 
-                       document.querySelector("[class*='ChatList']") ||
-                       document.querySelector("[class*='ConversationList']");
-                       
-        if (listArea) {
-            var children = listArea.querySelectorAll("[data-e2e*='item']") || listArea.children;
-            log('Conversation list container found. Visible child count: ' + (children ? children.length : 0));
-        } else {
-            log('Conversation list container NOT found via standard selectors.');
+        var allE2e = document.querySelectorAll('[data-e2e]');
+        var uniqueVals = {};
+        for (var i = 0; i < allE2e.length; i++) {
+            var val = allE2e[i].getAttribute('data-e2e');
+            if (val) uniqueVals[val] = true;
+        }
+        var keys = Object.keys(uniqueVals);
+        log('Total data-e2e elements: ' + allE2e.length + ', Unique attributes: ' + keys.length);
+        
+        // Log all unique e2e values in chunks to avoid single long lines
+        var chunk = [];
+        for (var j = 0; j < keys.length; j++) {
+            chunk.push(keys[j]);
+            if (chunk.length >= 15 || j === keys.length - 1) {
+                log('data-e2e snippet: ' + chunk.join(', '));
+                chunk = [];
+            }
         }
 
-        var allE2e = document.querySelectorAll('[data-e2e]');
-        log('Total data-e2e elements on page: ' + allE2e.length);
+        // Smart Search: Find where the target username is actually rendering!
+        log('Hunting for element containing: ' + userName);
+        var xpath = "//*[contains(text(), '" + userName + "')]";
+        var result = document.evaluate(xpath, document, null, XPathResult.ANY_TYPE, null);
+        var node = result.iterateNext();
+        var foundNodes = 0;
+        
+        while (node && foundNodes < 5) {
+            foundNodes++;
+            var current = node;
+            var path = [];
+            var foundE2e = null;
+            
+            // Walk up to 8 levels to find a data-e2e container
+            for (var k = 0; k < 8 && current && current !== document.body; k++) {
+                path.unshift(current.tagName);
+                if (current.hasAttribute && current.hasAttribute('data-e2e')) {
+                    foundE2e = current.getAttribute('data-e2e');
+                    break;
+                }
+                current = current.parentNode;
+            }
+            
+            if (foundE2e) {
+                log('Found target username inside data-e2e: ' + foundE2e + ' (tags: ' + path.join('>') + ')');
+            } else {
+                log('Found username text, but no data-e2e parent within 8 levels. Tags: ' + path.join('>'));
+            }
+            
+            node = result.iterateNext();
+        }
+        
+        if (foundNodes === 0) {
+            log('Username "' + userName + '" text was NOT found anywhere in the DOM.');
+        }
+
         log('=== END DIAGNOSTICS ===');
     };
 
@@ -417,26 +431,29 @@
                 return;
             }
 
-            var attempt = 0;
-            var maxInitAttempts = 15;
-            
-            var pollForLoad = function () {
-                attempt++;
-                chatItems = findChatItems();
-                
-                if (chatItems && chatItems.length > 0) {
-                    log('Chat list hydrated with ' + chatItems.length + ' items.');
+            setTimeout(function () {
+            chatItems = findChatItems();
+            log('Found ' + chatItems.length + ' chat items');
+
+            if (chatItems.length === 0) {
+                dumpPageDiagnostics();
+                // Retry once after 5 more seconds (page might still be loading)
+                log('Retrying in 5 seconds...');
+                setTimeout(function () {
+                    chatItems = findChatItems();
+                    log('Retry: Found ' + chatItems.length + ' chat items');
+                    if (chatItems.length === 0) {
+                        dumpPageDiagnostics();
+                        reportError('No chat items found');
+                        return;
+                    }
                     checkNextChat();
-                } else if (attempt < maxInitAttempts) {
-                    if (attempt % 5 === 0) log('Waiting for chat list to hydrate... (' + (attempt * 2) + 's)');
-                    setTimeout(pollForLoad, 2000);
-                } else {
-                    dumpPageDiagnostics();
-                    reportError('Chat list failed to load/hydrate after ' + (attempt * 2) + 's');
-                }
-            };
-            
-            pollForLoad();
+                }, 5000);
+                return;
+            }
+
+            checkNextChat();
+             }, 3000);
 
         } catch (e) {
             log('Error: ' + e.message);

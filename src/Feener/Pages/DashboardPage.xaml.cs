@@ -240,7 +240,7 @@ public partial class DashboardPage : ContentPage
                           document.cookie.includes('sessionid'));
             })()";
             
-            string evalResult = await GlobalSessionCheckWebView.EvaluateJavascriptAsync(checkJs);
+            string evalResult = await GlobalSessionCheckWebView.EvaluateJavaScriptAsync(checkJs);
             bool isActuallyLoggedIn = evalResult?.ToLower() == "true";
 
             if (isActuallyLoggedIn)
@@ -792,7 +792,7 @@ public partial class DashboardPage : ContentPage
         await EvaluatePermissionsAsync();
     }
 
-    private async Task RequestNotificationPermission()
+    private async Task<bool> RequestNotificationPermission()
     {
 #if ANDROID
         if (Android.OS.Build.VERSION.SdkInt >= Android.OS.BuildVersionCodes.Tiramisu)
@@ -800,7 +800,9 @@ public partial class DashboardPage : ContentPage
             var status = await Permissions.RequestAsync<Permissions.PostNotifications>();
             if (status != PermissionStatus.Granted)
                 await DisplayAlert("Permission Required", "Notification permission is required to show status while sending streaks.", "OK");
+            return status == PermissionStatus.Granted;
         }
 #endif
+        return true;
     }
 }

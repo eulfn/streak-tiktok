@@ -50,10 +50,7 @@
                     </Grid>
                 </Grid>
 
-                <!-- Hidden global SessionCheckWebView -->
-                <WebView x:Name="GlobalSessionCheckWebView"
-                         HeightRequest="0" WidthRequest="0" IsVisible="False"
-                         Navigated="OnGlobalSessionCheckNavigated" />
+                <!-- Hidden global SessionCheckWebView removed for cookie-based checks -->
 
                 <!-- ─── Mode Switcher ─── -->
                 <Border Stroke="{AppThemeBinding Light={StaticResource BorderColorLight}, Dark={StaticResource BorderColorDark}}"

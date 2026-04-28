@@ -59,6 +59,9 @@ public class SessionService
     {
         Preferences.Set(SessionValidKey, false);
         Preferences.Remove(SessionLastCheckKey);
+        
+        // Physically destroy cookies to guarantee a clean logout
+        TikTokWebViewHelper.ClearAllCookies();
     }
 
     /// <summary>

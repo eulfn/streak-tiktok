@@ -17,12 +17,6 @@ public partial class DashboardPage : ContentPage
     private readonly BurstProgressDrawable _burstProgressDrawable;
     private readonly NormalProgressDrawable _normalProgressDrawable;
 
-    private bool _isCheckingSession = false;
-    private int _navigationCount = 0;
-#if ANDROID
-    private IDispatcherTimer? _sessionCheckTimeout;
-#endif
-
     public DashboardPage()
     {
         InitializeComponent();
@@ -139,141 +133,10 @@ public partial class DashboardPage : ContentPage
 
     private void CheckGlobalSessionStatus()
     {
-        // Don't check if we already checked within the last 5 minutes
-        var lastCheck = _sessionService.GetLastCheckTime();
-        if (lastCheck.HasValue && (DateTime.Now - lastCheck.Value).TotalMinutes < 5)
-        {
-            UpdateSessionIndicator();
-            return;
-        }
-
-#if ANDROID
-        if (Feener.Platforms.Android.Services.StreakService.IsRunning)
-        {
-            UpdateSessionIndicator();
-            return;
-        }
-
-        if (_isCheckingSession) return;
-        _isCheckingSession = true;
-        _navigationCount = 0;
-        MasterRunButton.IsEnabled = false;
-        MasterRunButton.Opacity = 0.5;
-        MasterRunButton.Text = "Validating Session...";
-
-
-        TikTokWebViewHelper.ConfigureWebView(GlobalSessionCheckWebView);
-        GlobalSessionCheckWebView.Source = TikTokWebViewHelper.MessagesUrl;
-
-        if (_sessionCheckTimeout != null)
-        {
-            _sessionCheckTimeout.Stop();
-            _sessionCheckTimeout.Tick -= OnGlobalSessionCheckTimeout;
-        }
-        _sessionCheckTimeout = Dispatcher.CreateTimer();
-        _sessionCheckTimeout.Interval = TimeSpan.FromSeconds(10);
-        _sessionCheckTimeout.Tick += OnGlobalSessionCheckTimeout;
-        _sessionCheckTimeout.Start();
-#else
+        // Direct Cookie Check: No network, instant result.
+        bool isValid = TikTokWebViewHelper.HasValidSessionCookie();
+        _sessionService.SetSessionValid(isValid);
         UpdateSessionIndicator();
-#endif
-    }
-
-#if ANDROID
-    private void OnGlobalSessionCheckTimeout(object? sender, EventArgs e)
-    {
-        _sessionCheckTimeout?.Stop();
-        if (_isCheckingSession)
-        {
-            _isCheckingSession = false;
-            if (!Feener.Platforms.Android.Services.StreakService.IsRunning)
-            {
-                _sessionService.SetSessionValid(false);
-            }
-            MainThread.BeginInvokeOnMainThread(() => 
-            {
-
-                UpdateSessionIndicator();
-                UpdateStatus(); // Re-render Run button text
-            });
-        }
-    }
-#endif
-
-    private async void OnGlobalSessionCheckNavigated(object? sender, WebNavigatedEventArgs e)
-    {
-        if (!_isCheckingSession) return;
-        _navigationCount++;
-        
-        var result = TikTokWebViewHelper.CheckLoginStatus(e.Url);
-
-        // 1. HARD LOGOUT DETECTION
-        if (result.IsLoggedOut)
-        {
-#if ANDROID
-            _sessionCheckTimeout?.Stop();
-#endif
-            _isCheckingSession = false;
-            TikTokWebViewHelper.UpdateSessionStatus(_sessionService, false);
-            MainThread.BeginInvokeOnMainThread(() => 
-            {
-                UpdateSessionIndicator();
-                UpdateStatus();
-                _isCheckingSession = false;
-            });
-            return;
-        }
-
-        // 2. POTENTIAL LOGIN DETECTION (Requires DOM verification)
-        if (result.IsLoggedIn && _navigationCount >= 1)
-        {
-            // Give TikTok a moment to hydrate the DOM
-            await Task.Delay(2000);
-            
-            if (!_isCheckingSession) return;
-
-            // ACTIVE VERIFICATION: Check for a protected element that only exists when logged in
-            // We check for the conversation list or a specific data-e2e attribute.
-            string checkJs = @"(function(){
-                return !!(document.querySelector('[data-e2e*=""conversation-list""]') || 
-                          document.querySelector('[class*=""ChatList""]') ||
-                          document.cookie.includes('sessionid'));
-            })()";
-            
-            string evalResult = await GlobalSessionCheckWebView.EvaluateJavaScriptAsync(checkJs);
-            bool isActuallyLoggedIn = evalResult?.ToLower() == "true";
-
-            if (isActuallyLoggedIn)
-            {
-#if ANDROID
-                _sessionCheckTimeout?.Stop();
-#endif
-                _isCheckingSession = false;
-                TikTokWebViewHelper.UpdateSessionStatus(_sessionService, true);
-                MainThread.BeginInvokeOnMainThread(() => 
-                {
-                    LoadProfilePhoto();
-                    GreetingLabel.Text = $"Hi, {_sessionService.GetDisplayName()}";
-                    UpdateSessionIndicator();
-                    UpdateStatus();
-                });
-            }
-            else if (_navigationCount > 3)
-            {
-                // If we've navigated multiple times and still aren't "actually" logged in,
-                // it's likely a redirect loop or a false positive URL.
-#if ANDROID
-                _sessionCheckTimeout?.Stop();
-#endif
-                _isCheckingSession = false;
-                TikTokWebViewHelper.UpdateSessionStatus(_sessionService, false);
-                MainThread.BeginInvokeOnMainThread(() => 
-                {
-                    UpdateSessionIndicator();
-                    UpdateStatus();
-                });
-            }
-        }
     }
 
     private void OnStatusTimerTick(object? sender, EventArgs e)

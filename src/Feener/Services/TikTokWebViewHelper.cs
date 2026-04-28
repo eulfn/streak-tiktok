@@ -10,18 +10,6 @@ public static class TikTokWebViewHelper
     public const string MessagesUrl = "https://www.tiktok.com/messages";
 
     /// <summary>
-    /// Result of login status check
-    /// </summary>
-    public class LoginStatusResult
-    {
-        public bool IsLoggedIn { get; set; }
-        public bool IsLoggedOut { get; set; }
-        public string Url { get; set; } = string.Empty;
-        public bool IsValidUrl { get; set; }
-        public bool NeedsDomCheck { get; set; }
-    }
-
-    /// <summary>
     /// Configure a WebView for TikTok with proper settings
     /// </summary>
     public static void ConfigureWebView(WebView webView, string? customUserAgent = null)
@@ -72,6 +60,54 @@ public static class TikTokWebViewHelper
     {
         Android.Webkit.CookieManager.Instance?.Flush();
     }
+
+    /// <summary>
+    /// Instantly check if a valid sessionid cookie exists for TikTok.
+    /// Fast, synchronous, and uses zero network.
+    /// </summary>
+    public static bool HasValidSessionCookie()
+    {
+        try
+        {
+            var cookieManager = Android.Webkit.CookieManager.Instance;
+            if (cookieManager == null) return false;
+
+            // Check primary domains where TikTok might store the auth cookie
+            string cookies1 = cookieManager.GetCookie("https://www.tiktok.com") ?? string.Empty;
+            string cookies2 = cookieManager.GetCookie("https://tiktok.com") ?? string.Empty;
+
+            // sessionid is the core authentication token for TikTok
+            return cookies1.Contains("sessionid=") || cookies2.Contains("sessionid=");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error checking session cookie: {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Physically destroy all WebView cookies to guarantee a clean logout.
+    /// </summary>
+    public static void ClearAllCookies()
+    {
+        try
+        {
+            var cookieManager = Android.Webkit.CookieManager.Instance;
+            if (cookieManager != null)
+            {
+                cookieManager.RemoveAllCookies(null);
+                cookieManager.Flush();
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error clearing cookies: {ex.Message}");
+        }
+    }
+#else
+    public static bool HasValidSessionCookie() => false;
+    public static void ClearAllCookies() { }
 #endif
 
     /// <summary>
@@ -80,67 +116,6 @@ public static class TikTokWebViewHelper
     public static string GetDefaultUserAgent()
     {
         return "Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36";
-    }
-
-    /// <summary>
-    /// Check login status from a navigated URL with exhaustive state detection
-    /// </summary>
-    public static LoginStatusResult CheckLoginStatus(string? url)
-    {
-        var result = new LoginStatusResult
-        {
-            Url = url ?? string.Empty
-        };
-
-        if (string.IsNullOrEmpty(url))
-        {
-            result.IsValidUrl = false;
-            return result;
-        }
-
-        var urlLower = url.ToLower();
-        if (!urlLower.StartsWith("http"))
-        {
-            result.IsValidUrl = false;
-            return result;
-        }
-
-        result.IsValidUrl = true;
-
-        // 1. HARD NEGATIVES: Explicit login/signup or known logged-out landing pages
-        if (urlLower.Contains("/login") || 
-            urlLower.Contains("/signup") || 
-            urlLower.Contains("passport.tiktok.com") ||
-            urlLower.Contains("account.tiktok.com"))
-        {
-            result.IsLoggedOut = true;
-            result.IsLoggedIn = false;
-            return result;
-        }
-
-        // 2. PUBLIC PAGES: If we are on these and NOT on /messages, it's a strong indicator of NO session
-        if (urlLower.EndsWith("tiktok.com/") || 
-            urlLower.Contains("/explore") || 
-            urlLower.Contains("/trending") ||
-            urlLower.Contains("/foryou"))
-        {
-            result.IsLoggedIn = false;
-            result.IsLoggedOut = true; 
-            return result;
-        }
-
-        // 3. HARD POSITIVES (Ambiguous without DOM check): The messages page
-        if (urlLower.Contains("tiktok.com/messages"))
-        {
-            result.IsLoggedIn = true;
-            result.NeedsDomCheck = true;
-            return result;
-        }
-
-        // 4. UNKNOWN STATES
-        result.IsLoggedIn = false;
-        result.IsLoggedOut = false; 
-        return result;
     }
 
     /// <summary>

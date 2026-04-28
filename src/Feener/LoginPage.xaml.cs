@@ -41,16 +41,10 @@ public partial class LoginPage : ContentPage
         }
         LoadingOverlay.IsVisible = false;
 
-        // Use helper to check login status
-        var result = TikTokWebViewHelper.CheckLoginStatus(e.Url);
-        
-        if (!result.IsValidUrl)
-        {
-            LoadTikTok();
-            return;
-        }
+        // Use direct cookie check instead of URL matching for true confirmation
+        bool hasSession = TikTokWebViewHelper.HasValidSessionCookie();
 
-        if (result.IsLoggedIn)
+        if (hasSession)
         {
             _isLoggedIn = true;
             Done().SafeFireAndForget();

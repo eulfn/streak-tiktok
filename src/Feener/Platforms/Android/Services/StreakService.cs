@@ -97,13 +97,6 @@ public class StreakService : Service
         StartForegroundServiceImmediate();
     }
 
-    // ── Snapshot state (captured at start) ──
-    private string _snapshotNormalMessage = string.Empty;
-    private string _snapshotBurstTarget = string.Empty;
-    private int _snapshotBurstDailyLimit = 0;
-    private List<string> _snapshotBurstMessages = new();
-    private bool _snapshotSkipUnreachable = false;
-
     public override StartCommandResult OnStartCommand(Intent? intent, StartCommandFlags flags, int startId)
     {
         if (intent?.Action == "STOP_SERVICE")
@@ -113,9 +106,6 @@ public class StreakService : Service
             CompleteService(false, "Run stopped by user.");
             return StartCommandResult.NotSticky;
         }
-
-        // ── PILLAR 2: Update last attempt time immediately to avoid death-loops ──
-        _settingsService?.SetLastAttemptTime(DateTime.Now);
 
         // Handle Burst Mode flag
         _isBurstMode = intent?.GetBooleanExtra("IsBurstMode", false) ?? false;
@@ -258,21 +248,7 @@ public class StreakService : Service
     {
         try
         {
-            if (_settingsService == null) return;
-
-            // ── PILLAR 1: FULL DATA SNAPSHOT ──
-            // We capture everything now so mid-run UI changes don't cause drift.
-            _snapshotNormalMessage = _settingsService.GetMessageText();
-            _snapshotBurstTarget = _settingsService.GetBurstTargetUsername();
-            _snapshotBurstDailyLimit = _settingsService.GetBurstDailyLimit();
-            _snapshotBurstMessages = _settingsService.GetBurstMessages();
-            _snapshotSkipUnreachable = _settingsService.GetSkipUnreachableUsers();
-            
-            if (_snapshotBurstMessages.Count == 0) _snapshotBurstMessages.Add(SettingsService.DefaultMessage);
-
-            // Deep copy the enabled friends list
-            var allEnabled = _settingsService.GetEnabledFriends();
-            
+            var allEnabled = _settingsService?.GetEnabledFriends() ?? new List<FriendConfig>();
             _currentFriendIndex = 0;
             _runResult = new StreakRunResult { IsBurstMode = _isBurstMode };
             _cooldownSkippedCount = 0;
@@ -283,7 +259,8 @@ public class StreakService : Service
             
             if (_isBurstMode)
             {
-                if (string.IsNullOrWhiteSpace(_snapshotBurstTarget))
+                var target = _settingsService?.GetBurstTargetUsername() ?? "";
+                if (string.IsNullOrWhiteSpace(target))
                 {
                     AppLog("SYSTEM", "-", "Burst Mode started without target username");
                     CompleteService(false, "No target username set for Burst Mode.");
@@ -291,16 +268,18 @@ public class StreakService : Service
                 }
                 
                 // Check daily cap before starting
-                _burstRemaining = Math.Max(0, _snapshotBurstDailyLimit - (_settingsService.GetBurstDailySentCount()));
+                var dailyLimit = _settingsService?.GetBurstDailyLimit() ?? 0;
+                _burstRemaining = Math.Max(0, dailyLimit - (_settingsService?.GetBurstDailySentCount() ?? 0));
                 if (_burstRemaining == 0)
                 {
-                    AppLog("SYSTEM", "-", $"Daily burst cap already reached ({_snapshotBurstDailyLimit}).");
-                    CompleteService(true, $"Daily burst cap already reached ({_snapshotBurstDailyLimit} messages sent today).");
+                    AppLog("SYSTEM", "-", $"Daily burst cap already reached ({dailyLimit}).");
+                    CompleteService(true, $"Daily burst cap already reached ({dailyLimit} messages sent today).");
                     return;
                 }
                 
-                _friendsToProcess.Add(new FriendConfig { Username = _snapshotBurstTarget, IsEnabled = true });
-                _burstMessages = _snapshotBurstMessages;
+                _friendsToProcess.Add(new FriendConfig { Username = target, IsEnabled = true });
+                _burstMessages = _settingsService?.GetBurstMessages() ?? new List<string> { SettingsService.DefaultMessage };
+                if (_burstMessages.Count == 0) _burstMessages.Add(SettingsService.DefaultMessage);
                 _burstTotalSent = 0;
                 _burstChunkSent = 0;
                 _burstSessionCount = 0;
@@ -308,7 +287,7 @@ public class StreakService : Service
                 
                 var avgChunk = (SettingsService.BurstChunkSizeMin + SettingsService.BurstChunkSizeMax) / 2;
                 var estSessions = (int)Math.Ceiling((double)_burstRemaining / avgChunk);
-                AppLog("SYSTEM", "-", $"Starting SMART BURST targeting @{_snapshotBurstTarget}: {_burstRemaining} msgs remaining, ~{estSessions} sessions, {_burstMessages.Count} message variants.");
+                AppLog("SYSTEM", "-", $"Starting SMART BURST targeting @{target}: {_burstRemaining} msgs remaining, ~{estSessions} sessions, {_burstMessages.Count} message variants.");
             }
             else
             {
@@ -322,16 +301,7 @@ public class StreakService : Service
                     }
                     else
                     {
-                        // Snapshot deep copy
-                        _friendsToProcess.Add(new FriendConfig 
-                        { 
-                            Id = friend.Id, 
-                            Username = friend.Username, 
-                            IsEnabled = friend.IsEnabled,
-                            SuccessCount = friend.SuccessCount,
-                            FailureCount = friend.FailureCount,
-                            LastMessageSent = friend.LastMessageSent
-                        });
+                        _friendsToProcess.Add(friend);
                     }
                 }
 
@@ -449,8 +419,9 @@ public class StreakService : Service
     {
         if (_isCancelRequested) return;
 
-        // PILLAR 1: Use snapshotted setting
-        if (!_snapshotSkipUnreachable && _runResult is not null && _runResult.Failed)
+        // When "Skip Unreachable Users" is OFF, abort the entire run on any per-user failure
+        bool skipUnreachable = _settingsService?.GetSkipUnreachableUsers() ?? false;
+        if (!skipUnreachable && _runResult is not null && _runResult.Failed)
         {
             CompleteService(false, $"Run stopped: {_runResult.ErrorMessage ?? _runResult.FriendsErrorMessage}");
             return;
@@ -502,7 +473,7 @@ public class StreakService : Service
         }
         else
         {
-            message = _snapshotNormalMessage;
+            message = _settingsService?.GetMessageText() ?? SettingsService.DefaultMessage;
             UpdateNotification($"{_currentFriendIndex + 1}/{_friendsToProcess.Count} \u2014 Processing: @{friend.Username}", _currentFriendIndex, _friendsToProcess.Count);
         }
 
@@ -548,8 +519,9 @@ public class StreakService : Service
                 friend.FailureCount++;
                 AppLog("FAIL", $"@{username}", error);
 
-                // PILLAR 1: Use snapshotted setting
-                if (_snapshotSkipUnreachable && error == UserNotFoundError)
+                // Auto-disable users not found in chat list when skip is enabled
+                bool skipUnreachable = _settingsService.GetSkipUnreachableUsers();
+                if (skipUnreachable && error == UserNotFoundError)
                 {
                     friend.IsEnabled = false;
                     _disabledUsernames.Add($"@{username}");
@@ -575,7 +547,7 @@ public class StreakService : Service
                 return;
             }
 
-                // SUCCESS
+            // SUCCESS
             if (_isBurstMode)
             {
                 _burstTotalSent++;
@@ -583,12 +555,13 @@ public class StreakService : Service
                 _burstRemaining = Math.Max(0, _burstRemaining - 1);
                 _settingsService.IncrementBurstDailySentCount();
                 
-                // PILLAR 1: Use snapshotted limit
+                // Check daily cap
+                var dailyLimit = _settingsService.GetBurstDailyLimit();
                 var totalToday = _settingsService.GetBurstDailySentCount();
-                if (totalToday >= _snapshotBurstDailyLimit)
+                if (totalToday >= dailyLimit)
                 {
-                    AppLog("BURST", $"@{username}", $"Daily cap reached! {totalToday}/{_snapshotBurstDailyLimit} sent today.");
-                    CompleteService(true, $"Burst complete \u2014 {totalToday}/{_snapshotBurstDailyLimit} messages sent today.");
+                    AppLog("BURST", $"@{username}", $"Daily cap reached! {totalToday}/{dailyLimit} sent today.");
+                    CompleteService(true, $"Burst complete \u2014 {totalToday}/{dailyLimit} messages sent today.");
                     return;
                 }
                 
@@ -710,6 +683,11 @@ public class StreakService : Service
                     _runResult.BurstMessagesSent = _burstTotalSent;
 
                 _settingsService.AddRunResult(_runResult);
+
+                if (!_isBurstMode)
+                {
+                    _settingsService.SetLastRunTime(DateTime.Now);
+                }
             }
 
             // Show completion notification

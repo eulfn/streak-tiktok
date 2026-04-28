@@ -17,12 +17,6 @@ public partial class DashboardPage : ContentPage
     private readonly BurstProgressDrawable _burstProgressDrawable;
     private readonly NormalProgressDrawable _normalProgressDrawable;
 
-    private bool _isCheckingSession = false;
-    private int _navigationCount = 0;
-#if ANDROID
-    private IDispatcherTimer? _sessionCheckTimeout;
-#endif
-
     public DashboardPage()
     {
         InitializeComponent();

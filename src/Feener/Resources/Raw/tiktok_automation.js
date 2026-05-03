@@ -153,7 +153,7 @@
     };
 
     var isTargetUser = function (currentUsername) {
-        return currentUsername && currentUsername.toLowerCase().includes(userName.toLowerCase());
+        return currentUsername && currentUsername.toLowerCase().trim() === userName.toLowerCase().trim();
     };
 
     var findDraftEditor = function (messageInput) {
@@ -286,18 +286,7 @@
         }
     };
 
-    var sendMessageDirect = function () {
-        var messageInput = findMessageInput();
 
-        if (messageInput) {
-            typeMessage(messageInput, function () {
-                sendMessage(messageInput);
-                setTimeout(reportSuccess, 1000);
-            });
-        } else {
-            reportError('Message input not found');
-        }
-    };
 
     var sendMessageViaButton = function () {
         var messageInput = findMessageInput();

@@ -52,9 +52,9 @@ public class StreakRunResult
     public bool IsBurstMode { get; set; }
     public int BurstMessagesSent { get; set; }
     public string? ErrorMessage { get; set; }
-    public string? FriendsErrorMessage => string.Join(',',FriendResults?.Where(x => x.Failed)?.Select(x => x.ErrorMessage)??[]);
+    public string? FriendsErrorMessage => string.Join(',',FriendResults?.Where(x => !x.Success)?.Select(x => x.ErrorMessage)??[]);
     public List<FriendMessageResult> FriendResults { get; set; } = new();
-    public bool Failed=>!Success && (!string.IsNullOrEmpty(FriendsErrorMessage)||!string.IsNullOrEmpty(ErrorMessage));
+    public bool Failed => !Success && (FriendResults.Any(r => !r.Success) || !string.IsNullOrEmpty(ErrorMessage));
 }
 
 /// <summary>
@@ -65,7 +65,7 @@ public class FriendMessageResult
     public string FriendId { get; set; } = string.Empty;
     public string Username { get; set; } = string.Empty;
     public bool Success { get; set; }
-    public bool Failed=>!Success && !string.IsNullOrEmpty(ErrorMessage);
+    public bool Failed => !Success;
     public string? ErrorMessage { get; set; }
     public DateTime Timestamp { get; set; } = DateTime.Now;
 }

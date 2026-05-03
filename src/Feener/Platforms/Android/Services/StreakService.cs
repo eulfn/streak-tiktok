@@ -35,6 +35,7 @@ public class StreakService : Service
     private PowerManager.WakeLock? _wakeLock;
     private string _baseScript = string.Empty;
     private readonly List<string> _disabledUsernames = new();
+    private readonly Random _rng = new();
     private const string UserNotFoundError = "User not found in chat list";
 
     // ── Burst Mode state (Smart Daily Quota) ──
@@ -127,7 +128,7 @@ public class StreakService : Service
         // Start the WebView automation on main thread
         _mainHandler?.Post(StartWebViewAutomation);
 
-        return StartCommandResult.Sticky;
+        return StartCommandResult.NotSticky;
     }
 
     private void StartForegroundServiceImmediate()
@@ -156,6 +157,12 @@ public class StreakService : Service
 
     public override void OnDestroy()
     {
+        // Safety net: clear the run-level mutex if the service is destroyed
+        // without CompleteService (e.g., system kill while WebView is loading)
+        lock (_runLock)
+        {
+            _isRunning = false;
+        }
         ReleaseWakeLock();
         CleanupWebView();
         base.OnDestroy();
@@ -283,7 +290,7 @@ public class StreakService : Service
                 _burstTotalSent = 0;
                 _burstChunkSent = 0;
                 _burstSessionCount = 0;
-                _burstCurrentChunkSize = new Random().Next(SettingsService.BurstChunkSizeMin, SettingsService.BurstChunkSizeMax + 1);
+                _burstCurrentChunkSize = _rng.Next(SettingsService.BurstChunkSizeMin, SettingsService.BurstChunkSizeMax + 1);
                 
                 var avgChunk = (SettingsService.BurstChunkSizeMin + SettingsService.BurstChunkSizeMax) / 2;
                 var estSessions = (int)Math.Ceiling((double)_burstRemaining / avgChunk);
@@ -342,8 +349,12 @@ public class StreakService : Service
             _webView.Settings.DatabaseEnabled = true;
             _webView.Settings.CacheMode = CacheModes.Normal;
 
-        // ── CAUTION: TikTok serves different/broken DOMs when using v114+ and triggers bot protection
-        _webView.Settings.UserAgentString = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36";
+            // Use the same UA that was used during login to maintain session consistency.
+            // Falls back to Chrome 91 desktop UA which avoids TikTok bot detection.
+            var sessionService = new SessionService();
+            var loginUa = sessionService.GetLoginUserAgent()
+                ?? "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36";
+            _webView.Settings.UserAgentString = loginUa;
             _webView.Settings.SetSupportZoom(true);
             _webView.Settings.BuiltInZoomControls = true;
 
@@ -461,8 +472,7 @@ public class StreakService : Service
             int nextIdx = 0;
             if (_burstMessages.Count > 1)
             {
-                var r = new Random();
-                do { nextIdx = r.Next(_burstMessages.Count); } while (nextIdx == _lastBurstMessageIndex);
+                do { nextIdx = _rng.Next(_burstMessages.Count); } while (nextIdx == _lastBurstMessageIndex);
             }
             
             _lastBurstMessageIndex = nextIdx;
@@ -538,12 +548,19 @@ public class StreakService : Service
                 });
 
                 _failureAttemptsForCurrentFriend = 0;
-                _currentFriendIndex++;
-                if (!_isBurstMode)
+                if (_isBurstMode)
                 {
-                    UpdateNotification($"{_currentFriendIndex}/{_friendsToProcess.Count} : Failed: @{username}", _currentFriendIndex, _friendsToProcess.Count);
+                    // Burst targets a single user — don't advance the index.
+                    // Retry after delay since the failure may be transient.
+                    AppLog("BURST", $"@{username}", "Failure recorded, retrying after delay...");
+                    _mainHandler?.PostDelayed(SendCurrentFriendMessage, 5000);
                 }
-                _mainHandler?.PostDelayed(ProcessNextFriend, 3000);
+                else
+                {
+                    _currentFriendIndex++;
+                    UpdateNotification($"{_currentFriendIndex}/{_friendsToProcess.Count} : Failed: @{username}", _currentFriendIndex, _friendsToProcess.Count);
+                    _mainHandler?.PostDelayed(ProcessNextFriend, 3000);
+                }
                 return;
             }
 
@@ -569,8 +586,7 @@ public class StreakService : Service
                 if (_burstChunkSent >= _burstCurrentChunkSize)
                 {
                     _burstSessionCount++;
-                    var rng = new Random();
-                    var hibernationMs = rng.Next(SettingsService.BurstHibernationMinMs, SettingsService.BurstHibernationMaxMs + 1);
+                    var hibernationMs = _rng.Next(SettingsService.BurstHibernationMinMs, SettingsService.BurstHibernationMaxMs + 1);
                     var hibernationMin = hibernationMs / 60000.0;
                     AppLog("HIBERNATE", $"@{username}", $"Session {_burstSessionCount} complete ({_burstChunkSent} msgs). Hibernating {hibernationMin:F1} min...");
                     
@@ -580,7 +596,7 @@ public class StreakService : Service
                 }
                 
                 // Normal inter-message delay
-                int delayMs = new Random().Next(3000, 10001);
+                int delayMs = _rng.Next(3000, 10001);
                 AppLog("BURST", $"@{username}", $"Message {_burstTotalSent}/{_burstRemaining} sent (chunk {_burstChunkSent}/{_burstCurrentChunkSize}). Waiting {delayMs / 1000.0:F1}s...");
                 
                 UpdateNotification($"Bursting @{username} \u2014 {_burstTotalSent}/{_burstRemaining} (Session {_burstSessionCount + 1})");
@@ -606,6 +622,26 @@ public class StreakService : Service
                 Success = true,
                 ErrorMessage = null
             });
+        }
+        else
+        {
+            // Username reported by JS doesn't match any friend in the list.
+            // This can happen if TikTok returns a different username format.
+            // Retry with the current friend rather than silently skipping.
+            AppLog("WARN", $"@{username}", "Username from JS callback did not match any friend in the list. Retrying current friend...");
+            _failureAttemptsForCurrentFriend++;
+            if (_failureAttemptsForCurrentFriend < MaxSendAttemptsPerFriend)
+            {
+                _mainHandler?.PostDelayed(SendCurrentFriendMessage, 3000);
+            }
+            else
+            {
+                AppLog("FAIL", $"@{username}", "Max retries exceeded for unmatched username");
+                _failureAttemptsForCurrentFriend = 0;
+                _currentFriendIndex++;
+                _mainHandler?.PostDelayed(ProcessNextFriend, 3000);
+            }
+            return;
         }
 
         // ── Normal flow: advance to next friend ──
@@ -635,7 +671,7 @@ public class StreakService : Service
         if (_isCancelRequested) return;
         StopHibernationCountdown();
         
-        _burstCurrentChunkSize = new Random().Next(SettingsService.BurstChunkSizeMin, SettingsService.BurstChunkSizeMax + 1);
+        _burstCurrentChunkSize = _rng.Next(SettingsService.BurstChunkSizeMin, SettingsService.BurstChunkSizeMax + 1);
         _burstChunkSent = 0;
         
         var target = _friendsToProcess?[0]?.Username ?? "unknown";

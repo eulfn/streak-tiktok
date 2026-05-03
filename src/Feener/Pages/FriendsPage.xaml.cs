@@ -48,7 +48,12 @@ public partial class FriendsPage : ContentPage
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
-        _statusTimer?.Stop();
+        if (_statusTimer != null)
+        {
+            _statusTimer.Stop();
+            _statusTimer.Tick -= OnStatusTimerTick;
+            _statusTimer = null;
+        }
     }
 
     private void OnStatusTimerTick(object? sender, EventArgs e)
@@ -243,7 +248,7 @@ public partial class FriendsPage : ContentPage
         bool confirm = await DisplayAlert("Clear All Friends", "Are you sure you want to remove all friends? This cannot be undone.", "Clear All", "Cancel");
         if (confirm)
         {
-            foreach (var f in friends) _settingsService.RemoveFriend(f.Id);
+            _settingsService.SaveFriendsList(new List<FriendConfig>());
             LoadFriendsList();
         }
     }

@@ -85,8 +85,15 @@ public partial class ProfilePage : ContentPage
             if (result != null)
             {
                 var newFile = System.IO.Path.Combine(FileSystem.AppDataDirectory, result.FileName);
+                // Delete the previous profile photo if it exists and differs
+                var oldPath = _sessionService.GetProfileImagePath();
+                if (!string.IsNullOrEmpty(oldPath) && oldPath != newFile && System.IO.File.Exists(oldPath))
+                {
+                    try { System.IO.File.Delete(oldPath); } catch { }
+                }
+
                 using (var stream = await result.OpenReadAsync())
-                using (var newStream = System.IO.File.OpenWrite(newFile))
+                using (var newStream = System.IO.File.Create(newFile))
                     await stream.CopyToAsync(newStream);
 
                 _sessionService.SetProfileImagePath(newFile);

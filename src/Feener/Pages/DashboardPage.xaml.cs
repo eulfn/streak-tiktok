@@ -83,7 +83,12 @@ public partial class DashboardPage : ContentPage
     {
         base.OnDisappearing();
         _isAppInForeground = false;
-        _statusTimer?.Stop();
+        if (_statusTimer != null)
+        {
+            _statusTimer.Stop();
+            _statusTimer.Tick -= OnStatusTimerTick;
+            _statusTimer = null;
+        }
     }
 
     private async void OnCheckProfileTapped(object? sender, EventArgs e)

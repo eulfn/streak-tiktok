@@ -65,6 +65,23 @@ public class SessionService
     }
 
     /// <summary>
+    /// Get the user agent string used during the last login session
+    /// </summary>
+    public string? GetLoginUserAgent()
+    {
+        var ua = Preferences.Get("session_login_ua", string.Empty);
+        return string.IsNullOrEmpty(ua) ? null : ua;
+    }
+
+    /// <summary>
+    /// Store the user agent string used during login for session consistency
+    /// </summary>
+    public void SetLoginUserAgent(string userAgent)
+    {
+        Preferences.Set("session_login_ua", userAgent ?? string.Empty);
+    }
+
+    /// <summary>
     /// Get the path to the user's local profile photo
     /// </summary>
     public string GetProfileImagePath()

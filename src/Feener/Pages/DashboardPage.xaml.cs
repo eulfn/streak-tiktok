@@ -251,6 +251,15 @@ public partial class DashboardPage : ContentPage
     private void LoadSettings()
     {
         MessageEditor.Text = _settingsService.GetMessageText();
+
+        // Reflect randomize toggle state on the message editor
+        var isRandomized = _settingsService.GetRandomizeNormalMessages();
+        MessageEditor.IsEnabled = !isRandomized;
+        MessageEditorBorder.Opacity = isRandomized ? 0.4 : 1.0;
+        MessageEditorHint.Text = isRandomized
+            ? "Randomized messages enabled — 50 built-in variants"
+            : "Message sent to each friend during a streak run";
+
         var isBurstActive = _settingsService.IsBurstModeActive();
         if (isBurstActive) SetBurstModeUI();
         else SetNormalModeUI();

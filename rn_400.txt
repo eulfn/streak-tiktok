@@ -6,7 +6,7 @@ This release introduces native message randomization for standard automation, im
 
 - **Message Randomization**: Implemented a built-in pool of 50 conversational variations for normal mode execution. The system dynamically assigns a unique phrasing to each recipient per sequence, ensuring varied and natural interaction patterns without requiring manual configuration.
 - **Fisher-Yates Allocation**: Engineered an efficient, upfront list shuffling mechanism during automation startup to guarantee zero consecutive message repetitions across large recipient batches.
-- **State Management**: Added dedicated user interface controls within the profile settings to independently manage normal mode message randomization, cleanly separating standard automation behavior from burst configurations.
+- **State Management & UI Honesty**: Added dedicated user interface controls within the profile settings to independently manage normal mode message randomization. The dashboard's message editor now intelligently disables itself when randomized messages are active to prevent configuration conflicts.
 
 ---
 

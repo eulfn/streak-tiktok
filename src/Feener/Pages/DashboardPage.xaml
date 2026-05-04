@@ -151,8 +151,8 @@
                     <Border Style="{StaticResource SectionCard}">
                         <VerticalStackLayout Spacing="12">
                             <Label Text="Run Configuration" Style="{StaticResource SectionLabel}"/>
-                            <Label Text="Message sent to each friend during a streak run" Style="{StaticResource DataLabel}" LineBreakMode="WordWrap"/>
-                            <Border StrokeThickness="0"
+                            <Label x:Name="MessageEditorHint" Text="Message sent to each friend during a streak run" Style="{StaticResource DataLabel}" LineBreakMode="WordWrap"/>
+                            <Border x:Name="MessageEditorBorder" StrokeThickness="0"
                                     StrokeShape="RoundRectangle 16"
                                     BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray900}}">
                                 <Editor x:Name="MessageEditor"

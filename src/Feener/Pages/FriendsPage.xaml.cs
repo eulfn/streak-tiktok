@@ -105,18 +105,60 @@ public partial class FriendsPage : ContentPage
             if (current.Count != _collectedFriends.Count)
             {
                 _collectedFriends = current;
+                
+                // ── Auto-Sync: Add new friends immediately ──
+                var existingFriends = _settingsService.GetFriendsList();
+                var existingSet = new HashSet<string>(existingFriends.Select(f => f.Username.ToLowerInvariant()));
+                bool addedNew = false;
+                
+                foreach (var friend in current)
+                {
+                    if (!existingSet.Contains(friend.Username.ToLowerInvariant()))
+                    {
+                        _settingsService.AddFriend(friend.Username, friend.DisplayName);
+                        addedNew = true;
+                    }
+                }
+                
+                if (addedNew)
+                {
+                    LoadFriendsList();
+                }
+
                 RebuildCollectedList();
             }
             var status = Feener.Platforms.Android.Services.CollectFriendsService.GetStatusMessage();
             if (status != null) CollectStatusLabel.Text = status;
         }
 
-        // When done, do a final update
+        // When done, do a final update and clean up
         if (!collectRunning && Feener.Platforms.Android.Services.CollectFriendsService.IsDone)
         {
-            _collectedFriends = Feener.Platforms.Android.Services.CollectFriendsService.GetCollectedFriends();
+            var collected = Feener.Platforms.Android.Services.CollectFriendsService.GetCollectedFriends();
+            _collectedFriends = collected;
+            
             var status = Feener.Platforms.Android.Services.CollectFriendsService.GetStatusMessage();
             if (status != null) CollectStatusLabel.Text = status;
+            
+            // ── Auto-Sync: Remove friends not found in the new collection ──
+            var existingFriends = _settingsService.GetFriendsList();
+            var collectedSet = new HashSet<string>(collected.Select(c => c.Username.ToLowerInvariant()));
+            bool removedOld = false;
+            
+            foreach (var friend in existingFriends)
+            {
+                if (!collectedSet.Contains(friend.Username.ToLowerInvariant()))
+                {
+                    _settingsService.RemoveFriend(friend.Username);
+                    removedOld = true;
+                }
+            }
+            
+            if (removedOld)
+            {
+                LoadFriendsList();
+            }
+
             RebuildCollectedList();
         }
 #endif

@@ -151,19 +151,40 @@
 
     // ── Click-per-item collection (the only working approach) ───────────────
 
+    var collectedDisplayNames = {};
+
+    var getUncollectedItems = function () {
+        var items = findChatItems();
+        var uncollected = [];
+        for (var i = 0; i < items.length; i++) {
+            var name = extractDisplayName(items[i]);
+            if (!collectedDisplayNames[name]) {
+                uncollected.push(items[i]);
+            }
+        }
+        return uncollected;
+    };
+
+    var uncollectedItems = [];
+
     var collectNextChat = function () {
-        if (chatIndex >= chatItems.length) {
-            log('Processed all ' + chatItems.length + ' visible items. Trying scroll...');
+        if (uncollectedItems.length === 0) {
+            uncollectedItems = getUncollectedItems();
+        }
+
+        if (uncollectedItems.length === 0) {
+            log('No uncollected items visible. Trying scroll...');
             scrollAndCollectMore();
             return;
         }
 
-        var chatItem = chatItems[chatIndex];
-
-        // 1. Extract display name BEFORE clicking (it's in the item text)
+        var chatItem = uncollectedItems.shift();
+        
+        // 1. Extract display name BEFORE clicking
         var displayName = extractDisplayName(chatItem);
+        collectedDisplayNames[displayName] = true;
 
-        log('Clicking chat item ' + (chatIndex + 1) + '/' + chatItems.length + ' (' + displayName + ')');
+        log('Clicking chat item (' + displayName + ')');
 
         // 2. Remember current header username to detect change
         var prevUsername = findCurrentChatUsername();
@@ -171,9 +192,9 @@
         // 3. Click the chat item
         chatItem.click();
 
-        // 4. Poll for header username to appear (faster than fixed delay)
+        // 4. Poll for header username to appear
         var pollCount = 0;
-        var maxPolls = 20; // 20 * 100ms = 2s timeout for group chats
+        var maxPolls = 20; // 2s timeout
         var pollInterval = 100;
 
         var poll = function () {
@@ -181,22 +202,16 @@
             var username = findCurrentChatUsername();
 
             if (username && username !== prevUsername) {
-                // Header loaded with new username
                 addFriend(username, displayName);
-                chatIndex++;
-                // Short delay between items to avoid rate limiting
                 setTimeout(collectNextChat, 300);
             } else if (pollCount < maxPolls) {
                 setTimeout(poll, pollInterval);
             } else {
-                // Timeout — likely a group chat or special item
-                log('Timeout reading header for item ' + (chatIndex + 1) + ' (' + displayName + ') — skipping (likely group chat)');
-                chatIndex++;
+                log('Timeout reading header for item (' + displayName + ') — skipping (likely group chat)');
                 setTimeout(collectNextChat, 300);
             }
         };
 
-        // Start polling after 200ms (minimum header load time)
         setTimeout(poll, 200);
     };
 
@@ -215,22 +230,24 @@
             return;
         }
 
-        var prevCount = chatItems.length;
         var prevScrollTop = container.scrollTop;
         container.scrollTop = container.scrollHeight;
 
         log('Scrolling chat list (attempt ' + scrollAttempts + '/' + maxScrollAttempts + ')...');
 
         setTimeout(function () {
-            chatItems = findChatItems();
-            log('After scroll: ' + chatItems.length + ' items (was ' + prevCount + ')');
+            var newItems = getUncollectedItems();
+            log('After scroll: ' + newItems.length + ' uncollected items');
 
-            if (chatItems.length > prevCount) {
+            if (newItems.length > 0) {
+                uncollectedItems = newItems;
                 collectNextChat();
             } else if (container.scrollTop > prevScrollTop) {
+                // Scrolled, but no new items yet. Wait a bit more.
                 setTimeout(function () {
-                    chatItems = findChatItems();
-                    if (chatItems.length > prevCount) {
+                    var finalItems = getUncollectedItems();
+                    if (finalItems.length > 0) {
+                        uncollectedItems = finalItems;
                         collectNextChat();
                     } else {
                         scrollAndCollectMore();

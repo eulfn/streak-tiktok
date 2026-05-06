@@ -9,6 +9,8 @@ namespace Feener
 
             // Register routes for navigation
             Routing.RegisterRoute(nameof(LoginPage), typeof(LoginPage));
+            Routing.RegisterRoute(nameof(Pages.CollectFriendsPage), typeof(Pages.CollectFriendsPage));
         }
     }
 }
+

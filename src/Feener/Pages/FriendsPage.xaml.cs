@@ -207,6 +207,11 @@ public partial class FriendsPage : ContentPage
         NewFriendUsernameEntry.Focus();
     }
 
+    private async void OnCollectFriendsClicked(object? sender, EventArgs e)
+    {
+        await Navigation.PushAsync(new CollectFriendsPage());
+    }
+
     private void OnCancelAddFriend(object? sender, EventArgs e) => AddFriendPanel.IsVisible = false;
 
     private async void OnSaveFriend(object? sender, EventArgs e)

@@ -32,7 +32,7 @@
                         <VerticalStackLayout Spacing="12">
 
                             <!-- Action Buttons Row -->
-                            <Grid x:Name="ActionButtonsGrid" ColumnDefinitions="*, Auto, Auto, Auto, Auto" ColumnSpacing="10">
+                            <Grid x:Name="ActionButtonsGrid" ColumnDefinitions="*, Auto, Auto, Auto, Auto, Auto" ColumnSpacing="10">
                                 <Label Text="Streaks"
                                        Style="{StaticResource SectionLabel}" VerticalOptions="Center"/>
                                 <Button Grid.Column="1"
@@ -44,10 +44,14 @@
                                         Style="{StaticResource TextButton}"
                                         Clicked="OnExportFriendsClicked"/>
                                 <Button Grid.Column="3"
+                                        Text="Collect"
+                                        Style="{StaticResource TextButton}"
+                                        Clicked="OnCollectFriendsClicked"/>
+                                <Button Grid.Column="4"
                                         Text="Add"
                                         Style="{StaticResource TextButton}"
                                         Clicked="OnAddFriendClicked"/>
-                                <Button Grid.Column="4"
+                                <Button Grid.Column="5"
                                         Text="Clear"
                                         Style="{StaticResource TextButton}"
                                         TextColor="{AppThemeBinding Light={StaticResource DeleteColor}, Dark={StaticResource DeleteColor}}"

@@ -15,7 +15,7 @@ public partial class FriendsPage : ContentPage
 
     // ── Collect mode state ──────────────────────────────────────────────────
     private bool _lastCollectRunning = false;
-    private List<string> _collectedUsernames = new();
+    private List<(string Username, string DisplayName)> _collectedFriends = new();
 
     public FriendsPage()
     {
@@ -101,10 +101,10 @@ public partial class FriendsPage : ContentPage
         // While collecting, update the results list in real-time
         if (collectRunning)
         {
-            var currentUsernames = Feener.Platforms.Android.Services.CollectFriendsService.GetCollectedUsernames();
-            if (currentUsernames.Count != _collectedUsernames.Count)
+            var current = Feener.Platforms.Android.Services.CollectFriendsService.GetCollectedFriends();
+            if (current.Count != _collectedFriends.Count)
             {
-                _collectedUsernames = currentUsernames;
+                _collectedFriends = current;
                 RebuildCollectedList();
             }
             var status = Feener.Platforms.Android.Services.CollectFriendsService.GetStatusMessage();
@@ -114,7 +114,7 @@ public partial class FriendsPage : ContentPage
         // When done, do a final update
         if (!collectRunning && Feener.Platforms.Android.Services.CollectFriendsService.IsDone)
         {
-            _collectedUsernames = Feener.Platforms.Android.Services.CollectFriendsService.GetCollectedUsernames();
+            _collectedFriends = Feener.Platforms.Android.Services.CollectFriendsService.GetCollectedFriends();
             var status = Feener.Platforms.Android.Services.CollectFriendsService.GetStatusMessage();
             if (status != null) CollectStatusLabel.Text = status;
             RebuildCollectedList();
@@ -461,7 +461,7 @@ public partial class FriendsPage : ContentPage
 
         if (done)
         {
-            _collectedUsernames = Feener.Platforms.Android.Services.CollectFriendsService.GetCollectedUsernames();
+            _collectedFriends = Feener.Platforms.Android.Services.CollectFriendsService.GetCollectedFriends();
             var status = Feener.Platforms.Android.Services.CollectFriendsService.GetStatusMessage();
             if (status != null) CollectStatusLabel.Text = status;
             RebuildCollectedList();
@@ -475,7 +475,7 @@ public partial class FriendsPage : ContentPage
     {
         CollectedListContainer.Children.Clear();
 
-        if (_collectedUsernames.Count == 0)
+        if (_collectedFriends.Count == 0)
         {
             CollectedResultsCard.IsVisible = false;
             return;
@@ -484,24 +484,24 @@ public partial class FriendsPage : ContentPage
         CollectedResultsCard.IsVisible = true;
         CollectedEmptyLabel.IsVisible = false;
 
-        var sorted = _collectedUsernames
-            .OrderBy(u => u, StringComparer.OrdinalIgnoreCase)
+        var sorted = _collectedFriends
+            .OrderBy(f => f.Username, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
         var existingFriends = _settingsService.GetFriendsList();
         var existingSet = new HashSet<string>(
             existingFriends.Select(f => f.Username.ToLowerInvariant()));
 
-        foreach (var username in sorted)
+        foreach (var friend in sorted)
         {
-            bool inList = existingSet.Contains(username.ToLowerInvariant());
-            CollectedListContainer.Children.Add(CreateCollectedItem(username, inList));
+            bool inList = existingSet.Contains(friend.Username.ToLowerInvariant());
+            CollectedListContainer.Children.Add(CreateCollectedItem(friend.Username, friend.DisplayName, inList));
         }
 
         CollectedTotalLabel.Text = $"Total: {sorted.Count}";
     }
 
-    private View CreateCollectedItem(string username, bool inFriendList)
+    private View CreateCollectedItem(string username, string displayName, bool inFriendList)
     {
         var border = new Border
         {
@@ -523,14 +523,33 @@ public partial class FriendsPage : ContentPage
             ColumnSpacing = 8
         };
 
-        var label = new Label
+        // Display name + username stacked
+        var infoStack = new VerticalStackLayout { Spacing = 2, VerticalOptions = LayoutOptions.Center };
+        if (!string.IsNullOrEmpty(displayName) && !displayName.Equals(username, StringComparison.OrdinalIgnoreCase))
         {
-            Text = $"@{username}",
-            FontSize = 14,
-            FontFamily = "InterSemiBold",
-            VerticalOptions = LayoutOptions.Center
-        };
-        grid.Children.Add(label);
+            infoStack.Children.Add(new Label
+            {
+                Text = displayName,
+                FontSize = 14,
+                FontFamily = "InterSemiBold"
+            });
+            infoStack.Children.Add(new Label
+            {
+                Text = $"@{username}",
+                FontSize = 12,
+                TextColor = GetThemeColor("Gray400", "#8B8F96")
+            });
+        }
+        else
+        {
+            infoStack.Children.Add(new Label
+            {
+                Text = $"@{username}",
+                FontSize = 14,
+                FontFamily = "InterSemiBold"
+            });
+        }
+        grid.Children.Add(infoStack);
 
         var actionButton = new Button
         {
@@ -554,7 +573,7 @@ public partial class FriendsPage : ContentPage
             actionButton.Text = "Add";
             actionButton.BackgroundColor = GetThemeColor("Primary", "#FE2C55");
             actionButton.TextColor = Colors.White;
-            actionButton.Clicked += (s, e) => OnAddCollected(username);
+            actionButton.Clicked += (s, e) => OnAddCollected(username, displayName);
         }
 
         Grid.SetColumn(actionButton, 1);
@@ -564,7 +583,7 @@ public partial class FriendsPage : ContentPage
         return border;
     }
 
-    private void OnAddCollected(string username)
+    private void OnAddCollected(string username, string displayName)
     {
         var existing = _settingsService.GetFriendsList();
         if (existing.Any(f => f.Username.Equals(username, StringComparison.OrdinalIgnoreCase)))
@@ -576,7 +595,7 @@ public partial class FriendsPage : ContentPage
         existing.Add(new FriendConfig
         {
             Username = username,
-            DisplayName = string.Empty,
+            DisplayName = displayName ?? string.Empty,
             IsEnabled = true
         });
         _settingsService.SaveFriendsList(existing);

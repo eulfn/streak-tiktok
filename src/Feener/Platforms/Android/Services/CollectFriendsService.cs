@@ -6,14 +6,13 @@ using Android.Runtime;
 using Android.Webkit;
 using AndroidX.Core.App;
 using Java.Interop;
-using Microsoft.Maui.Controls.Internals;
 using Feener.Services;
 using WebView = Android.Webkit.WebView;
 
 namespace Feener.Platforms.Android.Services;
 
 [Service(Name = AppConstants.PackageName + ".Services.CollectFriendsService", ForegroundServiceType = ForegroundService.TypeDataSync)]
-[Preserve(AllMembers = true)]
+[Microsoft.Maui.Controls.Internals.Preserve(AllMembers = true)]
 public class CollectFriendsService : Service
 {
     private const string ChannelId = "collect_friends_channel";
@@ -32,7 +31,8 @@ public class CollectFriendsService : Service
     public static bool IsRunning => _isRunning;
 
     // ── Collected results (read by FriendsPage) ──
-    private static readonly List<string> _collectedUsernames = new();
+    // Key: lowercase username, Value: (username, displayName)
+    private static readonly Dictionary<string, (string Username, string DisplayName)> _collected = new();
     private static readonly object _resultsLock = new();
     private static string? _statusMessage;
     private static bool _isDone = false;
@@ -42,11 +42,11 @@ public class CollectFriendsService : Service
 
     // ── Public accessors for FriendsPage ──
 
-    public static List<string> GetCollectedUsernames()
+    public static List<(string Username, string DisplayName)> GetCollectedFriends()
     {
         lock (_resultsLock)
         {
-            return new List<string>(_collectedUsernames);
+            return _collected.Values.ToList();
         }
     }
 
@@ -60,7 +60,7 @@ public class CollectFriendsService : Service
     {
         lock (_resultsLock)
         {
-            _collectedUsernames.Clear();
+            _collected.Clear();
         }
         _statusMessage = null;
         _isDone = false;
@@ -313,18 +313,18 @@ public class CollectFriendsService : Service
 
     // ── JS bridge callbacks ──
 
-    internal void OnFriendFound(string username)
+    internal void OnFriendFound(string username, string displayName)
     {
         lock (_resultsLock)
         {
             var key = username.ToLowerInvariant();
-            if (!_collectedUsernames.Any(u => u.Equals(username, StringComparison.OrdinalIgnoreCase)))
+            if (!_collected.ContainsKey(key))
             {
-                _collectedUsernames.Add(username);
+                _collected[key] = (username, displayName);
             }
         }
         var count = 0;
-        lock (_resultsLock) { count = _collectedUsernames.Count; }
+        lock (_resultsLock) { count = _collected.Count; }
         _statusMessage = $"Collecting... {count} found";
         UpdateNotification($"Collecting friends: {count} found");
     }
@@ -332,12 +332,11 @@ public class CollectFriendsService : Service
     internal void OnCollectComplete(int total)
     {
         int count;
-        lock (_resultsLock) { count = _collectedUsernames.Count; }
+        lock (_resultsLock) { count = _collected.Count; }
         AppLog($"Collection complete: {count} unique friends found");
         _statusMessage = $"Done — {count} friend{(count == 1 ? "" : "s")} found";
         _isDone = true;
 
-        // Show final notification
         ShowCompletionNotification($"Found {count} friend{(count == 1 ? "" : "s")} in your DM list");
         Cleanup();
     }
@@ -345,7 +344,7 @@ public class CollectFriendsService : Service
     internal void OnCollectError(string error)
     {
         int count;
-        lock (_resultsLock) { count = _collectedUsernames.Count; }
+        lock (_resultsLock) { count = _collected.Count; }
         AppLog($"Collection error: {error} (collected {count} before error)");
         _errorMessage = error;
         _isDone = true;
@@ -433,9 +432,9 @@ public class CollectFriendsService : Service
 
         [JavascriptInterface]
         [Export("onFriendFound")]
-        public void OnFriendFound(string username)
+        public void OnFriendFound(string username, string displayName)
         {
-            _service._mainHandler?.Post(() => _service.OnFriendFound(username));
+            _service._mainHandler?.Post(() => _service.OnFriendFound(username, displayName ?? ""));
         }
 
         [JavascriptInterface]

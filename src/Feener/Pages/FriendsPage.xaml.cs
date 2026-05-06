@@ -115,7 +115,12 @@ public partial class FriendsPage : ContentPage
                 {
                     if (!existingSet.Contains(friend.Username.ToLowerInvariant()))
                     {
-                        _settingsService.AddFriend(friend.Username, friend.DisplayName);
+                        _settingsService.AddFriend(new Feener.Models.FriendConfig 
+                        {
+                            Username = friend.Username,
+                            DisplayName = friend.DisplayName,
+                            IsEnabled = true
+                        });
                         addedNew = true;
                     }
                 }
@@ -149,7 +154,7 @@ public partial class FriendsPage : ContentPage
             {
                 if (!collectedSet.Contains(friend.Username.ToLowerInvariant()))
                 {
-                    _settingsService.RemoveFriend(friend.Username);
+                    _settingsService.RemoveFriend(friend.Id);
                     removedOld = true;
                 }
             }

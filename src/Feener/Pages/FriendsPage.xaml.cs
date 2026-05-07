@@ -15,6 +15,11 @@ public partial class FriendsPage : ContentPage
 
     // ── Collect mode state ──────────────────────────────────────────────────
     private bool _lastCollectRunning = false;
+private bool _lastCollectRunning = false;
+private bool _lastIsDone = false;
+private bool _isExportingCollectLogs = false;
+private List<(string Username, string DisplayName)> _collectedFriends = new();
+private string _lastCollectedSignature = string.Empty;
     private List<(string Username, string DisplayName)> _collectedFriends = new();
     private string _lastCollectedSignature = string.Empty;
 
@@ -674,5 +679,42 @@ public partial class FriendsPage : ContentPage
             LoadFriendsList();
         }
         RebuildCollectedList();
+    }
+
+    private async void OnExportCollectLogsClicked(object? sender, EventArgs e)
+    {
+        if (_isExportingCollectLogs) return;
+        _isExportingCollectLogs = true;
+        try
+        {
+#if ANDROID
+            var logs = Feener.Platforms.Android.Services.CollectFriendsService.GetLogs();
+#else
+            var logs = new List<string>();
+#endif
+            if (logs == null || logs.Count == 0)
+            {
+                await DisplayAlert("Export Logs", "No collect logs to export.", "OK");
+                return;
+            }
+
+            var textContent = string.Join(Environment.NewLine, logs);
+            var fileName = $"collect_logs_{DateTime.Now:yyyyMMdd_HHmm}.txt";
+            var filePath = System.IO.Path.Combine(FileSystem.CacheDirectory, fileName);
+            await System.IO.File.WriteAllTextAsync(filePath, textContent);
+            await Share.Default.RequestAsync(new ShareFileRequest
+            {
+                Title = "Export Collect Logs",
+                File = new ShareFile(filePath, "text/plain")
+            });
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Export Failed", $"Could not export logs: {ex.Message}", "OK");
+        }
+        finally
+        {
+            _isExportingCollectLogs = false;
+        }
     }
 }

@@ -16,6 +16,7 @@ public partial class FriendsPage : ContentPage
     // ── Collect mode state ──────────────────────────────────────────────────
     private bool _lastCollectRunning = false;
     private List<(string Username, string DisplayName)> _collectedFriends = new();
+    private string _lastCollectedSignature = string.Empty;
 
     public FriendsPage()
     {
@@ -79,7 +80,7 @@ public partial class FriendsPage : ContentPage
 
             SearchAndBulkRow.IsEnabled = !isRunning;
             SearchAndBulkRow.Opacity = isRunning ? 0.6 : 1.0;
-            
+
             ActionButtonsGrid.IsEnabled = !isRunning;
             ActionButtonsGrid.Opacity = isRunning ? 0.6 : 1.0;
 
@@ -102,20 +103,22 @@ public partial class FriendsPage : ContentPage
         if (collectRunning)
         {
             var current = Feener.Platforms.Android.Services.CollectFriendsService.GetCollectedFriends();
-            if (current.Count != _collectedFriends.Count)
+            var currentSignature = BuildCollectedSignature(current);
+            if (!string.Equals(currentSignature, _lastCollectedSignature, StringComparison.Ordinal))
             {
                 _collectedFriends = current;
-                
+                _lastCollectedSignature = currentSignature;
+
                 // ── Auto-Sync: Add new friends immediately ──
                 var existingFriends = _settingsService.GetFriendsList();
                 var existingSet = new HashSet<string>(existingFriends.Select(f => f.Username.ToLowerInvariant()));
                 bool addedNew = false;
-                
+
                 foreach (var friend in current)
                 {
                     if (!existingSet.Contains(friend.Username.ToLowerInvariant()))
                     {
-                        _settingsService.AddFriend(new Feener.Models.FriendConfig 
+                        _settingsService.AddFriend(new Feener.Models.FriendConfig
                         {
                             Username = friend.Username,
                             DisplayName = friend.DisplayName,
@@ -124,7 +127,7 @@ public partial class FriendsPage : ContentPage
                         addedNew = true;
                     }
                 }
-                
+
                 if (addedNew)
                 {
                     LoadFriendsList();
@@ -141,15 +144,16 @@ public partial class FriendsPage : ContentPage
         {
             var collected = Feener.Platforms.Android.Services.CollectFriendsService.GetCollectedFriends();
             _collectedFriends = collected;
-            
+            _lastCollectedSignature = BuildCollectedSignature(collected);
+
             var status = Feener.Platforms.Android.Services.CollectFriendsService.GetStatusMessage();
             if (status != null) CollectStatusLabel.Text = status;
-            
+
             // ── Auto-Sync: Remove friends not found in the new collection ──
             var existingFriends = _settingsService.GetFriendsList();
             var collectedSet = new HashSet<string>(collected.Select(c => c.Username.ToLowerInvariant()));
             bool removedOld = false;
-            
+
             foreach (var friend in existingFriends)
             {
                 if (!collectedSet.Contains(friend.Username.ToLowerInvariant()))
@@ -158,7 +162,7 @@ public partial class FriendsPage : ContentPage
                     removedOld = true;
                 }
             }
-            
+
             if (removedOld)
             {
                 LoadFriendsList();
@@ -175,6 +179,16 @@ public partial class FriendsPage : ContentPage
         if (CollectModeContainer.IsVisible)
             RebuildCollectedList();
         MainRefreshView.IsRefreshing = false;
+    }
+
+    private static string BuildCollectedSignature(List<(string Username, string DisplayName)> items)
+    {
+        if (items.Count == 0) return string.Empty;
+
+        return string.Join("|", items
+            .OrderBy(x => x.Username, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(x => x.DisplayName, StringComparer.OrdinalIgnoreCase)
+            .Select(x => $"{x.Username.Trim().ToLowerInvariant()}::{(x.DisplayName ?? string.Empty).Trim()}"));
     }
 
     // ═══════════════════════════════════════════════════════════════════════

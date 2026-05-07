@@ -40,6 +40,10 @@ public class CollectFriendsService : Service
 
     private static readonly List<string> _logs = new();
 
+    // ── Live notification heartbeat throttling ──
+    private static long _lastNotificationUpdateMs = 0;
+    private static string _lastNotificationMessage = string.Empty;
+
     // ── Public accessors for FriendsPage ──
 
     public static List<(string Username, string DisplayName)> GetCollectedFriends()
@@ -66,6 +70,8 @@ public class CollectFriendsService : Service
         _isDone = false;
         _errorMessage = null;
         _logs.Clear();
+        _lastNotificationUpdateMs = 0;
+        _lastNotificationMessage = string.Empty;
     }
 
     private static void AppLog(string message)
@@ -73,6 +79,45 @@ public class CollectFriendsService : Service
         var entry = $"[{DateTime.Now:HH:mm:ss}] [COLLECT] {message}";
         _logs.Add(entry);
         System.Diagnostics.Debug.WriteLine(entry);
+    }
+
+    private static bool ShouldSurfaceLogToStatus(string message)
+    {
+        if (string.IsNullOrWhiteSpace(message)) return false;
+
+        return message.Contains("Clicking chat item", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("After scroll", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("Scrolling chat list", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("Timeout reading header", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("No uncollected items visible", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("Initial:", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("Collection complete", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private bool TryUpdateLiveStatusFromLog(string rawMessage)
+    {
+        if (!ShouldSurfaceLogToStatus(rawMessage)) return false;
+
+        var clean = rawMessage.Trim();
+        if (clean.StartsWith("[COLLECT]", StringComparison.OrdinalIgnoreCase))
+        {
+            clean = clean.Substring("[COLLECT]".Length).Trim();
+        }
+
+        var nextStatus = $"Collecting... {clean}";
+        var nowMs = Java.Lang.JavaSystem.CurrentTimeMillis();
+
+        // Throttle status pushes to avoid notification spam while preserving heartbeat.
+        // Always allow a different message through immediately.
+        bool sameAsLast = string.Equals(nextStatus, _lastNotificationMessage, StringComparison.Ordinal);
+        if (sameAsLast && (nowMs - _lastNotificationUpdateMs) < 1200)
+            return false;
+
+        _lastNotificationMessage = nextStatus;
+        _lastNotificationUpdateMs = nowMs;
+        _statusMessage = nextStatus;
+        UpdateNotification(nextStatus);
+        return true;
     }
 
     // ── Service lifecycle ──
@@ -108,6 +153,7 @@ public class CollectFriendsService : Service
         }
 
         ClearResults();
+        _automationStarted = false;
         _statusMessage = "Loading TikTok messages...";
         _mainHandler?.Post(StartWebViewCollection);
 
@@ -364,6 +410,7 @@ public class CollectFriendsService : Service
     {
         AppLog(message);
         _statusMessage = message;
+        _errorMessage = message;
         _isDone = true;
         ShowCompletionNotification(message);
         Cleanup();
@@ -455,8 +502,12 @@ public class CollectFriendsService : Service
         [Export("log")]
         public void Log(string message)
         {
-            var entry = $"[{DateTime.Now:HH:mm:ss}] {message}";
-            CollectFriendsService._logs.Add(entry);
+            _service._mainHandler?.Post(() =>
+            {
+                var entry = $"[{DateTime.Now:HH:mm:ss}] {message}";
+                CollectFriendsService._logs.Add(entry);
+                _service.TryUpdateLiveStatusFromLog(message ?? string.Empty);
+            });
         }
 
         // ── Stubs for tiktok_automation.js compatibility ──

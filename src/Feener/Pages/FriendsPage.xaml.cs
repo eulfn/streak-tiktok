@@ -15,6 +15,7 @@ public partial class FriendsPage : ContentPage
 
     // ── Collect mode state ──────────────────────────────────────────────────
     private bool _lastCollectRunning = false;
+    private bool _lastIsDone = false;
     private List<(string Username, string DisplayName)> _collectedFriends = new();
     private string _lastCollectedSignature = string.Empty;
 
@@ -93,9 +94,12 @@ public partial class FriendsPage : ContentPage
         // ── Collect mode: track CollectFriendsService state ──
 #if ANDROID
         bool collectRunning = Feener.Platforms.Android.Services.CollectFriendsService.IsRunning;
+        bool isDone = Feener.Platforms.Android.Services.CollectFriendsService.IsDone;
         if (collectRunning != _lastCollectRunning)
         {
             _lastCollectRunning = collectRunning;
+            // New run starting: reset done guard so completion block fires once for this run
+            if (collectRunning) _lastIsDone = false;
             UpdateCollectUI();
         }
 
@@ -139,9 +143,10 @@ public partial class FriendsPage : ContentPage
             if (status != null) CollectStatusLabel.Text = status;
         }
 
-        // When done, do a final update and clean up
-        if (!collectRunning && Feener.Platforms.Android.Services.CollectFriendsService.IsDone)
+        // When done, run exactly once per completed run (guard prevents re-firing every timer tick)
+        if (!collectRunning && isDone && !_lastIsDone)
         {
+            _lastIsDone = true;
             var collected = Feener.Platforms.Android.Services.CollectFriendsService.GetCollectedFriends();
             _collectedFriends = collected;
             _lastCollectedSignature = BuildCollectedSignature(collected);

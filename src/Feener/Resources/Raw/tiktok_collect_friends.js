@@ -19,7 +19,6 @@
 
   var collected = {};
   var chatItems = [];
-  var chatIndex = 0;
   var maxScrollAttempts = 15;
   var scrollAttempts = 0;
 
@@ -238,7 +237,11 @@
       pollCount++;
       var username = findCurrentChatUsername();
 
-      if (username) {
+      // Accept username only when the header has actually changed from before the click.
+      // prevUsername === '' means no chat was open before this click (first item),
+      // so any resolved username is valid. Otherwise require a change to guard against
+      // stale reads at the 200ms poll boundary.
+      if (username && (prevUsername === "" || username !== prevUsername)) {
         addFriend(username, displayName);
         processedItemKeys[itemKey] = true;
         setTimeout(collectNextChat, 300);

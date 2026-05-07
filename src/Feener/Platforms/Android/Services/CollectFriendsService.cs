@@ -17,6 +17,8 @@ public class CollectFriendsService : Service
 {
     private const string ChannelId = "collect_friends_channel";
     private const string ChannelName = "Friend Collection";
+    private const string CompletionChannelId = "collect_complete_channel";
+    private const string CompletionChannelName = "Collection Results";
     private const int NotificationId = 2001;
 
     private WebView? _webView;
@@ -43,6 +45,9 @@ public class CollectFriendsService : Service
     // ── Live notification heartbeat throttling ──
     private static long _lastNotificationUpdateMs = 0;
     private static string _lastNotificationMessage = string.Empty;
+    // Timestamp of the last OnFriendFound call; used to protect the count status
+    // from being immediately overwritten by the next heartbeat log.
+    private static long _lastFriendFoundMs = 0;
 
     // ── Public accessors for FriendsPage ──
 
@@ -72,6 +77,7 @@ public class CollectFriendsService : Service
         _logs.Clear();
         _lastNotificationUpdateMs = 0;
         _lastNotificationMessage = string.Empty;
+        _lastFriendFoundMs = 0;
     }
 
     private static void AppLog(string message)
@@ -97,6 +103,13 @@ public class CollectFriendsService : Service
     private bool TryUpdateLiveStatusFromLog(string rawMessage)
     {
         if (!ShouldSurfaceLogToStatus(rawMessage)) return false;
+
+        // Protect the "N found" count set by OnFriendFound for 2 seconds.
+        // The next collectNextChat log fires ~300ms after a find; without this
+        // guard the count is overwritten before the user can read it.
+        var nowMsCheck = Java.Lang.JavaSystem.CurrentTimeMillis();
+        if ((nowMsCheck - _lastFriendFoundMs) < 2000)
+            return false;
 
         var clean = rawMessage.Trim();
         if (clean.StartsWith("[COLLECT]", StringComparison.OrdinalIgnoreCase))
@@ -205,14 +218,26 @@ public class CollectFriendsService : Service
         if (Build.VERSION.SdkInt >= BuildVersionCodes.O)
         {
             var notificationManager = (NotificationManager?)GetSystemService(NotificationService);
-            if (notificationManager?.GetNotificationChannel(ChannelId) != null) return;
 
-            var channel = new NotificationChannel(ChannelId, ChannelName, NotificationImportance.Low)
+            if (notificationManager?.GetNotificationChannel(ChannelId) == null)
             {
-                Description = "Notification channel for friend collection"
-            };
-            channel.SetShowBadge(false);
-            notificationManager?.CreateNotificationChannel(channel);
+                var channel = new NotificationChannel(ChannelId, ChannelName, NotificationImportance.Low)
+                {
+                    Description = "Notification channel for friend collection"
+                };
+                channel.SetShowBadge(false);
+                notificationManager?.CreateNotificationChannel(channel);
+            }
+
+            if (notificationManager?.GetNotificationChannel(CompletionChannelId) == null)
+            {
+                var completionChannel = new NotificationChannel(CompletionChannelId, CompletionChannelName, NotificationImportance.Default)
+                {
+                    Description = "Result summary when friend collection finishes"
+                };
+                completionChannel.SetShowBadge(true);
+                notificationManager?.CreateNotificationChannel(completionChannel);
+            }
         }
     }
 
@@ -372,6 +397,7 @@ public class CollectFriendsService : Service
         var count = 0;
         lock (_resultsLock) { count = _collected.Count; }
         _statusMessage = $"Collecting... {count} found";
+        _lastFriendFoundMs = Java.Lang.JavaSystem.CurrentTimeMillis();
         UpdateNotification($"Collecting friends: {count} found");
     }
 
@@ -418,7 +444,7 @@ public class CollectFriendsService : Service
 
     private void ShowCompletionNotification(string message)
     {
-        var notification = new NotificationCompat.Builder(this, ChannelId)
+        var notification = new NotificationCompat.Builder(this, CompletionChannelId)
             .SetContentTitle("Feener")
             .SetContentText(message)
             .SetSmallIcon(Resource.Drawable.ic_notification)

@@ -221,6 +221,12 @@
                                                    Color="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource White}}"
                                                    HeightRequest="32" WidthRequest="32"
                                                    HorizontalOptions="Center"/>
+                                <Button x:Name="ExportCollectLogsButton"
+                                        Text="Export Logs"
+                                        Style="{StaticResource TextButton}"
+                                        FontSize="12"
+                                        HorizontalOptions="End"
+                                        Clicked="OnExportCollectLogsClicked"/>
                             </VerticalStackLayout>
                         </Border>
 

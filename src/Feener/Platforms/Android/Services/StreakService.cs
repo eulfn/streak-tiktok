@@ -371,6 +371,13 @@ public class StreakService : Service
             _webView.Settings.SetSupportZoom(true);
             _webView.Settings.BuiltInZoomControls = true;
 
+            // Give the headless WebView a real viewport so TikTok's virtualized
+            // chat list renders its children. Without dimensions, the WebView is
+            // 0x0 and lazy-rendered elements (dm-new-conversation-item) never appear.
+            _webView.Settings.UseWideViewPort = true;
+            _webView.Settings.LoadWithOverviewMode = true;
+            _webView.Layout(0, 0, 1920, 1080);
+
             // Enable cookies
             var cookieManager = CookieManager.Instance;
             cookieManager?.SetAcceptCookie(true);

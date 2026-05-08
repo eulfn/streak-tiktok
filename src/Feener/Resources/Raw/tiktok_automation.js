@@ -19,15 +19,16 @@
     };
 
     var findChatItems = function () {
-        // Primary selector (v1.8.0 original)
-        var items = document.querySelectorAll("[data-e2e*='chat-list-item']");
+        // Primary selector — TikTok's current data-e2e attribute for inbox items
+        var items = document.querySelectorAll("[data-e2e*='inbox-list-item']");
         if (items.length > 0) {
-            log('Found ' + items.length + ' items via primary: chat-list-item');
+            log('Found ' + items.length + ' items via primary: inbox-list-item');
             return items;
         }
 
         // Fallback selectors — TikTok periodically renames data-e2e values
         var fallbacks = [
+            "[data-e2e*='chat-list-item']",
             "[data-e2e*='dm-new-conversation-item']",
             "[data-e2e*='chat-item']"
         ];
@@ -41,8 +42,16 @@
             } catch (e) { }
         }
 
-        // Nothing found
-        return document.querySelectorAll("[data-e2e*='chat-list-item']");
+        // All selectors failed — log every data-e2e value on the page for diagnosis
+        var allE2e = document.querySelectorAll('[data-e2e]');
+        var vals = [];
+        for (var j = 0; j < allE2e.length; j++) {
+            var v = allE2e[j].getAttribute('data-e2e');
+            if (v && vals.indexOf(v) === -1) vals.push(v);
+        }
+        log('WARNING: All chat-item selectors returned 0 results. Current data-e2e values on page: ' + vals.join(', '));
+
+        return document.querySelectorAll("[data-e2e*='inbox-list-item']");
     };
 
     var findChatListContainer = function () {

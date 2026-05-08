@@ -16,8 +16,8 @@
 		<!-- App Identifier -->
 		<ApplicationId>com.fen.loid</ApplicationId>
 
-		<ApplicationDisplayVersion>2.5.0</ApplicationDisplayVersion>
-		<ApplicationVersion>20500</ApplicationVersion>
+		<ApplicationDisplayVersion>6.0.0</ApplicationDisplayVersion>
+		<ApplicationVersion>60000</ApplicationVersion>
 
 		<!-- To develop, package, and publish an app to the Microsoft Store, see: https://aka.ms/MauiTemplateUnpackaged -->
 		<WindowsPackageType>None</WindowsPackageType>

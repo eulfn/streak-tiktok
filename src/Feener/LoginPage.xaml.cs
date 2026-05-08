@@ -37,6 +37,18 @@ public partial class LoginPage : ContentPage
 
     private void OnWebViewNavigated(object? sender, WebNavigatedEventArgs e)
     {
+        // Guard against non-http schemes (e.g. tiktok://) that crash the WebView
+        // with ERR_UNKNOWN_URL_SCHEME. The failed navigation leaves the WebView on
+        // an error page, so reload the login page to recover — matching the original
+        // CheckLoginStatus/IsValidUrl flow that the cookie-based refactor removed.
+        if (!string.IsNullOrEmpty(e.Url) &&
+            !e.Url.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
+            !e.Url.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        {
+            LoadTikTok();
+            return;
+        }
+
         if (_isLoggedIn)
         {
             return;

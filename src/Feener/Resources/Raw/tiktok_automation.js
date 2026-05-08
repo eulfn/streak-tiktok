@@ -19,17 +19,17 @@
     };
 
     var findChatItems = function () {
-        // Primary selector — TikTok's current data-e2e attribute for inbox items
-        var items = document.querySelectorAll("[data-e2e*='inbox-list-item']");
+        // Primary selector — TikTok DM conversation items (not inbox notifications)
+        var items = document.querySelectorAll("[data-e2e='dm-new-conversation-item']");
         if (items.length > 0) {
-            log('Found ' + items.length + ' items via primary: inbox-list-item');
+            log('Found ' + items.length + ' items via primary: dm-new-conversation-item');
             return items;
         }
 
         // Fallback selectors — TikTok periodically renames data-e2e values
         var fallbacks = [
             "[data-e2e*='chat-list-item']",
-            "[data-e2e*='dm-new-conversation-item']",
+            "[data-e2e*='inbox-list-item']",
             "[data-e2e*='chat-item']"
         ];
         for (var i = 0; i < fallbacks.length; i++) {
@@ -51,7 +51,7 @@
         }
         log('WARNING: All chat-item selectors returned 0 results. Current data-e2e values on page: ' + vals.join(', '));
 
-        return document.querySelectorAll("[data-e2e*='inbox-list-item']");
+        return document.querySelectorAll("[data-e2e='dm-new-conversation-item']");
     };
 
     var findChatListContainer = function () {

@@ -238,8 +238,12 @@
                 var match = href.match(/\/@([^\/]+)/);
                 return match ? match[1] : '';
             }
+            log('[HEADER] ChatHeader found but no a[href*="/@"] link inside it');
+        } else {
+            log('[HEADER] No ChatHeader element found on page');
         }
 
+        // Fallback: any profile link in the chat panel area
         var links = document.querySelectorAll('[class*="StyledLink"]');
         for (var i = 0; i < links.length; i++) {
             var link = links[i];
@@ -252,6 +256,20 @@
                 if (match && match[1]) {
                     return match[1];
                 }
+            }
+        }
+
+        // Last resort: any a[href*="/@"] not inside a chat list item
+        var allProfileLinks = document.querySelectorAll('a[href*="/@"]');
+        for (var j = 0; j < allProfileLinks.length; j++) {
+            var pLink = allProfileLinks[j];
+            // Skip links inside the chat list sidebar
+            if (pLink.closest('[data-e2e*="conversation-item"]') || pLink.closest('[data-e2e*="chat-list"]') || pLink.closest('[data-e2e*="dm-new-conversation"]')) continue;
+            var href = pLink.getAttribute('href') || '';
+            var match = href.match(/\/@([^\/]+)/);
+            if (match && match[1]) {
+                log('[HEADER] Found username via last-resort profile link: ' + match[1]);
+                return match[1];
             }
         }
 
@@ -454,7 +472,7 @@
                 chatIndex++;
                 checkNextChat();
             }
-        }, 1500);
+        }, 2500);
     };
 
     // ── Initialization with Checkpoint Retries ───────────────────────────────

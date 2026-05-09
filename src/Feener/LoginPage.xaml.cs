@@ -26,10 +26,12 @@ public partial class LoginPage : ContentPage
         LoadingOverlay.IsVisible = true;
         
 #if ANDROID
-        // Configure WebView with random user agent and persist it for service replay
-        var randomUa = RandomUa.RandomUserAgent;
-        TikTokWebViewHelper.ConfigureWebView(TikTokWebView, randomUa);
-        _sessionService.SetLoginUserAgent(randomUa);
+        // Use a modern Chrome desktop UA. The RandomUa library can generate
+        // ancient browsers (e.g. Firefox 3.6/2010) that cause TikTok to serve
+        // degraded markup, breaking chat header rendering.
+        var desktopUa = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
+        TikTokWebViewHelper.ConfigureWebView(TikTokWebView, desktopUa);
+        _sessionService.SetLoginUserAgent(desktopUa);
 #endif
 
         TikTokWebView.Source = TikTokWebViewHelper.LoginUrl;

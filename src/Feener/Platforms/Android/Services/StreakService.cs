@@ -366,7 +366,7 @@ public class StreakService : Service
             // Falls back to Chrome 91 desktop UA which avoids TikTok bot detection.
             var sessionService = new SessionService();
             var loginUa = sessionService.GetLoginUserAgent()
-                ?? "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36";
+                ?? "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
             _webView.Settings.UserAgentString = loginUa;
             _webView.Settings.SetSupportZoom(true);
             _webView.Settings.BuiltInZoomControls = true;

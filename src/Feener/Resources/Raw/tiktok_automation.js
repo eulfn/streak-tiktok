@@ -7,8 +7,9 @@
     var found = false;
     var chatIndex = 0;
     var chatItems = [];
-    var maxScrollAttempts = 5;
+    var maxScrollAttempts = 50;
     var scrollAttempts = 0;
+    var checkedUsernames = {};
 
     var log = function (msg) {
         if (typeof StreakApp == 'undefined') {
@@ -199,28 +200,30 @@
             reportError('User not found in chat list');
             return;
         }
-        var prevCount = chatItems.length;
         var prevScrollTop = container.scrollTop;
-        container.scrollTop = container.scrollHeight;
-        log('[SCROLL] Scrolling chat list (attempt ' + scrollAttempts + '/' + maxScrollAttempts + ')...');
+        var prevCount = chatItems.length;
+        // Scroll by one viewport height, not to the bottom — TikTok's virtualized
+        // list recycles DOM nodes and jumping to scrollHeight skips conversations.
+        container.scrollTop += container.clientHeight * 3;
+        log('[SCROLL] Scrolling chat list (attempt ' + scrollAttempts + '/' + maxScrollAttempts + ', scrolling by ' + (container.clientHeight * 3) + 'px)...');
         setTimeout(function () {
             chatItems = findChatItems();
-            log('[SCROLL] After scroll: ' + chatItems.length + ' items (was ' + prevCount + ')');
-            if (chatItems.length > prevCount) {
-                checkNextChat();
-            } else if (container.scrollTop > prevScrollTop) {
-                setTimeout(function () {
-                    chatItems = findChatItems();
-                    if (chatItems.length > prevCount) {
-                        checkNextChat();
-                    } else {
-                        scrollAndRetry();
-                    }
-                }, 2000);
-            } else {
+            log('[SCROLL] After scroll: ' + chatItems.length + ' items, scrollTop: ' + container.scrollTop + ' (was ' + prevScrollTop + ')');
+
+            if (container.scrollTop <= prevScrollTop) {
                 log('[SCROLL] Scroll did not move — end of list');
                 reportError('User not found in chat list');
+                return;
             }
+
+            // After scrolling, clicking items near the top scrolls the sidebar
+            // back up, undoing our scroll. Only check items from the lower portion
+            // of the list where new content from the scroll appears.
+            // Use max(0, prevCount - 5) to catch a few overlapping items for safety.
+            var startFrom = Math.max(0, prevCount - 15);
+            log('[SCROLL] Scanning from item ' + (startFrom + 1) + '/' + chatItems.length + ' (checked: ' + Object.keys(checkedUsernames).length + ' usernames so far)');
+            chatIndex = startFrom;
+            checkNextChat();
         }, 2000);
     };
 
@@ -259,12 +262,14 @@
             }
         }
 
-        // Last resort: any a[href*="/@"] not inside a chat list item
+        // Last resort: any a[href*="/@"] in the chat panel (right side), not in nav or chat list
         var allProfileLinks = document.querySelectorAll('a[href*="/@"]');
         for (var j = 0; j < allProfileLinks.length; j++) {
             var pLink = allProfileLinks[j];
             // Skip links inside the chat list sidebar
             if (pLink.closest('[data-e2e*="conversation-item"]') || pLink.closest('[data-e2e*="chat-list"]') || pLink.closest('[data-e2e*="dm-new-conversation"]')) continue;
+            // Skip links in the nav bar (these are the logged-in user's own profile)
+            if (pLink.closest('[data-e2e*="nav-"]') || pLink.closest('[data-e2e="profile-icon"]') || pLink.closest('nav')) continue;
             var href = pLink.getAttribute('href') || '';
             var match = href.match(/\/@([^\/]+)/);
             if (match && match[1]) {
@@ -442,6 +447,10 @@
         var currentUsername = findCurrentChatUsername();
         log('[CHAT] Current chat username: "' + currentUsername + '" (target: "' + userName + '")');
 
+        if (currentUsername) {
+            checkedUsernames[currentUsername.toLowerCase()] = true;
+        }
+
         if (currentUsername && isTargetUser(currentUsername)) {
             found = true;
             log('[CHAT] MATCH — Found target user');
@@ -462,17 +471,58 @@
         }
 
         var chatItem = chatItems[chatIndex];
+
+        // Try to extract username from the chat item's own links before clicking.
+        // This avoids the expensive 2.5s click+wait for already-checked items.
+        var itemLinks = chatItem.querySelectorAll('a[href*="/@"]');
+        for (var i = 0; i < itemLinks.length; i++) {
+            var href = itemLinks[i].getAttribute('href') || '';
+            var match = href.match(/\/@([^\/]+)/);
+            if (match && match[1]) {
+                var inlineUsername = match[1].toLowerCase().trim();
+                if (checkedUsernames[inlineUsername]) {
+                    chatIndex++;
+                    checkNextChat();
+                    return;
+                }
+                if (isTargetUser(match[1])) {
+                    log('[CHAT] MATCH — Found @' + match[1] + ' in item ' + (chatIndex + 1) + ' (pre-click)');
+                    chatItem.click();
+                    found = true;
+                    setTimeout(sendMessageViaButton, 2500);
+                    return;
+                }
+                break;
+            }
+        }
+
         log('[CHAT] Clicking item ' + (chatIndex + 1) + '/' + chatItems.length);
         chatItem.click();
 
         setTimeout(function () {
-            var userFound = searchForUserInCurrentChat();
+            var currentUsername = findCurrentChatUsername();
+            log('[CHAT] Current chat username: "' + currentUsername + '" (target: "' + userName + '")');
 
-            if (!userFound) {
+            if (currentUsername && checkedUsernames[currentUsername.toLowerCase()]) {
                 chatIndex++;
                 checkNextChat();
+                return;
             }
-        }, 2500);
+
+            if (currentUsername) {
+                checkedUsernames[currentUsername.toLowerCase()] = true;
+            }
+
+            if (currentUsername && isTargetUser(currentUsername)) {
+                found = true;
+                log('[CHAT] MATCH — Found target user');
+                sendMessageViaButton();
+                return;
+            }
+
+            chatIndex++;
+            checkNextChat();
+        }, 1500);
     };
 
     // ── Initialization with Checkpoint Retries ───────────────────────────────

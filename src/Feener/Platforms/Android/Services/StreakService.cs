@@ -473,7 +473,8 @@ public class StreakService : Service
 
         if (!_isBurstMode)
         {
-            AppLog("PROCESS", $"@{friend.Username}", $"Starting normal messaging");
+            var logTarget = friend.IsGroup ? $"Group: {friend.DisplayName}" : $"@{friend.Username}";
+            AppLog("PROCESS", logTarget, $"Starting normal messaging");
         }
 
         SendCurrentFriendMessage();
@@ -530,6 +531,8 @@ public class StreakService : Service
     private string GetFriendMessageScript(string target, string message, bool isGroup)
     {
         // Escape special characters for JavaScript
+        target = target ?? string.Empty;
+        message = message ?? string.Empty;
         var escapedTarget = target.Replace("\\", "\\\\").Replace("'", "\\'").Replace("\"", "\\\"");
         var escapedMessage = message.Replace("\\", "\\\\").Replace("'", "\\'").Replace("\"", "\\\"").Replace("\n", "\\n");
 

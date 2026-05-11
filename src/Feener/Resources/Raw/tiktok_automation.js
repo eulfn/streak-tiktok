@@ -295,14 +295,11 @@
 
     // Get the header text for group matching (no profile link needed)
     var findCurrentChatName = function () {
-        var header = document.querySelector('[class*="ChatHeader"]') ||
+        var header = document.querySelector('[data-e2e="chat-header"]') ||
+            document.querySelector('[class*="ChatHeader"]') ||
             document.querySelector('[class*="chatHeader"]') ||
             document.querySelector('[class*="DivChatHeader"]');
         if (!header) return '';
-
-        // For groups: check if there's NO profile link (groups don't have one)
-        var profileLink = header.querySelector('a[href*="/@"]');
-        if (profileLink) return ''; // This is a DM, not a group
 
         return header.textContent.trim();
     };

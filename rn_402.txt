@@ -1,0 +1,22 @@
+## What's new in this release (v4.0.2)
+
+### UI Refactoring & Performance Upgrades
+
+This update brings a significant structural change to how friends and group chats are managed, along with performance upgrades across the entire application interface.
+
+- **List Management Hub**: The 'Friends' page has been completely redesigned into a unified 'List' tab. The interface now features a tab switcher (identical to the Dashboard) to separate your Direct Messages and Group Chats into two distinct lists.
+- **Contextual Management**: The manual "Group Chat" toggle switch has been removed. Tapping 'Add' on the Friends tab will automatically prompt for a username, while tapping 'Add' on the Groups tab will automatically prompt for a group name.
+- **Contextual Actions**: Action buttons like "Clear" are now scoped to your current view. Clearing the Friends tab will wipe out DMs without touching your groups, and vice versa.
+- **Snappier Interface**: Removed all micro-animations and transition delays across the application. Menus, tabs, and buttons now respond instantly with zero artificial lag, providing a much faster user experience.
+
+--------
+
+### Installation
+
+1. Download Feener-v4.0.2.apk below
+2. Enable Install from unknown sources on your Android device
+3. Install the APK
+
+### Requirements
+
+- Android 7.0 (API 24) or higher

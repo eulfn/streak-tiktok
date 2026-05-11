@@ -1,0 +1,20 @@
+## What's new in this release (v4.0.4)
+
+### Group Automation & Script Resilience
+
+- **Robust Group Detection**: Integrated a more comprehensive detection logic that analyzes chat headers for member counts, group-specific CSS classes, and multi-avatar patterns. This ensures group chats are correctly identified even with TikTok's latest web UI changes.
+- **Improved Automation Speed**: Added pre-click detection for the chat list sidebar. The bot can now identify and skip Direct Messages when in Group Mode (and vice versa) without having to click and load each conversation, significantly reducing processing time.
+- **Reliability Hotfix**: Resolved a critical minification bug where inline comments in the automation script would break the entire execution flow after processing started.
+- **Enhanced Safety**: Added internal validation to ensure no attempt is made to message groups or users with empty names, preventing unintended interactions.
+
+--------
+
+### Installation
+
+1. Download Feener-v4.0.4.apk below
+2. Enable Install from unknown sources on your Android device
+3. Install the APK
+
+### Requirements
+
+- Android 7.0 (API 24) or higher

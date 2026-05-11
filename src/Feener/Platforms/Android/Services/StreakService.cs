@@ -524,6 +524,15 @@ public class StreakService : Service
 
         // Inject JavaScript to find and message the friend/group
         var target = friend.IsGroup ? friend.DisplayName : friend.Username;
+        
+        if (string.IsNullOrWhiteSpace(target))
+        {
+            AppLog("FAIL", "-", friend.IsGroup ? "Group name is empty" : "Username is empty");
+            _currentFriendIndex++;
+            _mainHandler?.PostDelayed(ProcessNextFriend, 1000);
+            return;
+        }
+
         var js = GetFriendMessageScript(target, message, friend.IsGroup);
         _webView?.EvaluateJavascript(js, null);
     }
@@ -560,9 +569,7 @@ public class StreakService : Service
         if (_isCancelRequested) return;
         if (_friendsToProcess == null || _settingsService == null) return;
 
-        var friend = _friendsToProcess.FirstOrDefault(f => 
-            (f.IsGroup && f.DisplayName.Equals(username, StringComparison.OrdinalIgnoreCase)) ||
-            (!f.IsGroup && f.Username.Equals(username, StringComparison.OrdinalIgnoreCase)));
+        var friend = _friendsToProcess.FirstOrDefault(f => f.Username.Equals(username, StringComparison.OrdinalIgnoreCase));
 
         if (friend != null)
         {

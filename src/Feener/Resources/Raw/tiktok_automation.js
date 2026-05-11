@@ -286,7 +286,7 @@
     };
 
     var isTargetUser = function (currentName) {
-        if (!currentName) return false;
+        if (!currentName || !userName) return false;
         if (isGroup) {
             // Substring match for group names (may contain emoji/extra text)
             return currentName.toLowerCase().trim().indexOf(userName.toLowerCase().trim()) !== -1;
@@ -300,13 +300,34 @@
             document.querySelector('[class*="ChatHeader"]') ||
             document.querySelector('[class*="chatHeader"]') ||
             document.querySelector('[class*="DivChatHeader"]');
-        if (!header) return '';
+        if (!header) {
+            log('[HEADER] No chat header found');
+            return '';
+        }
 
-        // For groups: check if there's NO profile link (groups don't have one)
+        var headerText = (header.textContent || '').trim();
         var profileLink = header.querySelector('a[href*="/@"]');
-        if (profileLink) return ''; /* This is a DM, not a group */
+        
+        // Group-specific markers from detect_groups.js
+        var hasGroupClass = !!header.querySelector('[class*="group"], [class*="Group"], [class*="member"], [class*="Member"]');
+        var memberMatch = headerText.match(/(\d+)\s*member/i);
+        var avatars = header.querySelectorAll('img');
 
-        return header.textContent.trim();
+        log('[HEADER] Detect: profileLink=' + !!profileLink + ', groupClass=' + hasGroupClass + ', memberMatch=' + !!memberMatch + ', avatars=' + avatars.length);
+
+        if (profileLink) {
+            log('[HEADER] Detected as DM (has profile link)');
+            return '';
+        }
+
+        if (hasGroupClass || memberMatch || avatars.length > 1) {
+            log('[HEADER] Detected as GROUP via markers: "' + headerText.substring(0, 30) + '"');
+            return headerText;
+        }
+
+        // Conservative fallback: if there is NO profile link, we treat it as a potential group
+        log('[HEADER] Treating as potential group (no profile link): "' + headerText.substring(0, 30) + '"');
+        return headerText;
     };
 
     // ── Message Input & Sending ──────────────────────────────────────────────
@@ -502,9 +523,20 @@
 
         var chatItem = chatItems[chatIndex];
 
-        // Pre-click optimization: extract username from chat item links (DM mode only)
-        if (!isGroup) {
-            var itemLinks = chatItem.querySelectorAll('a[href*="/@"]');
+        // Optimization: Detect type from list item before clicking to avoid unnecessary loads
+        var itemAvatars = chatItem.querySelectorAll('img');
+        var itemLinks = chatItem.querySelectorAll('a[href*="/@"]');
+
+        if (isGroup) {
+            // If searching for a group, but the list item has a clear profile link, it's a DM
+            if (itemLinks.length > 0) {
+                log('[CHAT] Item ' + (chatIndex + 1) + ' has profile link, skipping DM...');
+                chatIndex++;
+                setTimeout(checkNextChat, 10);
+                return;
+            }
+        } else {
+            // DM mode only pre-click optimization
             for (var i = 0; i < itemLinks.length; i++) {
                 var href = itemLinks[i].getAttribute('href') || '';
                 var match = href.match(/\/@([^\/]+)/);
@@ -512,7 +544,7 @@
                     var inlineUsername = match[1].toLowerCase().trim();
                     if (checkedUsernames[inlineUsername]) {
                         chatIndex++;
-                        checkNextChat();
+                        setTimeout(checkNextChat, 10);
                         return;
                     }
                     if (isTargetUser(match[1])) {
@@ -538,9 +570,9 @@
                 if (currentName) {
                     log('[CHAT] Current chat: "' + currentName.substring(0, 50) + '" (group target: "' + userName + '")');
                 } else {
-                    // findCurrentChatName returns empty if there is a profile link (it's a DM)
+                    // Has a profile link — this is a DM, skip it
                     var dmUser = findCurrentChatUsername();
-                    log('[CHAT] Skipping DM (@' + (dmUser || 'unknown') + ') while in Group mode');
+                    log('[CHAT] Skipping DM: @' + dmUser);
                     if (dmUser) checkedUsernames[dmUser.toLowerCase()] = true;
                     chatIndex++;
                     checkNextChat();
@@ -590,9 +622,9 @@
             log('[INIT] Target user: ' + userName);
 
             // Pre-check: if the target chat is already open (burst mode repeat)
-            var preCheckName = isGroup ? findCurrentChatName() : findCurrentChatUsername();
-            if (preCheckName && isTargetUser(preCheckName)) {
-                log('[INIT] Target ' + (isGroup ? 'group' : 'chat') + ' already open: ' + preCheckName);
+            var preCheckUsername = findCurrentChatUsername();
+            if (preCheckUsername && isTargetUser(preCheckUsername)) {
+                log('[INIT] Target chat already open: ' + preCheckUsername);
                 found = true;
                 setTimeout(sendMessageViaButton, 500);
                 return;

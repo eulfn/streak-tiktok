@@ -233,7 +233,8 @@
     // ── Username Detection ───────────────────────────────────────────────────
 
     var findCurrentChatUsername = function () {
-        var chatHeader = document.querySelector('[class*="ChatHeader"]') ||
+        var chatHeader = document.querySelector('[data-e2e="chat-header"]') ||
+            document.querySelector('[class*="ChatHeader"]') ||
             document.querySelector('[class*="chatHeader"]') ||
             document.querySelector('[class*="DivChatHeader"]');
 
@@ -300,6 +301,10 @@
             document.querySelector('[class*="chatHeader"]') ||
             document.querySelector('[class*="DivChatHeader"]');
         if (!header) return '';
+
+        // For groups: check if there's NO profile link (groups don't have one)
+        var profileLink = header.querySelector('a[href*="/@"]');
+        if (profileLink) return ''; /* This is a DM, not a group */
 
         return header.textContent.trim();
     };
@@ -533,9 +538,9 @@
                 if (currentName) {
                     log('[CHAT] Current chat: "' + currentName.substring(0, 50) + '" (group target: "' + userName + '")');
                 } else {
-                    // Has a profile link — this is a DM, skip it
+                    // findCurrentChatName returns empty if there is a profile link (it's a DM)
                     var dmUser = findCurrentChatUsername();
-                    log('[CHAT] Skipping DM: @' + dmUser);
+                    log('[CHAT] Skipping DM (@' + (dmUser || 'unknown') + ') while in Group mode');
                     if (dmUser) checkedUsernames[dmUser.toLowerCase()] = true;
                     chatIndex++;
                     checkNextChat();
@@ -585,9 +590,9 @@
             log('[INIT] Target user: ' + userName);
 
             // Pre-check: if the target chat is already open (burst mode repeat)
-            var preCheckUsername = findCurrentChatUsername();
-            if (preCheckUsername && isTargetUser(preCheckUsername)) {
-                log('[INIT] Target chat already open: ' + preCheckUsername);
+            var preCheckName = isGroup ? findCurrentChatName() : findCurrentChatUsername();
+            if (preCheckName && isTargetUser(preCheckName)) {
+                log('[INIT] Target ' + (isGroup ? 'group' : 'chat') + ' already open: ' + preCheckName);
                 found = true;
                 setTimeout(sendMessageViaButton, 500);
                 return;

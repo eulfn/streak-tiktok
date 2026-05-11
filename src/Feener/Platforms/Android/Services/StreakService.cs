@@ -560,7 +560,9 @@ public class StreakService : Service
         if (_isCancelRequested) return;
         if (_friendsToProcess == null || _settingsService == null) return;
 
-        var friend = _friendsToProcess.FirstOrDefault(f => f.Username.Equals(username, StringComparison.OrdinalIgnoreCase));
+        var friend = _friendsToProcess.FirstOrDefault(f => 
+            (f.IsGroup && f.DisplayName.Equals(username, StringComparison.OrdinalIgnoreCase)) ||
+            (!f.IsGroup && f.Username.Equals(username, StringComparison.OrdinalIgnoreCase)));
 
         if (friend != null)
         {

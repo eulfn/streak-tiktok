@@ -37,8 +37,14 @@ public partial class ProfilePage : ContentPage
         // Load display name
         DisplayNameEntry.Text = _sessionService.GetDisplayName();
 
-        // Load settings
         ScheduleSwitch.IsToggled = _settingsService.IsScheduled();
+        ScheduleOptionsPanel.IsVisible = ScheduleSwitch.IsToggled;
+        FixedTimeSwitch.IsToggled = _settingsService.GetUseFixedTime();
+        TimePickerRow.IsVisible = FixedTimeSwitch.IsToggled;
+        ScheduleTimePicker.Time = new TimeSpan(
+            _settingsService.GetFixedTimeHour(),
+            _settingsService.GetFixedTimeMinute(), 0);
+
         SkipUnreachableSwitch.IsToggled = _settingsService.GetSkipUnreachableUsers();
         RandomizeMessagesSwitch.IsToggled = _settingsService.GetRandomizeNormalMessages();
 
@@ -150,12 +156,41 @@ public partial class ProfilePage : ContentPage
 
     private void OnScheduleToggled(object? sender, ToggledEventArgs e)
     {
+        ScheduleOptionsPanel.IsVisible = e.Value;
 #if ANDROID
         var context = Platform.CurrentActivity ?? Android.App.Application.Context;
         if (e.Value)
             Feener.Platforms.Android.StreakScheduler.ScheduleNextRun(context);
         else
             Feener.Platforms.Android.StreakScheduler.CancelSchedule(context);
+#endif
+    }
+
+    private void OnFixedTimeToggled(object? sender, ToggledEventArgs e)
+    {
+        _settingsService.SetUseFixedTime(e.Value);
+        TimePickerRow.IsVisible = e.Value;
+#if ANDROID
+        if (_settingsService.IsScheduled())
+        {
+            var context = Platform.CurrentActivity ?? Android.App.Application.Context;
+            Feener.Platforms.Android.StreakScheduler.ScheduleNextRun(context);
+        }
+#endif
+    }
+
+    private void OnTimePickerChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(TimePicker.Time)) return;
+        var time = ScheduleTimePicker.Time;
+        _settingsService.SetFixedTimeHour(time.Hours);
+        _settingsService.SetFixedTimeMinute(time.Minutes);
+#if ANDROID
+        if (_settingsService.IsScheduled())
+        {
+            var context = Platform.CurrentActivity ?? Android.App.Application.Context;
+            Feener.Platforms.Android.StreakScheduler.ScheduleNextRun(context);
+        }
 #endif
     }
 

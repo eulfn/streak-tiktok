@@ -39,6 +39,11 @@ public class FriendConfig
     /// Number of failed attempts
     /// </summary>
     public int FailureCount { get; set; }
+
+    /// <summary>
+    /// If true, this entry is a group chat matched by display name instead of username
+    /// </summary>
+    public bool IsGroup { get; set; } = false;
 }
 
 /// <summary>

@@ -1,0 +1,23 @@
+## What's new in this release (v4.0.2)
+
+### Group Chat Support & Scheduling Enhancements
+
+This update brings significant new features to streak automation, including support for group chats and precise daily scheduling:
+
+- Group Chat Support: Added the ability to manage and send streaks to group chats. You can now toggle the "Group Chat" option when adding a new friend, which will target the exact group chat name rather than a profile username.
+- Fixed Daily Schedule: Added a new "Daily Schedule" option in the Profile settings. Instead of relying on a shifting hourly interval, you can now configure the background automation to run at the exact same time every day (e.g., always at 9:00 AM).
+- Automation Accuracy: Implemented a "true new item" counter during the background scanning process. This better handles TikTok's virtualized chat list rendering, significantly increasing script reliability and preventing missed chats.
+- Store Integration: Added a dedicated, high-resolution dark icon to the images directory to ensure third-party stores (like Orion) fetch and display the app icon perfectly.
+- UI Polishing: Refined the friend list interface to cleanly differentiate between direct messages and group chats with professional text labels.
+
+--------
+
+### Installation
+
+1. Download Feener-v4.0.2.apk below
+2. Enable Install from unknown sources on your Android device
+3. Install the APK
+
+### Requirements
+
+- Android 7.0 (API 24) or higher

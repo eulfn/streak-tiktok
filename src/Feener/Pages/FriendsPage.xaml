@@ -84,6 +84,17 @@
 
                         <!-- Add Friend Input Panel (hidden by default) -->
                         <VerticalStackLayout x:Name="AddFriendPanel" IsVisible="False" Spacing="8">
+                            <!-- Group Chat Toggle -->
+                            <Grid ColumnDefinitions="*, Auto" Padding="4,0">
+                                <Label x:Name="GroupToggleLabel" Text="Group Chat"
+                                       FontFamily="InterRegular" FontSize="13"
+                                       TextColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray400}}"
+                                       VerticalOptions="Center"/>
+                                <Switch x:Name="IsGroupSwitch" Grid.Column="1"
+                                        VerticalOptions="Center"
+                                        OnColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource Primary}}"
+                                        Toggled="OnGroupSwitchToggled"/>
+                            </Grid>
                             <Border StrokeThickness="0"
                                     StrokeShape="RoundRectangle 16"
                                     BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray900}}">

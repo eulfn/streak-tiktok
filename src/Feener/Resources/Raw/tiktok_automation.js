@@ -4,12 +4,14 @@
 (function () {
     var userName = '[UserName]';
     var message = '[Message]';
+    var isGroup = '[IsGroup]' === 'true';
     var found = false;
     var chatIndex = 0;
     var chatItems = [];
     var maxScrollAttempts = 50;
     var scrollAttempts = 0;
     var checkedUsernames = {};
+    var newItemsFound = 0;
 
     var log = function (msg) {
         if (typeof StreakApp == 'undefined') {
@@ -221,7 +223,8 @@
             // of the list where new content from the scroll appears.
             // Use max(0, prevCount - 5) to catch a few overlapping items for safety.
             var startFrom = Math.max(0, prevCount - 15);
-            log('[SCROLL] Scanning from item ' + (startFrom + 1) + '/' + chatItems.length + ' (checked: ' + Object.keys(checkedUsernames).length + ' usernames so far)');
+            newItemsFound = 0;
+            log('[SCROLL] Scanning from item ' + (startFrom + 1) + '/' + chatItems.length + ' (known: ' + Object.keys(checkedUsernames).length + ' users)');
             chatIndex = startFrom;
             checkNextChat();
         }, 2000);
@@ -231,8 +234,8 @@
 
     var findCurrentChatUsername = function () {
         var chatHeader = document.querySelector('[class*="ChatHeader"]') ||
-                         document.querySelector('[class*="chatHeader"]') ||
-                         document.querySelector('[class*="DivChatHeader"]');
+            document.querySelector('[class*="chatHeader"]') ||
+            document.querySelector('[class*="DivChatHeader"]');
 
         if (chatHeader) {
             var headerLink = chatHeader.querySelector('a[href*="/@"]');
@@ -281,8 +284,27 @@
         return '';
     };
 
-    var isTargetUser = function (currentUsername) {
-        return currentUsername && currentUsername.toLowerCase().trim() === userName.toLowerCase().trim();
+    var isTargetUser = function (currentName) {
+        if (!currentName) return false;
+        if (isGroup) {
+            // Substring match for group names (may contain emoji/extra text)
+            return currentName.toLowerCase().trim().indexOf(userName.toLowerCase().trim()) !== -1;
+        }
+        return currentName.toLowerCase().trim() === userName.toLowerCase().trim();
+    };
+
+    // Get the header text for group matching (no profile link needed)
+    var findCurrentChatName = function () {
+        var header = document.querySelector('[class*="ChatHeader"]') ||
+            document.querySelector('[class*="chatHeader"]') ||
+            document.querySelector('[class*="DivChatHeader"]');
+        if (!header) return '';
+
+        // For groups: check if there's NO profile link (groups don't have one)
+        var profileLink = header.querySelector('a[href*="/@"]');
+        if (profileLink) return ''; // This is a DM, not a group
+
+        return header.textContent.trim();
     };
 
     // ── Message Input & Sending ──────────────────────────────────────────────
@@ -297,7 +319,7 @@
     };
 
     var findDraftEditor = function (messageInput) {
-        var key = Object.keys(messageInput).find(function(k) {
+        var key = Object.keys(messageInput).find(function (k) {
             return k.startsWith('__reactFiber$') || k.startsWith('__reactInternalInstance$');
         });
 
@@ -382,8 +404,8 @@
 
     var sendMessage = function (messageInput) {
         var sendBtn = document.querySelector('[data-e2e*="send"]') ||
-                      document.querySelector('[data-e2e*="Send"]') ||
-                      document.querySelector('button[type="submit"]');
+            document.querySelector('[data-e2e*="Send"]') ||
+            document.querySelector('button[type="submit"]');
 
         if (sendBtn) {
             log('[SEND] Found send button, clicking...');
@@ -444,16 +466,22 @@
     };
 
     var searchForUserInCurrentChat = function () {
-        var currentUsername = findCurrentChatUsername();
-        log('[CHAT] Current chat username: "' + currentUsername + '" (target: "' + userName + '")');
-
-        if (currentUsername) {
-            checkedUsernames[currentUsername.toLowerCase()] = true;
+        var currentName;
+        if (isGroup) {
+            currentName = findCurrentChatName();
+            log('[CHAT] Current chat: "' + (currentName || '(DM)').substring(0, 50) + '" (group target: "' + userName + '")');
+        } else {
+            currentName = findCurrentChatUsername();
+            log('[CHAT] Current chat username: "' + currentName + '" (target: "' + userName + '")');
         }
 
-        if (currentUsername && isTargetUser(currentUsername)) {
+        if (currentName) {
+            checkedUsernames[currentName.toLowerCase()] = true;
+        }
+
+        if (isTargetUser(currentName)) {
             found = true;
-            log('[CHAT] MATCH — Found target user');
+            log('[CHAT] MATCH — Found ' + (isGroup ? 'group' : 'target user'));
             sendMessageViaButton();
             return true;
         }
@@ -464,7 +492,7 @@
     var checkNextChat = function () {
         if (found || chatIndex >= chatItems.length) {
             if (!found) {
-                log('[CHAT] Exhausted ' + chatItems.length + ' visible items, trying scroll...');
+                log('[CHAT] Exhausted ' + chatItems.length + ' visible items (' + newItemsFound + ' new), trying scroll...');
                 scrollAndRetry();
             }
             return;
@@ -472,27 +500,28 @@
 
         var chatItem = chatItems[chatIndex];
 
-        // Try to extract username from the chat item's own links before clicking.
-        // This avoids the expensive 2.5s click+wait for already-checked items.
-        var itemLinks = chatItem.querySelectorAll('a[href*="/@"]');
-        for (var i = 0; i < itemLinks.length; i++) {
-            var href = itemLinks[i].getAttribute('href') || '';
-            var match = href.match(/\/@([^\/]+)/);
-            if (match && match[1]) {
-                var inlineUsername = match[1].toLowerCase().trim();
-                if (checkedUsernames[inlineUsername]) {
-                    chatIndex++;
-                    checkNextChat();
-                    return;
+        // Pre-click optimization: extract username from chat item links (DM mode only)
+        if (!isGroup) {
+            var itemLinks = chatItem.querySelectorAll('a[href*="/@"]');
+            for (var i = 0; i < itemLinks.length; i++) {
+                var href = itemLinks[i].getAttribute('href') || '';
+                var match = href.match(/\/@([^\/]+)/);
+                if (match && match[1]) {
+                    var inlineUsername = match[1].toLowerCase().trim();
+                    if (checkedUsernames[inlineUsername]) {
+                        chatIndex++;
+                        checkNextChat();
+                        return;
+                    }
+                    if (isTargetUser(match[1])) {
+                        log('[CHAT] MATCH — Found @' + match[1] + ' in item ' + (chatIndex + 1) + ' (pre-click)');
+                        chatItem.click();
+                        found = true;
+                        setTimeout(sendMessageViaButton, 1500);
+                        return;
+                    }
+                    break;
                 }
-                if (isTargetUser(match[1])) {
-                    log('[CHAT] MATCH — Found @' + match[1] + ' in item ' + (chatIndex + 1) + ' (pre-click)');
-                    chatItem.click();
-                    found = true;
-                    setTimeout(sendMessageViaButton, 2500);
-                    return;
-                }
-                break;
             }
         }
 
@@ -500,22 +529,43 @@
         chatItem.click();
 
         setTimeout(function () {
-            var currentUsername = findCurrentChatUsername();
-            log('[CHAT] Current chat username: "' + currentUsername + '" (target: "' + userName + '")');
+            var currentName;
+            if (isGroup) {
+                // Group mode: get header text, skip DMs (which have profile links)
+                currentName = findCurrentChatName();
+                if (currentName) {
+                    log('[CHAT] Current chat: "' + currentName.substring(0, 50) + '" (group target: "' + userName + '")');
+                } else {
+                    // Has a profile link — this is a DM, skip it
+                    var dmUser = findCurrentChatUsername();
+                    log('[CHAT] Skipping DM: @' + dmUser);
+                    if (dmUser) checkedUsernames[dmUser.toLowerCase()] = true;
+                    chatIndex++;
+                    checkNextChat();
+                    return;
+                }
+            } else {
+                // DM mode: get username from header
+                currentName = findCurrentChatUsername();
+                log('[CHAT] Current chat username: "' + currentName + '" (target: "' + userName + '")');
+            }
 
-            if (currentUsername && checkedUsernames[currentUsername.toLowerCase()]) {
+            var nameKey = currentName ? currentName.toLowerCase().trim() : '';
+
+            if (nameKey && checkedUsernames[nameKey]) {
                 chatIndex++;
                 checkNextChat();
                 return;
             }
 
-            if (currentUsername) {
-                checkedUsernames[currentUsername.toLowerCase()] = true;
+            if (nameKey) {
+                checkedUsernames[nameKey] = true;
+                newItemsFound++;
             }
 
-            if (currentUsername && isTargetUser(currentUsername)) {
+            if (isTargetUser(currentName)) {
                 found = true;
-                log('[CHAT] MATCH — Found target user');
+                log('[CHAT] MATCH — Found ' + (isGroup ? 'group' : 'target user') + ': "' + currentName + '"');
                 sendMessageViaButton();
                 return;
             }

@@ -518,23 +518,25 @@ public class StreakService : Service
             {
                 message = _settingsService?.GetMessageText() ?? SettingsService.DefaultMessage;
             }
-            UpdateNotification($"{_currentFriendIndex + 1}/{_friendsToProcess.Count} \u2014 Processing: @{friend.Username}", _currentFriendIndex, _friendsToProcess.Count);
+            UpdateNotification($"{_currentFriendIndex + 1}/{_friendsToProcess.Count} \u2014 Processing: {(friend.IsGroup ? friend.DisplayName : "@" + friend.Username)}", _currentFriendIndex, _friendsToProcess.Count);
         }
 
-        // Inject JavaScript to find and message the friend
-        var js = GetFriendMessageScript(friend.Username, message);
+        // Inject JavaScript to find and message the friend/group
+        var target = friend.IsGroup ? friend.DisplayName : friend.Username;
+        var js = GetFriendMessageScript(target, message, friend.IsGroup);
         _webView?.EvaluateJavascript(js, null);
     }
 
-    private string GetFriendMessageScript(string username, string message)
+    private string GetFriendMessageScript(string target, string message, bool isGroup)
     {
         // Escape special characters for JavaScript
-        var escapedUsername = username.Replace("\\", "\\\\").Replace("'", "\\'").Replace("\"", "\\\"");
+        var escapedTarget = target.Replace("\\", "\\\\").Replace("'", "\\'").Replace("\"", "\\\"");
         var escapedMessage = message.Replace("\\", "\\\\").Replace("'", "\\'").Replace("\"", "\\\"").Replace("\n", "\\n");
 
 
-        var automationScript = this._baseScript.Replace("[UserName]", escapedUsername);
+        var automationScript = this._baseScript.Replace("[UserName]", escapedTarget);
         automationScript = automationScript.Replace("[Message]", escapedMessage);
+        automationScript = automationScript.Replace("[IsGroup]", isGroup ? "true" : "false");
         return automationScript;
     }
 

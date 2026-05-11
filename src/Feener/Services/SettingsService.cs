@@ -19,6 +19,9 @@ public class SettingsService
     private const string BurstMessagesKey = "burst_messages_list";
     private const string IsBurstModeActiveKey = "is_burst_mode_active";
     private const string BurstTargetUsernameKey = "burst_target_username";
+    private const string UseFixedTimeKey = "use_fixed_time";
+    private const string FixedTimeHourKey = "fixed_time_hour";
+    private const string FixedTimeMinuteKey = "fixed_time_minute";
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -340,10 +343,17 @@ public class SettingsService
     }
 
     /// <summary>
-    /// Calculate the next run time based on last run and interval
+    /// Calculate the next run time based on scheduling mode
     /// </summary>
     public DateTime GetNextRunTime()
     {
+        if (GetUseFixedTime())
+        {
+            var now = DateTime.Now;
+            var today = now.Date.AddHours(GetFixedTimeHour()).AddMinutes(GetFixedTimeMinute());
+            return today > now ? today : today.AddDays(1);
+        }
+
         var lastRun = GetLastRunTime();
         var intervalHours = GetIntervalHours();
 
@@ -354,6 +364,45 @@ public class SettingsService
 
         // If never run, schedule for now
         return DateTime.Now;
+    }
+
+    /// <summary>
+    /// Whether to use a fixed daily time instead of interval-based scheduling
+    /// </summary>
+    public bool GetUseFixedTime()
+    {
+        return Preferences.Get(UseFixedTimeKey, false);
+    }
+
+    public void SetUseFixedTime(bool value)
+    {
+        Preferences.Set(UseFixedTimeKey, value);
+    }
+
+    /// <summary>
+    /// Hour (0-23) for fixed daily schedule
+    /// </summary>
+    public int GetFixedTimeHour()
+    {
+        return Preferences.Get(FixedTimeHourKey, DateTime.Now.Hour);
+    }
+
+    public void SetFixedTimeHour(int hour)
+    {
+        Preferences.Set(FixedTimeHourKey, hour);
+    }
+
+    /// <summary>
+    /// Minute (0-59) for fixed daily schedule
+    /// </summary>
+    public int GetFixedTimeMinute()
+    {
+        return Preferences.Get(FixedTimeMinuteKey, DateTime.Now.Minute);
+    }
+
+    public void SetFixedTimeMinute(int minute)
+    {
+        Preferences.Set(FixedTimeMinuteKey, minute);
     }
 
     #endregion

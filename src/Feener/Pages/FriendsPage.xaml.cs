@@ -164,7 +164,8 @@ public partial class FriendsPage : ContentPage
         var infoStack = new VerticalStackLayout { Spacing = 3 };
         var displayName = string.IsNullOrEmpty(friend.DisplayName) ? friend.Username : friend.DisplayName;
         infoStack.Children.Add(new Label { Text = displayName, FontSize = 15, FontFamily = "InterSemiBold" });
-        infoStack.Children.Add(new Label { Text = $"@{friend.Username}", FontSize = 13, TextColor = GetThemeColor("Gray400", "#8B8F96") });
+        var subtitleText = friend.IsGroup ? "Group" : $"@{friend.Username}";
+        infoStack.Children.Add(new Label { Text = subtitleText, FontSize = 13, TextColor = GetThemeColor("Gray400", "#8B8F96") });
         if (friend.LastMessageSent.HasValue)
             infoStack.Children.Add(new Label { Text = $"Last sent: {friend.LastMessageSent.Value:MMM dd}", FontSize = 12, TextColor = GetThemeColor("Gray400", "#8B8F96") });
         grid.Children.Add(infoStack);
@@ -204,21 +205,62 @@ public partial class FriendsPage : ContentPage
         AddFriendPanel.IsVisible = true;
         NewFriendUsernameEntry.Text = string.Empty;
         NewFriendDisplayNameEntry.Text = string.Empty;
+        IsGroupSwitch.IsToggled = false;
+        NewFriendUsernameEntry.Placeholder = "TikTok username (without @)";
+        NewFriendDisplayNameEntry.Placeholder = "Display name (optional)";
         NewFriendUsernameEntry.Focus();
+    }
+
+    private void OnGroupSwitchToggled(object? sender, ToggledEventArgs e)
+    {
+        if (e.Value)
+        {
+            NewFriendUsernameEntry.Placeholder = "Group chat name";
+            NewFriendDisplayNameEntry.Placeholder = "Display name (optional)";
+        }
+        else
+        {
+            NewFriendUsernameEntry.Placeholder = "TikTok username (without @)";
+            NewFriendDisplayNameEntry.Placeholder = "Display name (optional)";
+        }
     }
 
     private void OnCancelAddFriend(object? sender, EventArgs e) => AddFriendPanel.IsVisible = false;
 
     private async void OnSaveFriend(object? sender, EventArgs e)
     {
-        var username = NewFriendUsernameEntry.Text?.Trim().TrimStart('@');
+        var isGroup = IsGroupSwitch.IsToggled;
+        var inputText = NewFriendUsernameEntry.Text?.Trim();
         var displayName = NewFriendDisplayNameEntry.Text?.Trim();
-        if (string.IsNullOrEmpty(username)) { await DisplayAlert("Error", "Please enter a username", "OK"); return; }
-        var existingFriends = _settingsService.GetFriendsList();
-        if (existingFriends.Any(f => f.Username.Equals(username, StringComparison.OrdinalIgnoreCase)))
-        { await DisplayAlert("Error", "This friend is already in your list", "OK"); return; }
-        var friend = new FriendConfig { Username = username, DisplayName = displayName ?? string.Empty, IsEnabled = true };
-        _settingsService.AddFriend(friend);
+
+        if (isGroup)
+        {
+            if (string.IsNullOrEmpty(inputText)) { await DisplayAlert("Error", "Please enter a group chat name", "OK"); return; }
+            var existingFriends = _settingsService.GetFriendsList();
+            if (existingFriends.Any(f => f.IsGroup && f.DisplayName.Equals(inputText, StringComparison.OrdinalIgnoreCase)))
+            { await DisplayAlert("Error", "This group is already in your list", "OK"); return; }
+            var friend = new FriendConfig
+            {
+                Username = string.Empty,
+                DisplayName = displayName ?? inputText,
+                IsGroup = true,
+                IsEnabled = true
+            };
+            // Store the group name in DisplayName for matching
+            if (string.IsNullOrEmpty(displayName)) friend.DisplayName = inputText;
+            _settingsService.AddFriend(friend);
+        }
+        else
+        {
+            var username = inputText?.TrimStart('@');
+            if (string.IsNullOrEmpty(username)) { await DisplayAlert("Error", "Please enter a username", "OK"); return; }
+            var existingFriends = _settingsService.GetFriendsList();
+            if (existingFriends.Any(f => f.Username.Equals(username, StringComparison.OrdinalIgnoreCase)))
+            { await DisplayAlert("Error", "This friend is already in your list", "OK"); return; }
+            var friend = new FriendConfig { Username = username, DisplayName = displayName ?? string.Empty, IsEnabled = true };
+            _settingsService.AddFriend(friend);
+        }
+
         AddFriendPanel.IsVisible = false;
         LoadFriendsList();
     }

@@ -38,7 +38,7 @@ public partial class DashboardPage : ContentPage
         return Color.FromArgb(fallbackHex);
     }
 
-    protected override void OnAppearing()
+    protected override async void OnAppearing()
     {
         base.OnAppearing();
         _isAppInForeground = true;

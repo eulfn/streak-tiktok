@@ -1,5 +1,4 @@
 using AsyncAwaitBestPractices;
-using RandomUserAgent;
 using Feener.Services;
 
 namespace Feener;
@@ -26,21 +25,33 @@ public partial class LoginPage : ContentPage
         LoadingOverlay.IsVisible = true;
         
 #if ANDROID
-        // Use a mobile UA for the login flow. TikTok's auth API (especially email/password) 
-        // often returns "Internal Server Error" (500) if it detects a desktop UA 
-        // running on an Android device (header mismatch).
-        var mobileUa = TikTokWebViewHelper.GetDefaultUserAgent();
         var desktopUa = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
-        
-        TikTokWebViewHelper.ConfigureWebView(TikTokWebView, mobileUa);
-        
-        // We save the desktop UA to the session service so the background 
-        // StreakService (which requires the desktop site for chat automation) 
-        // can use it later.
         _sessionService.SetLoginUserAgent(desktopUa);
-#endif
 
+        // The native WebView handler must be attached BEFORE we set the UA.
+        // If we set Source first, the initial HTTP request goes out with the
+        // default Android WebView UA, which TikTok rejects with HTTP 500.
+        if (TikTokWebView.Handler != null)
+        {
+            TikTokWebViewHelper.ConfigureWebView(TikTokWebView, desktopUa);
+            TikTokWebView.Source = TikTokWebViewHelper.LoginUrl;
+        }
+        else
+        {
+            void onHandlerReady(object? s, EventArgs e)
+            {
+                if (TikTokWebView.Handler != null)
+                {
+                    TikTokWebViewHelper.ConfigureWebView(TikTokWebView, desktopUa);
+                    TikTokWebView.Source = TikTokWebViewHelper.LoginUrl;
+                    TikTokWebView.HandlerChanged -= onHandlerReady;
+                }
+            }
+            TikTokWebView.HandlerChanged += onHandlerReady;
+        }
+#else
         TikTokWebView.Source = TikTokWebViewHelper.LoginUrl;
+#endif
     }
 
     private void OnWebViewNavigated(object? sender, WebNavigatedEventArgs e)

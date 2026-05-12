@@ -489,7 +489,7 @@
         <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}" />
         <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource PrimaryDarkText}}" />
         <Setter Property="CornerRadius" Value="{StaticResource CornerRadiusLG}" />
-        <Setter Property="Padding" Value="{StaticResource SpacingMD},0" />
+        <Setter Property="Padding" Value="16,0" />
         <Setter Property="HeightRequest" Value="44" />
         <Setter Property="FontFamily" Value="InterSemiBold" />
         <Setter Property="FontSize" Value="14" />
@@ -499,7 +499,7 @@
         <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray800}}" />
         <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}" />
         <Setter Property="CornerRadius" Value="{StaticResource CornerRadiusLG}" />
-        <Setter Property="Padding" Value="{StaticResource SpacingMD},0" />
+        <Setter Property="Padding" Value="16,0" />
         <Setter Property="HeightRequest" Value="44" />
         <Setter Property="FontFamily" Value="InterSemiBold" />
         <Setter Property="FontSize" Value="14" />
@@ -509,7 +509,7 @@
         <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource DeleteColor}, Dark={StaticResource DeleteColor}}" />
         <Setter Property="TextColor" Value="{StaticResource White}" />
         <Setter Property="CornerRadius" Value="{StaticResource CornerRadiusLG}" />
-        <Setter Property="Padding" Value="{StaticResource SpacingMD},0" />
+        <Setter Property="Padding" Value="16,0" />
         <Setter Property="HeightRequest" Value="44" />
         <Setter Property="FontFamily" Value="InterSemiBold" />
         <Setter Property="FontSize" Value="14" />
@@ -572,7 +572,7 @@
         <Setter Property="Stroke" Value="Transparent"/>
         <Setter Property="StrokeThickness" Value="0"/>
         <Setter Property="StrokeShape" Value="RoundRectangle 24,24,0,0"/>
-        <Setter Property="Padding" Value="{StaticResource SpacingLG},{StaticResource SpacingLG},{StaticResource SpacingLG},{StaticResource SpacingXL}"/>
+        <Setter Property="Padding" Value="24,24,24,32"/>
         <Setter Property="Shadow">
             <Setter.Value>
                 <Shadow Brush="{AppThemeBinding Light={StaticResource ShadowMediumLightBrush}, Dark={StaticResource ShadowDarkBrush}}"
@@ -586,8 +586,8 @@
     <Style x:Key="FloatingNavStyle" TargetType="Border">
         <Setter Property="StrokeThickness" Value="0"/>
         <Setter Property="StrokeShape" Value="RoundRectangle 28"/>
-        <Setter Property="Padding" Value="{StaticResource SpacingSM},{StaticResource SpacingSM}"/>
-        <Setter Property="Margin" Value="{StaticResource SpacingLG},0,{StaticResource SpacingLG},{StaticResource SpacingMD}"/>
+        <Setter Property="Padding" Value="8,8"/>
+        <Setter Property="Margin" Value="24,0,24,16"/>
         <Setter Property="HorizontalOptions" Value="Center"/>
         <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource ControlShadowLight}, Dark={StaticResource ControlShadowDark}}"/>
     </Style>

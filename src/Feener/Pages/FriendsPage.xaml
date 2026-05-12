@@ -16,7 +16,7 @@
                 <VerticalStackLayout Padding="{StaticResource SpacingLG}" Spacing="{StaticResource SpacingMD}">
 
                     <!-- ─── Header ─── -->
-                    <VerticalStackLayout Spacing="{StaticResource SpacingXS}" Margin="0,{StaticResource SpacingSM},0,0">
+                    <VerticalStackLayout Spacing="{StaticResource SpacingXS}" Margin="0,8,0,0">
                         <Label Text="List Management"
                                Style="{StaticResource PageTitleLabel}"
                                HorizontalOptions="Start"/>

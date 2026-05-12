@@ -8,7 +8,7 @@
     <Grid RowDefinitions="Auto, *, Auto" Padding="{StaticResource SpacingLG}" RowSpacing="{StaticResource SpacingLG}">
         
         <!-- Header -->
-        <VerticalStackLayout Grid.Row="0" Spacing="{StaticResource SpacingXS}" HorizontalOptions="Center" Margin="0, {StaticResource SpacingMD}, 0, 0">
+        <VerticalStackLayout Grid.Row="0" Spacing="{StaticResource SpacingXS}" HorizontalOptions="Center" Margin="0, 16, 0, 0">
             <Label x:Name="HeaderTitle" 
                    Text="Welcome to Feener" 
                    Style="{StaticResource PageTitleLabel}" 
@@ -51,7 +51,7 @@
 
                 <!-- Creator Credits -->
                 <VerticalStackLayout Spacing="{StaticResource SpacingXS}">
-                    <Label Text="Creator &amp; Support" Style="{StaticResource SectionLabel}" Margin="0, 0, 0, {StaticResource SpacingXS}"/>
+                    <Label Text="Creator &amp; Support" Style="{StaticResource SectionLabel}" Margin="0, 0, 0, 4"/>
                     
                     <Label Text="Original base app created by Jon2G" 
                            Style="{StaticResource ValueLabel}" />
@@ -61,14 +61,14 @@
 
                     <Label Text="Modified and maintained by @eulfen" 
                            Style="{StaticResource ValueLabel}" 
-                           Margin="0, {StaticResource SpacingSM}, 0, 0"/>
+                           Margin="0, 8, 0, 0"/>
                     <Label Text="Support me by following me on TikTok (@eulfen)!" 
                            Style="{StaticResource ValueLabel}" 
                            LineBreakMode="WordWrap"/>
                 </VerticalStackLayout>
 
                 <!-- Data & Permissions Notice -->
-                <VerticalStackLayout Spacing="{StaticResource SpacingSM}" Margin="0, 0, 0, {StaticResource SpacingMD}">
+                <VerticalStackLayout Spacing="{StaticResource SpacingSM}" Margin="0, 0, 0, 16">
                     <Label Text="Privacy &amp; System Permissions" 
                            Style="{StaticResource SectionLabel}" 
                            TextColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray400}}" 

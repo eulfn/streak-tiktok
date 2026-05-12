@@ -304,8 +304,8 @@
                 VerticalOptions="End"
                 StrokeThickness="0"
                 StrokeShape="RoundRectangle 24"
-                Padding="{StaticResource SpacingLG},{StaticResource SpacingMD}"
-                Margin="{StaticResource SpacingLG},0,{StaticResource SpacingLG},100"
+                Padding="24,16"
+                Margin="24,0,24,100"
                 BackgroundColor="{AppThemeBinding Light={StaticResource ControlShadowLight}, Dark={StaticResource ControlShadowDark}}">
             <Border.Shadow>
                 <Shadow Brush="{AppThemeBinding Light={StaticResource ShadowLightBrush}, Dark={StaticResource ShadowDarkBrush}}" Offset="0,4" Radius="16" Opacity="1"/>

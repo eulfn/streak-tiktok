@@ -184,7 +184,7 @@ public partial class DashboardPage : ContentPage
                 // Defer scroll to after layout pass to prevent blank frame
                 Dispatcher.DispatchDelayed(TimeSpan.FromMilliseconds(50), () =>
                 {
-                    _ = LiveLogScrollView.ScrollToAsync(0, double.MaxValue, false);
+                    _ = LiveLogScrollView.ScrollToAsync(LiveLogLabel, ScrollToPosition.End, false);
                 });
             }
         }

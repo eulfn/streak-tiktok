@@ -5,10 +5,10 @@
              BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource OffBlack}}"
              Shell.PresentationMode="ModalAnimated">
 
-    <Grid RowDefinitions="Auto, *, Auto" Padding="24" RowSpacing="24">
+    <Grid RowDefinitions="Auto, *, Auto" Padding="{StaticResource SpacingLG}" RowSpacing="{StaticResource SpacingLG}">
         
         <!-- Header -->
-        <VerticalStackLayout Grid.Row="0" Spacing="4" HorizontalOptions="Center" Margin="0, 16, 0, 0">
+        <VerticalStackLayout Grid.Row="0" Spacing="{StaticResource SpacingXS}" HorizontalOptions="Center" Margin="0, {StaticResource SpacingMD}, 0, 0">
             <Label x:Name="HeaderTitle" 
                    Text="Welcome to Feener" 
                    Style="{StaticResource PageTitleLabel}" 
@@ -28,7 +28,7 @@
 
         <!-- Scrollable content area -->
         <ScrollView Grid.Row="1" VerticalScrollBarVisibility="Never">
-            <VerticalStackLayout Spacing="24">
+            <VerticalStackLayout Spacing="{StaticResource SpacingLG}">
                 
                 <Border Style="{StaticResource SectionCard}" 
                         BackgroundColor="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray800}}"
@@ -42,7 +42,7 @@
                 </Border>
 
                 <!-- App Information -->
-                <VerticalStackLayout Spacing="8">
+                <VerticalStackLayout Spacing="{StaticResource SpacingSM}">
                     <Label Text="About this app" Style="{StaticResource SectionLabel}"/>
                     <Label Text="Feener is designed to automate and protect your TikTok streaks. It runs natively in the background over 23-hour intervals, finding and messaging your mapped friends to ensure you never miss a day." 
                            Style="{StaticResource ValueLabel}" 
@@ -50,8 +50,8 @@
                 </VerticalStackLayout>
 
                 <!-- Creator Credits -->
-                <VerticalStackLayout Spacing="4">
-                    <Label Text="Creator &amp; Support" Style="{StaticResource SectionLabel}" Margin="0, 0, 0, 4"/>
+                <VerticalStackLayout Spacing="{StaticResource SpacingXS}">
+                    <Label Text="Creator &amp; Support" Style="{StaticResource SectionLabel}" Margin="0, 0, 0, {StaticResource SpacingXS}"/>
                     
                     <Label Text="Original base app created by Jon2G" 
                            Style="{StaticResource ValueLabel}" />
@@ -61,14 +61,14 @@
 
                     <Label Text="Modified and maintained by @eulfen" 
                            Style="{StaticResource ValueLabel}" 
-                           Margin="0, 8, 0, 0"/>
+                           Margin="0, {StaticResource SpacingSM}, 0, 0"/>
                     <Label Text="Support me by following me on TikTok (@eulfen)!" 
                            Style="{StaticResource ValueLabel}" 
                            LineBreakMode="WordWrap"/>
                 </VerticalStackLayout>
 
                 <!-- Data & Permissions Notice -->
-                <VerticalStackLayout Spacing="8" Margin="0, 0, 0, 12">
+                <VerticalStackLayout Spacing="{StaticResource SpacingSM}" Margin="0, 0, 0, {StaticResource SpacingMD}">
                     <Label Text="Privacy &amp; System Permissions" 
                            Style="{StaticResource SectionLabel}" 
                            TextColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray400}}" 
@@ -83,7 +83,7 @@
         </ScrollView>
 
         <!-- Sticky Footer -->
-        <VerticalStackLayout Grid.Row="2" Spacing="8">
+        <VerticalStackLayout Grid.Row="2" Spacing="{StaticResource SpacingSM}">
 
             <!-- Download progress — hidden unless download is active -->
             <Label x:Name="ProgressLabel"
@@ -94,23 +94,18 @@
 
             <!-- Update buttons: Install + Later (shown only for update popups) -->
             <Grid x:Name="UpdateButtonGrid"
-                  ColumnDefinitions="*, 12, *"
+                  ColumnDefinitions="*, *" ColumnSpacing="{StaticResource SpacingMD}"
                   IsVisible="False">
                 <Button x:Name="LaterButton"
                         Grid.Column="0"
                         Text="Later"
-                        BackgroundColor="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray800}}"
-                        TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray200}}"
-                        CornerRadius="12"
+                        Style="{StaticResource SecondaryButtonStyle}"
                         HeightRequest="56"
                         Clicked="OnLaterClicked"/>
                 <Button x:Name="InstallButton"
-                        Grid.Column="2"
+                        Grid.Column="1"
                         Text="Install"
-                        BackgroundColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}"
-                        TextColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource PrimaryDarkText}}"
-                        FontFamily="InterSemiBold"
-                        CornerRadius="12"
+                        Style="{StaticResource PrimaryButtonStyle}"
                         HeightRequest="56"
                         Clicked="OnInstallClicked"/>
             </Grid>
@@ -118,10 +113,7 @@
             <!-- Continue button: shown only for onboarding (non-update) popups -->
             <Button x:Name="CloseButton"
                     Text="Continue"
-                    BackgroundColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}"
-                    TextColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource PrimaryDarkText}}"
-                    FontFamily="InterSemiBold"
-                    CornerRadius="12"
+                    Style="{StaticResource PrimaryButtonStyle}"
                     HeightRequest="56"
                     Clicked="OnCloseClicked"/>
 

@@ -84,6 +84,21 @@
     <Color x:Key="ListItemBorderLight">#EBEDF0</Color>
     <Color x:Key="ListItemBorderDark">#2E3036</Color>
 
+    <!-- Shadow colors -->
+    <Color x:Key="ShadowLight">#14000000</Color>
+    <Color x:Key="ShadowDark">#00000000</Color>
+    <Color x:Key="ShadowMediumLight">#18000000</Color>
+    <Color x:Key="ShadowHeavyLight">#10000000</Color>
+    <Color x:Key="ShadowHeavyDark">#50000000</Color>
+    <Color x:Key="ControlShadowLight">#E6FFFFFF</Color>
+    <Color x:Key="ControlShadowDark">#E61A1B1E</Color>
+
+    <SolidColorBrush x:Key="ShadowLightBrush" Color="{StaticResource ShadowLight}"/>
+    <SolidColorBrush x:Key="ShadowDarkBrush" Color="{StaticResource ShadowDark}"/>
+    <SolidColorBrush x:Key="ShadowMediumLightBrush" Color="{StaticResource ShadowMediumLight}"/>
+    <SolidColorBrush x:Key="ShadowHeavyLightBrush" Color="{StaticResource ShadowHeavyLight}"/>
+    <SolidColorBrush x:Key="ShadowHeavyDarkBrush" Color="{StaticResource ShadowHeavyDark}"/>
+
     <!-- Explicit Brushes for AppThemeBindings on Strokes -->
     <SolidColorBrush x:Key="BorderColorLightBrush" Color="{StaticResource BorderColorLight}"/>
     <SolidColorBrush x:Key="BorderColorDarkBrush" Color="{StaticResource BorderColorDark}"/>

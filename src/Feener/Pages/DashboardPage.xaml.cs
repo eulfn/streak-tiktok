@@ -121,11 +121,28 @@ public partial class DashboardPage : ContentPage
     private void UpdateSessionIndicator()
     {
         bool valid = _sessionService.IsSessionValid();
-        MasterRunButton.IsEnabled = valid;
-        MasterRunButton.Opacity = valid ? 1.0 : 0.5;
-        if (!valid && !MasterRunButton.Text.Contains("Login Required"))
+        bool isBurst = _settingsService.IsBurstModeActive();
+        bool fixedScheduleBlocks = !isBurst && _settingsService.GetUseFixedTime() && _settingsService.IsScheduled();
+
+        if (!valid)
         {
+            MasterRunButton.IsEnabled = false;
+            MasterRunButton.Opacity = 0.5;
             MasterRunButton.Text = "Login Required";
+        }
+        else if (fixedScheduleBlocks)
+        {
+            var hour = _settingsService.GetFixedTimeHour();
+            var minute = _settingsService.GetFixedTimeMinute();
+            MasterRunButton.IsEnabled = true; // clickable — but will prompt override
+            MasterRunButton.Opacity = 0.7;
+            MasterRunButton.Text = $"Scheduled at {hour:D2}:{minute:D2}";
+        }
+        else
+        {
+            MasterRunButton.IsEnabled = valid;
+            MasterRunButton.Opacity = 1.0;
+            MasterRunButton.Text = isBurst ? "Run Burst" : "Run Normal";
         }
     }
 
@@ -289,8 +306,8 @@ public partial class DashboardPage : ContentPage
         BurstModeTabLabel.TextColor = GetThemeColor("Gray600", "#4B5563");
         NormalModeContainer.IsVisible = true;
         NormalModeContainer.Opacity = 1;
-        MasterRunButton.Text = "Run Normal";
         MasterRunButton.BackgroundColor = GetThemeColor("Primary", "#FE2C55");
+        UpdateSessionIndicator();
     }
 
     private void SetBurstModeUI()
@@ -306,8 +323,8 @@ public partial class DashboardPage : ContentPage
         NormalModeTabLabel.TextColor = GetThemeColor("Gray600", "#4B5563");
         BurstModeContainer.IsVisible = true;
         BurstModeContainer.Opacity = 1;
-        MasterRunButton.Text = "Run Burst";
         MasterRunButton.BackgroundColor = GetThemeColor("BurstAccent", "#8B5CF6");
+        UpdateSessionIndicator();
     }
 
     // ─── Burst Plan / Messages ───
@@ -485,10 +502,12 @@ public partial class DashboardPage : ContentPage
         if (isScheduled)
         {
             var nextRun = _settingsService.GetNextRunTime();
-            var timeUntil = nextRun - DateTime.Now;
-            if (timeUntil.TotalMinutes < 60) NextRunLabel.Text = $"In {(int)timeUntil.TotalMinutes} minutes";
-            else if (timeUntil.TotalHours < 24) NextRunLabel.Text = $"In {(int)timeUntil.TotalHours} hours";
-            else NextRunLabel.Text = nextRun.ToString("MMM dd, HH:mm");
+            if (nextRun.Date == DateTime.Today)
+                NextRunLabel.Text = $"Today at {nextRun:HH:mm}";
+            else if (nextRun.Date == DateTime.Today.AddDays(1))
+                NextRunLabel.Text = $"Tomorrow at {nextRun:HH:mm}";
+            else
+                NextRunLabel.Text = nextRun.ToString("MMM dd, HH:mm");
         }
         else NextRunLabel.Text = "Not scheduled";
 
@@ -572,6 +591,22 @@ public partial class DashboardPage : ContentPage
         {
             var friends = _settingsService.GetEnabledFriends();
             if (friends.Count == 0) { await DisplayAlert("No Friends", "Please add at least one friend before running.", "OK"); return; }
+
+            // If fixed-time daily schedule is active, ask user to disable it first
+            if (_settingsService.GetUseFixedTime() && _settingsService.IsScheduled())
+            {
+                var overrideConfirm = await DisplayAlert("Daily Schedule Active",
+                    "A daily schedule is active. Disable it to run manually?",
+                    "Disable & Run", "Cancel");
+                if (!overrideConfirm) return;
+#if ANDROID
+                var ctx = Platform.CurrentActivity ?? Android.App.Application.Context;
+                Feener.Platforms.Android.StreakScheduler.CancelSchedule(ctx);
+                _settingsService.SetUseFixedTime(false);
+#endif
+                UpdateSessionIndicator();
+            }
+
             var confirm = await DisplayAlert("Run Now", $"This will send your streak message to {friends.Count} friend{(friends.Count != 1 ? "s" : "")}. Continue?", "Run", "Cancel");
             if (!confirm) return;
 #if ANDROID

@@ -22,6 +22,11 @@ public class SettingsService
     private const string UseFixedTimeKey = "use_fixed_time";
     private const string FixedTimeHourKey = "fixed_time_hour";
     private const string FixedTimeMinuteKey = "fixed_time_minute";
+    private const string ChatPriorityKey = "chat_priority";
+
+    public const string PriorityMixed = "mixed";
+    public const string PriorityFriendsFirst = "friends";
+    public const string PriorityGroupsFirst = "groups";
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -238,6 +243,22 @@ public class SettingsService
     public void SetRandomizeNormalMessages(bool enabled)
     {
         Preferences.Set(RandomizeNormalMessagesKey, enabled);
+    }
+
+    /// <summary>
+    /// Get the chat processing priority: "mixed" (default), "friends", or "groups"
+    /// </summary>
+    public string GetChatPriority()
+    {
+        return Preferences.Get(ChatPriorityKey, PriorityMixed);
+    }
+
+    /// <summary>
+    /// Set the chat processing priority
+    /// </summary>
+    public void SetChatPriority(string priority)
+    {
+        Preferences.Set(ChatPriorityKey, priority);
     }
     
     /// <summary>

@@ -15,8 +15,8 @@
                 Stroke="Transparent"
                 StrokeThickness="0"
                 StrokeShape="RoundRectangle 0,0,20,20"
-                Padding="20">
-            <VerticalStackLayout Spacing="4">
+                Padding="{StaticResource SpacingLG}">
+            <VerticalStackLayout Spacing="{StaticResource SpacingXS}">
                 <Label Text="Login to TikTok" 
                        TextColor="{AppThemeBinding Light={StaticResource Gray950}, Dark={StaticResource White}}"
                        FontFamily="InterSemiBold"
@@ -38,7 +38,7 @@
               Grid.Row="1" 
               IsVisible="True"
               BackgroundColor="{AppThemeBinding Light={StaticResource OverlayLight}, Dark={StaticResource OverlayDark}}">
-            <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="16">
+            <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="{StaticResource SpacingMD}">
                 <ActivityIndicator IsRunning="True" 
                                    Color="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource White}}"
                                    HeightRequest="48"
@@ -52,17 +52,14 @@
         
         <!-- Footer Actions -->
         <Border Grid.Row="2" Style="{StaticResource BottomActionBorder}">
-            <Grid ColumnDefinitions="*, *" ColumnSpacing="12">
+            <Grid ColumnDefinitions="*, *" ColumnSpacing="{StaticResource SpacingMD}">
                 <Button Text="Back"
-                        Style="{StaticResource TextButton}"
+                        Style="{StaticResource SecondaryButtonStyle}"
                         HeightRequest="44"
                         Clicked="OnBackClicked"/>
                 <Button Grid.Column="1"
                         Text="Refresh"
-                        BackgroundColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}"
-                        TextColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource PrimaryDarkText}}"
-                        FontFamily="InterSemiBold"
-                        CornerRadius="14"
+                        Style="{StaticResource PrimaryButtonStyle}"
                         HeightRequest="44"
                         Clicked="OnRefreshClicked"/>
             </Grid>

@@ -8,7 +8,7 @@
     <Border x:Name="NavContainer"
             Style="{StaticResource FloatingNavStyle}">
         <Border.Shadow>
-            <Shadow Brush="{AppThemeBinding Light=#10000000, Dark=#50000000}"
+            <Shadow Brush="{AppThemeBinding Light={StaticResource ShadowHeavyLightBrush}, Dark={StaticResource ShadowHeavyDarkBrush}}"
                     Offset="0,8"
                     Radius="24"
                     Opacity="1"/>

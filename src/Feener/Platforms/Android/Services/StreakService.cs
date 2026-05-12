@@ -325,7 +325,14 @@ public class StreakService : Service
                     AppLog("SYSTEM", "-", $"Randomized messages enabled: {_shuffledNormalMessages.Count} variants loaded");
                 }
 
-                AppLog("SYSTEM", "-", $"Starting normal automation: {_friendsToProcess.Count} to process, {_cooldownSkippedCount} skipped (already sent today)");
+                // Sort by chat priority setting
+                var priority = _settingsService.GetChatPriority();
+                if (priority == SettingsService.PriorityFriendsFirst)
+                    _friendsToProcess = _friendsToProcess.OrderBy(f => f.IsGroup).ToList();
+                else if (priority == SettingsService.PriorityGroupsFirst)
+                    _friendsToProcess = _friendsToProcess.OrderByDescending(f => f.IsGroup).ToList();
+
+                AppLog("SYSTEM", "-", $"Starting normal automation: {_friendsToProcess.Count} to process, {_cooldownSkippedCount} skipped (already sent today){(priority != SettingsService.PriorityMixed ? $", priority: {priority} first" : "")}");
 
                 if (_friendsToProcess.Count == 0)
                 {
@@ -569,7 +576,10 @@ public class StreakService : Service
         if (_isCancelRequested) return;
         if (_friendsToProcess == null || _settingsService == null) return;
 
-        var friend = _friendsToProcess.FirstOrDefault(f => f.Username.Equals(username, StringComparison.OrdinalIgnoreCase));
+        var friend = _friendsToProcess.FirstOrDefault(f =>
+            f.IsGroup
+                ? f.DisplayName.Equals(username, StringComparison.OrdinalIgnoreCase)
+                : f.Username.Equals(username, StringComparison.OrdinalIgnoreCase));
 
         if (friend != null)
         {

@@ -13,10 +13,10 @@
 
         <RefreshView x:Name="MainRefreshView" Refreshing="OnRefreshing">
             <ScrollView>
-                <VerticalStackLayout Padding="20" Spacing="16">
+                <VerticalStackLayout Padding="{StaticResource SpacingLG}" Spacing="{StaticResource SpacingMD}">
 
                     <!-- ─── Header ─── -->
-                    <VerticalStackLayout Spacing="2" Margin="0,8,0,0">
+                    <VerticalStackLayout Spacing="{StaticResource SpacingXS}" Margin="0,{StaticResource SpacingSM},0,0">
                         <Label Text="List Management"
                                Style="{StaticResource PageTitleLabel}"
                                HorizontalOptions="Start"/>
@@ -68,11 +68,11 @@
                     </Border>
 
                     <!-- ═══ Friends Mode Container ═══ -->
-                    <VerticalStackLayout x:Name="FriendsModeContainer" IsVisible="True" Spacing="16">
+                    <VerticalStackLayout x:Name="FriendsModeContainer" IsVisible="True" Spacing="{StaticResource SpacingMD}">
                         <Border Style="{StaticResource SectionCard}">
-                            <VerticalStackLayout Spacing="12">
+                            <VerticalStackLayout Spacing="{StaticResource SpacingMD}">
                                 <!-- Action Buttons Row -->
-                                <Grid x:Name="ActionButtonsGrid" ColumnDefinitions="*, Auto, Auto, Auto, Auto" ColumnSpacing="10">
+                                <Grid x:Name="ActionButtonsGrid" ColumnDefinitions="*, Auto, Auto, Auto, Auto" ColumnSpacing="{StaticResource SpacingSM}">
                                     <Label Text="Streaks"
                                            Style="{StaticResource SectionLabel}" VerticalOptions="Center"/>
                                     <Button Grid.Column="1"
@@ -95,7 +95,7 @@
                                 </Grid>
 
                                 <!-- Add Friend Input Panel (hidden by default) -->
-                                <VerticalStackLayout x:Name="AddFriendPanel" IsVisible="False" Spacing="8">
+                                <VerticalStackLayout x:Name="AddFriendPanel" IsVisible="False" Spacing="{StaticResource SpacingSM}">
                                     <Border StrokeThickness="0"
                                             StrokeShape="RoundRectangle 16"
                                             BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray900}}">
@@ -112,24 +112,19 @@
                                                Margin="12,4"
                                                BackgroundColor="Transparent"/>
                                     </Border>
-                                    <Grid ColumnDefinitions="*, *" ColumnSpacing="8">
+                                    <Grid ColumnDefinitions="*, *" ColumnSpacing="{StaticResource SpacingSM}">
                                         <Button Text="Cancel"
-                                                Style="{StaticResource TextButton}"
-                                                BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray800}}"
-                                                TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}"
-                                                CornerRadius="14" HeightRequest="40"
+                                                Style="{StaticResource SecondaryButtonStyle}"
                                                 Clicked="OnCancelAddFriend"/>
                                         <Button Grid.Column="1"
                                                 Text="Save"
-                                                BackgroundColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}"
-                                                TextColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource PrimaryDarkText}}"
-                                                CornerRadius="14" HeightRequest="40"
+                                                Style="{StaticResource PrimaryButtonStyle}"
                                                 Clicked="OnSaveFriend"/>
                                     </Grid>
                                 </VerticalStackLayout>
 
                                 <!-- Friends List Container -->
-                                <VerticalStackLayout x:Name="FriendsListContainer" Spacing="8">
+                                <VerticalStackLayout x:Name="FriendsListContainer" Spacing="{StaticResource SpacingSM}">
                                     <Label x:Name="NoFriendsLabel"
                                            Text="No friends added. Tap 'Add' to begin."
                                            Style="{StaticResource DataLabel}"
@@ -141,11 +136,11 @@
                     </VerticalStackLayout>
 
                     <!-- ═══ Groups Mode Container ═══ -->
-                    <VerticalStackLayout x:Name="GroupsModeContainer" IsVisible="False" Spacing="16">
+                    <VerticalStackLayout x:Name="GroupsModeContainer" IsVisible="False" Spacing="{StaticResource SpacingMD}">
                         <Border Style="{StaticResource SectionCard}">
-                            <VerticalStackLayout Spacing="12">
+                            <VerticalStackLayout Spacing="{StaticResource SpacingMD}">
                                 <!-- Action Buttons Row -->
-                                <Grid x:Name="GroupActionButtonsGrid" ColumnDefinitions="*, Auto, Auto, Auto, Auto" ColumnSpacing="10">
+                                <Grid x:Name="GroupActionButtonsGrid" ColumnDefinitions="*, Auto, Auto, Auto, Auto" ColumnSpacing="{StaticResource SpacingSM}">
                                     <Label Text="Group Chats"
                                            Style="{StaticResource SectionLabel}" VerticalOptions="Center"/>
                                     <Button Grid.Column="1"
@@ -168,7 +163,7 @@
                                 </Grid>
 
                                 <!-- Add Group Input Panel (hidden by default) -->
-                                <VerticalStackLayout x:Name="AddGroupPanel" IsVisible="False" Spacing="8">
+                                <VerticalStackLayout x:Name="AddGroupPanel" IsVisible="False" Spacing="{StaticResource SpacingSM}">
                                     <Border StrokeThickness="0"
                                             StrokeShape="RoundRectangle 16"
                                             BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray900}}">
@@ -185,24 +180,19 @@
                                                Margin="12,4"
                                                BackgroundColor="Transparent"/>
                                     </Border>
-                                    <Grid ColumnDefinitions="*, *" ColumnSpacing="8">
+                                    <Grid ColumnDefinitions="*, *" ColumnSpacing="{StaticResource SpacingSM}">
                                         <Button Text="Cancel"
-                                                Style="{StaticResource TextButton}"
-                                                BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray800}}"
-                                                TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}"
-                                                CornerRadius="14" HeightRequest="40"
+                                                Style="{StaticResource SecondaryButtonStyle}"
                                                 Clicked="OnCancelAddGroup"/>
                                         <Button Grid.Column="1"
                                                 Text="Save"
-                                                BackgroundColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}"
-                                                TextColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource PrimaryDarkText}}"
-                                                CornerRadius="14" HeightRequest="40"
+                                                Style="{StaticResource PrimaryButtonStyle}"
                                                 Clicked="OnSaveGroup"/>
                                     </Grid>
                                 </VerticalStackLayout>
 
                                 <!-- Groups List Container -->
-                                <VerticalStackLayout x:Name="GroupsListContainer" Spacing="8">
+                                <VerticalStackLayout x:Name="GroupsListContainer" Spacing="{StaticResource SpacingSM}">
                                     <Label x:Name="NoGroupsLabel"
                                            Text="No groups added. Tap 'Add' to begin."
                                            Style="{StaticResource DataLabel}"
@@ -215,18 +205,18 @@
 
                 <!-- Stats summary -->
                 <Border x:Name="FriendsStatsCard" Style="{StaticResource SectionCard}" IsVisible="False">
-                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
-                        <VerticalStackLayout HorizontalOptions="Center" Spacing="2">
+                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="{StaticResource SpacingSM}">
+                        <VerticalStackLayout HorizontalOptions="Center" Spacing="{StaticResource SpacingXS}">
                             <Label x:Name="TotalFriendsLabel" Text="0"
                                    Style="{StaticResource ValueLabel}" HorizontalTextAlignment="Center"/>
                             <Label Text="Total" Style="{StaticResource DataLabel}" HorizontalTextAlignment="Center"/>
                         </VerticalStackLayout>
-                        <VerticalStackLayout Grid.Column="1" HorizontalOptions="Center" Spacing="2">
+                        <VerticalStackLayout Grid.Column="1" HorizontalOptions="Center" Spacing="{StaticResource SpacingXS}">
                             <Label x:Name="EnabledFriendsLabel" Text="0"
                                    Style="{StaticResource ValueLabel}" HorizontalTextAlignment="Center"/>
                             <Label Text="Enabled" Style="{StaticResource DataLabel}" HorizontalTextAlignment="Center"/>
                         </VerticalStackLayout>
-                        <VerticalStackLayout Grid.Column="2" HorizontalOptions="Center" Spacing="2">
+                        <VerticalStackLayout Grid.Column="2" HorizontalOptions="Center" Spacing="{StaticResource SpacingXS}">
                             <Label x:Name="SentTodayLabel" Text="0"
                                    Style="{StaticResource ValueLabel}" HorizontalTextAlignment="Center"/>
                             <Label Text="Sent Today" Style="{StaticResource DataLabel}" HorizontalTextAlignment="Center"/>

@@ -12,10 +12,10 @@
     <Grid>
 
         <ScrollView>
-            <VerticalStackLayout Padding="20" Spacing="16">
+            <VerticalStackLayout Padding="{StaticResource SpacingLG}" Spacing="{StaticResource SpacingMD}">
 
                 <!-- ─── Header ─── -->
-                <VerticalStackLayout Spacing="2" Margin="0,8,0,0">
+                <VerticalStackLayout Spacing="{StaticResource SpacingXS}" Margin="0,{StaticResource SpacingSM},0,0">
                     <Label Text="Profile"
                            Style="{StaticResource PageTitleLabel}"
                            HorizontalOptions="Start"/>
@@ -28,11 +28,11 @@
 
                 <!-- ─── Account Card ─── -->
                 <Border Style="{StaticResource SectionCard}">
-                    <VerticalStackLayout Spacing="16">
+                    <VerticalStackLayout Spacing="{StaticResource SpacingMD}">
                         <Label Text="TikTok Account" Style="{StaticResource SectionLabel}"/>
 
                         <!-- Profile avatar + display name -->
-                        <Grid ColumnDefinitions="Auto, *" ColumnSpacing="16">
+                        <Grid ColumnDefinitions="Auto, *" ColumnSpacing="{StaticResource SpacingMD}">
                             <Border WidthRequest="56" HeightRequest="56"
                                     StrokeThickness="2"
                                     Stroke="{AppThemeBinding Light={StaticResource BorderColorLight}, Dark={StaticResource BorderColorDark}}"
@@ -73,7 +73,7 @@
                         </Grid>
 
                         <!-- Session Status -->
-                        <Grid ColumnDefinitions="Auto, *, Auto" ColumnSpacing="10">
+                        <Grid ColumnDefinitions="Auto, *, Auto" ColumnSpacing="{StaticResource SpacingMD}">
                             <Border x:Name="SessionDot"
                                     WidthRequest="10" HeightRequest="10"
                                     StrokeThickness="0"
@@ -94,11 +94,7 @@
                         <Grid>
                             <Button x:Name="LoginButton"
                                     Text="Login to TikTok"
-                                    BackgroundColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}"
-                                    TextColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource PrimaryDarkText}}"
-                                    FontFamily="InterSemiBold"
-                                    CornerRadius="14"
-                                    HeightRequest="48"
+                                    Style="{StaticResource PrimaryButtonStyle}"
                                     Clicked="OnLoginClicked"/>
 
                         </Grid>
@@ -108,11 +104,11 @@
 
                 <!-- ─── Settings Card ─── -->
                 <Border Style="{StaticResource SectionCard}">
-                    <VerticalStackLayout Spacing="16">
+                    <VerticalStackLayout Spacing="{StaticResource SpacingMD}">
                         <Label Text="Settings" Style="{StaticResource SectionLabel}"/>
 
                         <!-- Background Automation -->
-                        <Grid ColumnDefinitions="*, Auto" ColumnSpacing="16">
+                        <Grid ColumnDefinitions="*, Auto" ColumnSpacing="{StaticResource SpacingMD}">
                             <VerticalStackLayout VerticalOptions="Center" Spacing="4">
                                 <Label Text="Background Automation" Style="{StaticResource ControlTitleLabel}"/>
                                 <Label Text="Keep streaks alive automatically" Style="{StaticResource DataLabel}" LineBreakMode="WordWrap"/>
@@ -124,10 +120,10 @@
                         </Grid>
 
                         <!-- Schedule Mode (visible when automation is ON) -->
-                        <VerticalStackLayout x:Name="ScheduleOptionsPanel" IsVisible="False" Spacing="12">
+                        <VerticalStackLayout x:Name="ScheduleOptionsPanel" IsVisible="False" Spacing="{StaticResource SpacingMD}">
 
                             <!-- Fixed Time Toggle -->
-                            <Grid ColumnDefinitions="*, Auto" ColumnSpacing="16">
+                            <Grid ColumnDefinitions="*, Auto" ColumnSpacing="{StaticResource SpacingMD}">
                                 <VerticalStackLayout VerticalOptions="Center" Spacing="4">
                                     <Label Text="Daily Schedule" Style="{StaticResource ControlTitleLabel}"/>
                                     <Label Text="Run at the same time every day" Style="{StaticResource DataLabel}"/>
@@ -140,7 +136,7 @@
 
                             <!-- Time Picker (visible when fixed time is ON) -->
                             <Grid x:Name="TimePickerRow" IsVisible="False"
-                                  ColumnDefinitions="*, Auto" ColumnSpacing="16">
+                                  ColumnDefinitions="*, Auto" ColumnSpacing="{StaticResource SpacingMD}">
                                 <Label Text="Run at" VerticalOptions="Center"
                                        Style="{StaticResource ControlTitleLabel}"/>
                                 <TimePicker x:Name="ScheduleTimePicker"
@@ -155,7 +151,7 @@
 
 
                         <!-- Skip Unreachable Users -->
-                        <Grid ColumnDefinitions="*, Auto" ColumnSpacing="16">
+                        <Grid ColumnDefinitions="*, Auto" ColumnSpacing="{StaticResource SpacingMD}">
                             <VerticalStackLayout VerticalOptions="Center" Spacing="4">
                                 <Label Text="Skip Unreachable" Style="{StaticResource ControlTitleLabel}"/>
                                 <Label Text="Continue to remaining users when one is not found" Style="{StaticResource DataLabel}" LineBreakMode="WordWrap"/>
@@ -167,7 +163,7 @@
                         </Grid>
 
                         <!-- Randomize Messages -->
-                        <Grid ColumnDefinitions="*, Auto" ColumnSpacing="16">
+                        <Grid ColumnDefinitions="*, Auto" ColumnSpacing="{StaticResource SpacingMD}">
                             <VerticalStackLayout VerticalOptions="Center" Spacing="4">
                                 <Label Text="Randomize Messages" Style="{StaticResource ControlTitleLabel}"/>
                                 <Label Text="Send a unique built-in streak message to each friend" Style="{StaticResource DataLabel}" LineBreakMode="WordWrap"/>
@@ -176,6 +172,30 @@
                                     Grid.Column="1"
                                     VerticalOptions="Center"
                                     Toggled="OnRandomizeMessagesToggled"/>
+                        </Grid>
+
+                        <!-- Chat Priority -->
+                        <Grid ColumnDefinitions="*, Auto" ColumnSpacing="{StaticResource SpacingMD}">
+                            <VerticalStackLayout VerticalOptions="Center" Spacing="4">
+                                <Label Text="Chat Priority" Style="{StaticResource ControlTitleLabel}"/>
+                                <Label Text="Choose which chats to process first" Style="{StaticResource DataLabel}" LineBreakMode="WordWrap"/>
+                            </VerticalStackLayout>
+                            <Border Grid.Column="1"
+                                    StrokeThickness="1"
+                                    Stroke="{AppThemeBinding Light={StaticResource BorderColorLight}, Dark={StaticResource BorderColorDark}}"
+                                    StrokeShape="RoundRectangle 12"
+                                    Padding="12,6"
+                                    VerticalOptions="Center">
+                                <Label x:Name="ChatPriorityLabel"
+                                       Text="Mixed"
+                                       FontFamily="InterSemiBold"
+                                       FontSize="13"
+                                       TextColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}"
+                                       VerticalOptions="Center"/>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnChatPriorityTapped"/>
+                                </Border.GestureRecognizers>
+                            </Border>
                         </Grid>
                     </VerticalStackLayout>
                 </Border>
@@ -201,13 +221,10 @@
 
                 <!-- ─── Danger Zone ─── -->
                 <Border Style="{StaticResource SectionCard}">
-                    <VerticalStackLayout Spacing="12">
+                    <VerticalStackLayout Spacing="{StaticResource SpacingMD}">
                         <Label Text="Data" Style="{StaticResource SectionLabel}"/>
                         <Button Text="Logout / Clear Session"
-                                BackgroundColor="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray800}}"
-                                TextColor="{AppThemeBinding Light={StaticResource DeleteColor}, Dark={StaticResource DeleteColor}}"
-                                CornerRadius="14"
-                                HeightRequest="44"
+                                Style="{StaticResource DestructiveButtonStyle}"
                                 Clicked="OnLogoutClicked"/>
                     </VerticalStackLayout>
                 </Border>

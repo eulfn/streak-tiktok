@@ -43,6 +43,7 @@ public partial class ProfilePage : ContentPage
 
         SkipUnreachableSwitch.IsToggled = _settingsService.GetSkipUnreachableUsers();
         RandomizeMessagesSwitch.IsToggled = _settingsService.GetRandomizeNormalMessages();
+        UpdateChatPriorityLabel();
 
         // Load version
         VersionLabel.Text = $"v{AppInfo.Current.VersionString}";
@@ -195,6 +196,35 @@ public partial class ProfilePage : ContentPage
     private void OnRandomizeMessagesToggled(object? sender, ToggledEventArgs e)
     {
         _settingsService.SetRandomizeNormalMessages(e.Value);
+    }
+
+    private void UpdateChatPriorityLabel()
+    {
+        var priority = _settingsService.GetChatPriority();
+        ChatPriorityLabel.Text = priority switch
+        {
+            SettingsService.PriorityFriendsFirst => "Friends First",
+            SettingsService.PriorityGroupsFirst => "Groups First",
+            _ => "Mixed"
+        };
+    }
+
+    private async void OnChatPriorityTapped(object? sender, TappedEventArgs e)
+    {
+        var choice = await DisplayActionSheet("Chat Priority", "Cancel", null,
+            "Mixed", "Friends First", "Groups First");
+        var priority = choice switch
+        {
+            "Friends First" => SettingsService.PriorityFriendsFirst,
+            "Groups First" => SettingsService.PriorityGroupsFirst,
+            "Mixed" => SettingsService.PriorityMixed,
+            _ => null
+        };
+        if (priority != null)
+        {
+            _settingsService.SetChatPriority(priority);
+            UpdateChatPriorityLabel();
+        }
     }
 
     private async void OnAboutClicked(object? sender, EventArgs e)

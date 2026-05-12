@@ -13,10 +13,10 @@
 
         <RefreshView x:Name="MainRefreshView" Refreshing="OnRefreshing">
             <ScrollView>
-                <VerticalStackLayout Padding="20" Spacing="16">
+                <VerticalStackLayout Padding="{StaticResource SpacingLG}" Spacing="{StaticResource SpacingMD}">
 
                     <!-- ─── Header ─── -->
-                    <VerticalStackLayout Spacing="2" Margin="0,8,0,0">
+                    <VerticalStackLayout Spacing="{StaticResource SpacingXS}" Margin="0,{StaticResource SpacingSM},0,0">
                         <Label Text="Activity"
                                Style="{StaticResource PageTitleLabel}"
                                HorizontalOptions="Start"/>
@@ -69,10 +69,10 @@
 
                     <!-- ─── Success Overview ─── -->
                 <Border Style="{StaticResource SectionCard}">
-                    <Grid ColumnDefinitions="Auto, *" ColumnSpacing="16">
+                    <Grid ColumnDefinitions="Auto, *" ColumnSpacing="{StaticResource SpacingMD}">
                         <GraphicsView x:Name="SuccessChartView"
                                       WidthRequest="80" HeightRequest="80"/>
-                        <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="4">
+                        <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="{StaticResource SpacingXS}">
                             <Label x:Name="SuccessRateLabel"
                                    Text="No data yet"
                                    Style="{StaticResource ValueLabel}"/>
@@ -88,8 +88,8 @@
 
                 <!-- ─── Activity List ─── -->
                 <Border Style="{StaticResource SectionCard}">
-                    <VerticalStackLayout Spacing="12">
-                        <Grid ColumnDefinitions="*, Auto, Auto" ColumnSpacing="8">
+                    <VerticalStackLayout Spacing="{StaticResource SpacingMD}">
+                        <Grid ColumnDefinitions="*, Auto, Auto" ColumnSpacing="{StaticResource SpacingSM}">
                             <Label Text="Run Log"
                                    Style="{StaticResource SectionLabel}"
                                    VerticalOptions="Center"/>
@@ -103,7 +103,7 @@
                                     Style="{StaticResource TextButton}"
                                     Clicked="OnExportLogsClicked"/>
                         </Grid>
-                        <VerticalStackLayout x:Name="HistoryContainer" Spacing="8">
+                        <VerticalStackLayout x:Name="HistoryContainer" Spacing="{StaticResource SpacingSM}">
                             <Label x:Name="NoHistoryLabel"
                                    Text="No activity yet."
                                    Style="{StaticResource DataLabel}"

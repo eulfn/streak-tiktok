@@ -166,8 +166,25 @@ public partial class FriendsPage : ContentPage
         editButton.SetAppThemeColor(Button.TextColorProperty, GetThemeColor("Gray400"), GetThemeColor("Gray400"));
         editButton.Clicked += async (s, e) =>
         {
-            var newName = await DisplayPromptAsync("Edit Friend", "Enter new display name:", initialValue: friend.DisplayName ?? friend.Username);
-            if (newName != null) { friend.DisplayName = newName; _settingsService.UpdateFriend(friend); LoadLists(); }
+            var editChoice = friend.IsGroup
+                ? await DisplayActionSheet("Edit Group", "Cancel", null, "Edit Display Name", "Edit Group Name")
+                : await DisplayActionSheet("Edit Friend", "Cancel", null, "Edit Display Name", "Edit Username");
+
+            if (editChoice == "Edit Display Name")
+            {
+                var newName = await DisplayPromptAsync("Display Name", "Enter new display name:", initialValue: friend.DisplayName ?? (friend.IsGroup ? "" : friend.Username));
+                if (newName != null) { friend.DisplayName = newName; _settingsService.UpdateFriend(friend); LoadLists(); }
+            }
+            else if (editChoice == "Edit Username")
+            {
+                var newUsername = await DisplayPromptAsync("Username", "Enter TikTok username (without @):", initialValue: friend.Username);
+                if (newUsername != null) { friend.Username = newUsername.TrimStart('@'); _settingsService.UpdateFriend(friend); LoadLists(); }
+            }
+            else if (editChoice == "Edit Group Name")
+            {
+                var newGroupName = await DisplayPromptAsync("Group Name", "Enter the exact group chat name as it appears in TikTok:", initialValue: friend.DisplayName);
+                if (newGroupName != null) { friend.DisplayName = newGroupName; _settingsService.UpdateFriend(friend); LoadLists(); }
+            }
         };
         Grid.SetColumn(editButton, 1); grid.Children.Add(editButton);
 

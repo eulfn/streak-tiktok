@@ -70,27 +70,12 @@ jobs:
     - name: Cache NuGet packages
       uses: actions/cache@v4
       with:
-        path: |
-          ~/.nuget/packages
-          ${{ github.workspace }}/.nuget
+        path: ~/.nuget/packages
         key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj') }}
         restore-keys: |
           nuget-${{ runner.os }}-
 
-    # Cache MAUI workload to skip the ~800MB download on repeat builds
-    - name: Cache MAUI workload
-      id: cache-maui
-      uses: actions/cache@v4
-      with:
-        path: |
-          ${{ env.DOTNET_ROOT }}/sdk-manifests
-          ${{ env.DOTNET_ROOT }}/metadata
-          ${{ env.DOTNET_ROOT }}/packs
-          ${{ env.DOTNET_ROOT }}/library-packs
-        key: maui-workload-${{ runner.os }}-${{ env.DOTNET_VERSION }}
-
     - name: Install MAUI workload
-      if: steps.cache-maui.outputs.cache-hit != 'true'
       run: dotnet workload install maui-android
 
     - name: Restore dependencies

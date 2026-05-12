@@ -15,6 +15,8 @@ env:
   DOTNET_VERSION: '9.0.x'
   PROJECT_PATH: 'src/Feener/Feener.csproj'
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
 
 jobs:
   build-android:
@@ -64,7 +66,31 @@ jobs:
         distribution: 'microsoft'
         java-version: '17'
 
+    # Cache NuGet packages to avoid re-downloading on every build
+    - name: Cache NuGet packages
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.nuget/packages
+          ${{ github.workspace }}/.nuget
+        key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj') }}
+        restore-keys: |
+          nuget-${{ runner.os }}-
+
+    # Cache MAUI workload to skip the ~800MB download on repeat builds
+    - name: Cache MAUI workload
+      id: cache-maui
+      uses: actions/cache@v4
+      with:
+        path: |
+          ${{ env.DOTNET_ROOT }}/sdk-manifests
+          ${{ env.DOTNET_ROOT }}/metadata
+          ${{ env.DOTNET_ROOT }}/packs
+          ${{ env.DOTNET_ROOT }}/library-packs
+        key: maui-workload-${{ runner.os }}-${{ env.DOTNET_VERSION }}
+
     - name: Install MAUI workload
+      if: steps.cache-maui.outputs.cache-hit != 'true'
       run: dotnet workload install maui-android
 
     - name: Restore dependencies
@@ -113,56 +139,6 @@ jobs:
       shell: pwsh
       id: rename_apk
 
-    - name: APK Identity Report
-      run: |
-        $ErrorActionPreference = 'SilentlyContinue'
-        $apk = Get-ChildItem -Path ./artifacts -Filter "*.apk" | Select-Object -First 1
-        if (-not $apk) { Write-Host "No APK found in ./artifacts"; exit 0 }
-        $apkPath = $apk.FullName
-
-        # Locate aapt bundled with the Android SDK
-        $sdkRoot = "$env:ANDROID_SDK_ROOT"
-        $aapt = Get-ChildItem "$sdkRoot\build-tools" -Recurse -Filter "aapt.exe" |
-                Sort-Object FullName -Descending | Select-Object -First 1 -ExpandProperty FullName
-
-        Write-Host "========================================"
-        Write-Host "  APK IDENTITY REPORT"
-        Write-Host "========================================"
-
-        if ($aapt) {
-          $badging = & $aapt dump badging $apkPath 2>&1
-          $packageLine = ($badging | Where-Object { $_ -match "^package:" }) | Select-Object -First 1
-          if ($packageLine) {
-            $pkgName = if ($packageLine -match "name='([^']+)'")  { $Matches[1] } else { "?" }
-            $verCode = if ($packageLine -match "versionCode='([^']+)'") { $Matches[1] } else { "?" }
-            $verName = if ($packageLine -match "versionName='([^']+)'") { $Matches[1] } else { "?" }
-            Write-Host "PackageName  = $pkgName"
-            Write-Host "VersionName  = $verName"
-            Write-Host "VersionCode  = $verCode"
-          }
-        } else {
-          Write-Host "aapt not found — skipping badging dump"
-        }
-
-        # Extract signing SHA-256 fingerprint via apksigner
-        $apkSigner = Get-ChildItem "$sdkRoot\build-tools" -Recurse -Filter "apksigner.bat" |
-                     Sort-Object FullName -Descending | Select-Object -First 1 -ExpandProperty FullName
-        if ($apkSigner) {
-          $sigInfo = & $apkSigner verify --print-certs $apkPath 2>&1
-          $sha256Line = ($sigInfo | Where-Object { $_ -match "SHA-256" }) | Select-Object -First 1
-          Write-Host "Signature SHA-256 = $sha256Line"
-        } else {
-          Write-Host "apksigner not found — skipping cert fingerprint"
-        }
-
-        Write-Host "----------------------------------------"
-        Write-Host "Project ApplicationId  = com.fen.loid"
-        Write-Host "Tag Version = ${{ steps.get_version.outputs.VERSION }}"
-        Write-Host "========================================"
-      shell: pwsh
-      id: apk_identity
-      continue-on-error: true
-
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
       with:
@@ -182,4 +158,3 @@ jobs:
         prerelease: false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-

@@ -163,12 +163,13 @@ public partial class FriendsPage : ContentPage
         else
             healthColor = Color.FromArgb("#EF4444"); // red
 
-        var healthDot = new BoxView
+        var healthDot = new Border
         {
-            WidthRequest = 8,
-            HeightRequest = 8,
-            CornerRadius = 4,
-            Color = healthColor,
+            WidthRequest = 10,
+            HeightRequest = 10,
+            StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 5 },
+            StrokeThickness = 0,
+            BackgroundColor = healthColor,
             VerticalOptions = LayoutOptions.Center,
             HorizontalOptions = LayoutOptions.Center
         };

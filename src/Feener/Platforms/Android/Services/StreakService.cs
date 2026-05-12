@@ -80,7 +80,7 @@ public class StreakService : Service
 
     public static List<string> GetLogs()
     {
-        return _logs ?? new List<string>();
+        return new List<string>(_logs);
     }
 
     private static void AppLog(string phase, string username, string message)

@@ -177,17 +177,20 @@ public partial class DashboardPage : ContentPage
             {
                 _lastLogCount = logs.Count;
                 // Show last 35 lines max
-                var visibleLogs = logs.Count > 35 ? logs.Skip(logs.Count - 35) : logs;
-                LiveLogLabel.Text = string.Join("\n", visibleLogs);
+                var visibleLogs = logs.Count > 35 ? logs.GetRange(logs.Count - 35, 35) : logs;
+                var text = string.Join("\n", visibleLogs);
+                LiveLogLabel.Text = text;
                 LiveLogCountLabel.Text = $"{logs.Count} lines";
-                // Auto-scroll to bottom
-                _ = LiveLogScrollView.ScrollToAsync(0, double.MaxValue, false);
+                // Defer scroll to after layout pass to prevent blank frame
+                Dispatcher.DispatchDelayed(TimeSpan.FromMilliseconds(50), () =>
+                {
+                    _ = LiveLogScrollView.ScrollToAsync(0, double.MaxValue, false);
+                });
             }
         }
         else if (_wasRunning && !isRunning)
         {
-            // Keep logs visible briefly after run ends, then hide
-            // (we keep them visible — user can scroll to read final state)
+            // Keep logs visible after run ends so user can review final state
         }
         else if (!isRunning && _lastLogCount == 0)
         {

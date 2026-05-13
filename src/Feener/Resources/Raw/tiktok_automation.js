@@ -535,6 +535,17 @@
                 setTimeout(checkNextChat, 10);
                 return;
             }
+            
+            // PRE-CLICK OPTIMIZATION FOR GROUPS
+            // The group name should be visible in the chat list item text.
+            var itemText = chatItem.innerText || chatItem.textContent || '';
+            if (isTargetUser(itemText)) {
+                log('[CHAT] MATCH — Found group @' + userName + ' in item ' + (chatIndex + 1) + ' (pre-click)');
+                chatItem.click();
+                found = true;
+                setTimeout(sendMessageViaButton, 1500);
+                return;
+            }
         } else {
             // DM mode only pre-click optimization
             for (var i = 0; i < itemLinks.length; i++) {

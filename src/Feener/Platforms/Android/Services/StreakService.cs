@@ -396,6 +396,9 @@ public class StreakService : Service
             _webView.Settings.DomStorageEnabled = true;
             _webView.Settings.DatabaseEnabled = true;
             _webView.Settings.CacheMode = CacheModes.Normal;
+            
+            // Ensure timers aren't paused when running in the background/headless
+            _webView.ResumeTimers();
 
             // Use the same UA that was used during login to maintain session consistency.
             // Falls back to Chrome 91 desktop UA which avoids TikTok bot detection.

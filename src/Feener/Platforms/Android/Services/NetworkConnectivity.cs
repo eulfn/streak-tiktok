@@ -1,5 +1,6 @@
 using Android.Content;
 using Android.Net;
+using Android.OS;
 
 namespace Feener.Platforms.Android.Services;
 

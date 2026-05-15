@@ -24,6 +24,25 @@ public class SettingsService
     private const string FixedTimeMinuteKey = "fixed_time_minute";
     private const string ChatPriorityKey = "chat_priority";
 
+    // ── Resilience: retry tracking + event-driven recovery flags ──
+    private const string RetryCountTodayKey = "retry_count_today";
+    private const string RetryCountDateKey = "retry_count_date";
+    private const string LastRunFailedKey = "last_run_failed";
+    private const string LastRunFailureReasonKey = "last_run_failure_reason";
+    private const string BatteryAnticipationDateKey = "battery_anticipation_date";
+    private const string SendOnBatteryLowKey = "send_on_battery_low";
+
+    /// <summary>
+    /// Maximum hourly retries per calendar day, in addition to the original scheduled run.
+    /// </summary>
+    public const int MaxRetriesPerDay = 3;
+
+    /// <summary>Failure-reason value: the run was skipped because there was no Wi‑Fi/cellular.</summary>
+    public const string FailureReasonNoNetwork = "no_network";
+
+    /// <summary>Failure-reason value: the run completed but one or more messages failed to send.</summary>
+    public const string FailureReasonSendError = "send_error";
+
     public const string PriorityMixed = "mixed";
     public const string PriorityFriendsFirst = "friends";
     public const string PriorityGroupsFirst = "groups";
@@ -298,19 +317,20 @@ public class SettingsService
     #region Scheduling
 
     /// <summary>
-    /// Get the interval in hours
+    /// Interval between automatic runs, in hours (clamped to 1..23).
     /// </summary>
     public int GetIntervalHours()
     {
-        return Preferences.Get(IntervalHoursKey, DefaultIntervalHours);
+        var v = Preferences.Get(IntervalHoursKey, DefaultIntervalHours);
+        return Math.Clamp(v, 1, 23);
     }
 
     /// <summary>
-    /// Set the interval in hours
+    /// Set the interval in hours (clamped to 1..23).
     /// </summary>
     public void SetIntervalHours(int hours)
     {
-        Preferences.Set(IntervalHoursKey, hours);
+        Preferences.Set(IntervalHoursKey, Math.Clamp(hours, 1, 23));
     }
 
     /// <summary>
@@ -390,41 +410,110 @@ public class SettingsService
     /// <summary>
     /// Whether to use a fixed daily time instead of interval-based scheduling
     /// </summary>
-    public bool GetUseFixedTime()
-    {
-        return Preferences.Get(UseFixedTimeKey, false);
-    }
+    public bool GetUseFixedTime() => Preferences.Get(UseFixedTimeKey, false);
 
-    public void SetUseFixedTime(bool value)
+    public void SetUseFixedTime(bool value) => Preferences.Set(UseFixedTimeKey, value);
+
+    /// <summary>
+    /// Hour of day (0-23) for fixed daily schedule.
+    /// </summary>
+    public int GetFixedTimeHour() => Preferences.Get(FixedTimeHourKey, DateTime.Now.Hour);
+
+    public void SetFixedTimeHour(int hour) => Preferences.Set(FixedTimeHourKey, Math.Clamp(hour, 0, 23));
+
+    /// <summary>
+    /// Minute (0-59) for fixed daily schedule.
+    /// </summary>
+    public int GetFixedTimeMinute() => Preferences.Get(FixedTimeMinuteKey, DateTime.Now.Minute);
+
+    public void SetFixedTimeMinute(int minute) => Preferences.Set(FixedTimeMinuteKey, Math.Clamp(minute, 0, 59));
+
+    #endregion
+
+    #region Resilience: retry counter, failure flag, battery toggle
+
+    /// <summary>
+    /// Current count of hourly retries used today. Auto-resets when the stored date
+    /// stamp is not today's date (so the counter naturally rolls over at midnight).
+    /// </summary>
+    public int GetTodayRetryCount()
     {
-        Preferences.Set(UseFixedTimeKey, value);
+        var storedDateTicks = Preferences.Get(RetryCountDateKey, 0L);
+        var today = DateTime.Now.Date.Ticks;
+        if (storedDateTicks != today)
+            return 0;
+        return Preferences.Get(RetryCountTodayKey, 0);
     }
 
     /// <summary>
-    /// Hour (0-23) for fixed daily schedule
+    /// Increments today's retry counter (rolling the date stamp if it's a new day)
+    /// and returns the new value.
     /// </summary>
-    public int GetFixedTimeHour()
+    public int IncrementTodayRetryCount()
     {
-        return Preferences.Get(FixedTimeHourKey, DateTime.Now.Hour);
+        var today = DateTime.Now.Date.Ticks;
+        var storedDateTicks = Preferences.Get(RetryCountDateKey, 0L);
+        var current = storedDateTicks == today ? Preferences.Get(RetryCountTodayKey, 0) : 0;
+        var next = current + 1;
+        Preferences.Set(RetryCountDateKey, today);
+        Preferences.Set(RetryCountTodayKey, next);
+        return next;
     }
 
-    public void SetFixedTimeHour(int hour)
+    /// <summary>Reset today's retry counter (typically on a fully successful run).</summary>
+    public void ResetTodayRetryCount()
     {
-        Preferences.Set(FixedTimeHourKey, hour);
+        Preferences.Set(RetryCountDateKey, DateTime.Now.Date.Ticks);
+        Preferences.Set(RetryCountTodayKey, 0);
     }
 
     /// <summary>
-    /// Minute (0-59) for fixed daily schedule
+    /// Flag indicating that the last attempted run failed and a recovery (e.g. on
+    /// network restore) may be worth attempting.
     /// </summary>
-    public int GetFixedTimeMinute()
+    public bool GetLastRunFailed() => Preferences.Get(LastRunFailedKey, false);
+
+    /// <summary>Set / clear the last-run-failed flag, optionally tagging the reason.</summary>
+    public void SetLastRunFailed(bool failed, string? reason)
     {
-        return Preferences.Get(FixedTimeMinuteKey, DateTime.Now.Minute);
+        Preferences.Set(LastRunFailedKey, failed);
+        if (failed && !string.IsNullOrEmpty(reason))
+            Preferences.Set(LastRunFailureReasonKey, reason);
+        else
+            Preferences.Remove(LastRunFailureReasonKey);
     }
 
-    public void SetFixedTimeMinute(int minute)
+    /// <summary>Reason tag set the last time the run failed, or null when cleared.</summary>
+    public string? GetLastRunFailureReason()
     {
-        Preferences.Set(FixedTimeMinuteKey, minute);
+        var v = Preferences.Get(LastRunFailureReasonKey, string.Empty);
+        return string.IsNullOrEmpty(v) ? null : v;
     }
+
+    /// <summary>
+    /// True if the battery-low anticipation already fired today (we only fire it once
+    /// per calendar day to avoid loops if the device keeps oscillating around 15%).
+    /// </summary>
+    public bool WasBatteryAnticipationUsedToday()
+    {
+        var storedTicks = Preferences.Get(BatteryAnticipationDateKey, 0L);
+        return storedTicks == DateTime.Now.Date.Ticks;
+    }
+
+    /// <summary>Mark today as already used for battery-low anticipation.</summary>
+    public void MarkBatteryAnticipationUsedToday()
+    {
+        Preferences.Set(BatteryAnticipationDateKey, DateTime.Now.Date.Ticks);
+    }
+
+    /// <summary>
+    /// User toggle: when ON, the app will start the streak run early if Android fires
+    /// the system battery-low broadcast and today's streak hasn't been sent yet.
+    /// Default ON.
+    /// </summary>
+    public bool GetSendOnBatteryLow() => Preferences.Get(SendOnBatteryLowKey, true);
+
+    public void SetSendOnBatteryLow(bool value) => Preferences.Set(SendOnBatteryLowKey, value);
 
     #endregion
 

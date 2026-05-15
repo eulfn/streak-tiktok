@@ -40,6 +40,18 @@ namespace Feener
                 
                 var notificationManager = (NotificationManager?)GetSystemService(NotificationService);
                 notificationManager?.CreateNotificationChannel(channel);
+
+                // Create Status Channel for completion alerts
+                var statusChannelId = "streak_status_channel";
+                var statusChannelName = "Streak Status";
+                var statusChannelDescription = "Alerts for completed or failed streak runs";
+                var statusImportance = NotificationImportance.Default;
+
+                var statusChannel = new NotificationChannel(statusChannelId, statusChannelName, statusImportance)
+                {
+                    Description = statusChannelDescription
+                };
+                notificationManager?.CreateNotificationChannel(statusChannel);
             }
         }
 

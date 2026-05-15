@@ -43,6 +43,7 @@ public partial class ProfilePage : ContentPage
 
         SkipUnreachableSwitch.IsToggled = _settingsService.GetSkipUnreachableUsers();
         RandomizeMessagesSwitch.IsToggled = _settingsService.GetRandomizeNormalMessages();
+        BatteryLowSwitch.IsToggled = _settingsService.GetSendOnBatteryLow();
         UpdateChatPriorityLabel();
 
         // Load version
@@ -191,6 +192,11 @@ public partial class ProfilePage : ContentPage
     private void OnSkipUnreachableToggled(object? sender, ToggledEventArgs e)
     {
         _settingsService.SetSkipUnreachableUsers(e.Value);
+    }
+
+    private void OnBatteryLowToggled(object? sender, ToggledEventArgs e)
+    {
+        _settingsService.SetSendOnBatteryLow(e.Value);
     }
 
     private void OnRandomizeMessagesToggled(object? sender, ToggledEventArgs e)

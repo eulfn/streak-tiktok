@@ -146,6 +146,18 @@
                                             PropertyChanged="OnTimePickerChanged"/>
                             </Grid>
 
+                            <!-- Battery Anticipation Toggle -->
+                            <Grid ColumnDefinitions="*, Auto" ColumnSpacing="{StaticResource SpacingMD}">
+                                <VerticalStackLayout VerticalOptions="Center" Spacing="4">
+                                    <Label Text="Send on Battery Low" Style="{StaticResource ControlTitleLabel}"/>
+                                    <Label Text="Run early if battery is dying before scheduled time" Style="{StaticResource DataLabel}" LineBreakMode="WordWrap"/>
+                                </VerticalStackLayout>
+                                <Switch x:Name="BatteryLowSwitch"
+                                        Grid.Column="1"
+                                        VerticalOptions="Center"
+                                        Toggled="OnBatteryLowToggled"/>
+                            </Grid>
+
                         </VerticalStackLayout>
 
 

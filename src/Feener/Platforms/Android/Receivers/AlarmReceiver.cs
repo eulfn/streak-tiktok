@@ -5,6 +5,7 @@ using Feener.Platforms.Android.Services;
 
 namespace Feener.Platforms.Android.Receivers;
 
+[Microsoft.Maui.Controls.Internals.Preserve(AllMembers = true)]
 [BroadcastReceiver(Name = AppConstants.PackageName + ".Receivers.AlarmReceiver", Enabled = true, Exported = false)]
 public class AlarmReceiver : BroadcastReceiver
 {

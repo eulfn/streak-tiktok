@@ -24,6 +24,9 @@ public class StreakService : Service
 {
     private const string ChannelId = "streak_service_channel";
     private const string ChannelName = "Streak Service";
+    /// <summary>Ongoing foreground + completion / offline alerts that should be visible (not Low importance).</summary>
+    private const string StatusChannelId = "streak_status_channel";
+    private const string StatusChannelName = "Streak status";
     private const int NotificationId = 1001;
 
     private WebView? _webView;
@@ -94,8 +97,9 @@ public class StreakService : Service
     {
         base.OnCreate();
 
-        // Create notification channel FIRST before anything else
+        // Create notification channels FIRST before anything else
         CreateNotificationChannel();
+        CreateStatusNotificationChannel();
 
         _mainHandler = new Handler(Looper.MainLooper!);
         _settingsService = new SettingsService();
@@ -143,7 +147,9 @@ public class StreakService : Service
         // Start the WebView automation on main thread
         _mainHandler?.Post(StartWebViewAutomation);
 
-        return StartCommandResult.NotSticky;
+        // Sticky: if Android kills the service mid-run, the system will recreate
+        // the service so the run can resume.
+        return StartCommandResult.Sticky;
     }
 
     private void StartForegroundServiceImmediate()
@@ -187,7 +193,9 @@ public class StreakService : Service
     {
         var powerManager = (PowerManager?)GetSystemService(PowerService);
         _wakeLock = powerManager?.NewWakeLock(WakeLockFlags.Partial, "Feener::StreakWakeLock");
-        _wakeLock?.Acquire(6L * 60 * 60 * 1000); // 6 hours max (auto-released on service destroy)
+        // Burst Mode can run for hours; normal mode typically finishes in minutes.
+        var ceilingMs = _isBurstMode ? 6L * 60 * 60 * 1000 : 30L * 60 * 1000;
+        _wakeLock?.Acquire(ceilingMs);
     }
 
     private void ReleaseWakeLock()
@@ -219,18 +227,41 @@ public class StreakService : Service
         }
     }
 
-    private Notification CreateNotification(string message)
+    private void CreateStatusNotificationChannel()
+    {
+        if (Build.VERSION.SdkInt >= BuildVersionCodes.O)
+        {
+            var notificationManager = (NotificationManager?)GetSystemService(NotificationService);
+            if (notificationManager == null) return;
+
+            var existingChannel = notificationManager.GetNotificationChannel(StatusChannelId);
+            if (existingChannel != null) return;
+
+            var channel = new NotificationChannel(StatusChannelId, StatusChannelName, NotificationImportance.Default)
+            {
+                Description = "Completion and offline status notifications for streak service"
+            };
+            channel.SetShowBadge(true);
+
+            notificationManager?.CreateNotificationChannel(channel);
+        }
+    }
+
+    private PendingIntent CreateMainActivityPendingIntent()
     {
         var intent = new Intent(this, typeof(MainActivity));
         intent.SetFlags(ActivityFlags.NewTask | ActivityFlags.ClearTop);
-        var pendingIntent = PendingIntent.GetActivity(this, 0, intent, PendingIntentFlags.Immutable | PendingIntentFlags.UpdateCurrent);
+        return PendingIntent.GetActivity(this, 0, intent, PendingIntentFlags.Immutable | PendingIntentFlags.UpdateCurrent)!;
+    }
 
+    private Notification CreateNotification(string message)
+    {
         var builder = new NotificationCompat.Builder(this, ChannelId)
             .SetContentTitle("Feener")
             .SetContentText(message)
             .SetStyle(new NotificationCompat.BigTextStyle().BigText(message))
             .SetSmallIcon(Resource.Drawable.ic_notification)
-            .SetContentIntent(pendingIntent)
+            .SetContentIntent(CreateMainActivityPendingIntent())
             .SetOngoing(true)
             .SetForegroundServiceBehavior(NotificationCompat.ForegroundServiceImmediate)
             .SetCategory(NotificationCompat.CategoryService)
@@ -242,16 +273,12 @@ public class StreakService : Service
 
     private void UpdateNotification(string message, int progress = -1, int max = 0)
     {
-        var intent = new Intent(this, typeof(MainActivity));
-        intent.SetFlags(ActivityFlags.NewTask | ActivityFlags.ClearTop);
-        var pendingIntent = PendingIntent.GetActivity(this, 0, intent, PendingIntentFlags.Immutable | PendingIntentFlags.UpdateCurrent);
-
         var builder = new NotificationCompat.Builder(this, ChannelId)
             .SetContentTitle("Feener")
             .SetContentText(message)
             .SetStyle(new NotificationCompat.BigTextStyle().BigText(message))
             .SetSmallIcon(Resource.Drawable.ic_notification)
-            .SetContentIntent(pendingIntent)
+            .SetContentIntent(CreateMainActivityPendingIntent())
             .SetOngoing(true)
             .SetForegroundServiceBehavior(NotificationCompat.ForegroundServiceImmediate)
             .SetCategory(NotificationCompat.CategoryService)
@@ -270,6 +297,8 @@ public class StreakService : Service
     {
         try
         {
+            _automationStarted = false;
+
             var allEnabled = _settingsService?.GetEnabledFriends() ?? new List<FriendConfig>();
             _currentFriendIndex = 0;
             _runResult = new StreakRunResult { IsBurstMode = _isBurstMode };
@@ -373,10 +402,9 @@ public class StreakService : Service
             }
 
             // Pre-flight network check
-            if (!NetworkConnectivity.HasWifiOrCellularInternet(this))
+            if (!NetworkConnectivity.HasWifiOrCellularValidatedInternet(this))
             {
-                AppLog("SYSTEM", "-", "No Wi-Fi or mobile data — skipping run");
-                CompleteService(false, "No network connection — skipped.");
+                CompleteSkippedNoNetwork();
                 return;
             }
 
@@ -807,6 +835,58 @@ public class StreakService : Service
         _mainHandler?.PostDelayed(TickHibernationCountdown, 30_000);
     }
 
+    private void CompleteSkippedNoNetwork()
+    {
+        try
+        {
+            AppLog("SYSTEM", "-", "No Wi-Fi or mobile data \u2014 skipping run");
+
+            if (_runResult != null && _settingsService != null)
+            {
+                _runResult.Success = false;
+                _runResult.ErrorMessage = "Skipped: no Wi-Fi or mobile data.";
+                _runResult.Duration = DateTime.Now - _runResult.RunTime;
+                _settingsService.AddRunResult(_runResult);
+                if (!_isBurstMode)
+                {
+                    _settingsService.SetLastRunTime(DateTime.Now);
+                }
+            }
+
+            int attempt = 0;
+            if (_settingsService?.IsScheduled() == true)
+            {
+                attempt = StreakScheduler.TryScheduleRetryOrGiveUp(this, SettingsService.FailureReasonNoNetwork);
+            }
+
+            var notificationText = attempt > 0
+                ? $"Offline. Retrying in 1 hour (attempt {attempt}/{SettingsService.MaxRetriesPerDay})."
+                : "Offline. Gave up for today.";
+
+            var finalNotification = new NotificationCompat.Builder(this, StatusChannelId)
+                .SetContentTitle("Feener")
+                .SetContentText(notificationText)
+                .SetSmallIcon(Resource.Drawable.ic_notification)
+                .SetAutoCancel(true)
+                .SetContentIntent(CreateMainActivityPendingIntent())
+                .SetPriority(NotificationCompat.PriorityDefault)
+                .Build()!;
+
+            var notificationManager = (NotificationManager?)GetSystemService(NotificationService);
+            notificationManager?.Notify(NotificationId + 1, finalNotification);
+        }
+        finally
+        {
+            lock (_runLock)
+            {
+                _isRunning = false;
+            }
+            CleanupWebView();
+            StopForeground(StopForegroundFlags.Remove);
+            StopSelf();
+        }
+    }
+
     private void CompleteService(bool success, string message)
     {
         try
@@ -884,11 +964,12 @@ public class StreakService : Service
                 }
             }
 
-            var finalNotification = new NotificationCompat.Builder(this, ChannelId)
+            var finalNotification = new NotificationCompat.Builder(this, StatusChannelId)
                 .SetContentTitle("Feener")
                 .SetContentText(finalText)
                 .SetSmallIcon(Resource.Drawable.ic_notification)
                 .SetAutoCancel(true)
+                .SetContentIntent(CreateMainActivityPendingIntent())
                 .SetPriority(NotificationCompat.PriorityDefault)
                 .Build()!;
 
@@ -897,7 +978,22 @@ public class StreakService : Service
 
             // Only re-arm the scheduler if scheduling is enabled
             if (_settingsService?.IsScheduled() == true)
-                StreakScheduler.ScheduleNextRun(this);
+            {
+                bool allSucceeded = success 
+                    && (_runResult?.FriendResults.Count == 0 
+                        || _runResult!.FriendResults.All(r => r.Success));
+
+                if (allSucceeded)
+                {
+                    _settingsService.ResetTodayRetryCount();
+                    _settingsService.SetLastRunFailed(false, null);
+                    StreakScheduler.ScheduleNextRun(this);
+                }
+                else
+                {
+                    StreakScheduler.TryScheduleRetryOrGiveUp(this, SettingsService.FailureReasonSendError);
+                }
+            }
             AppLog("SYSTEM", "-", $"Run complete: {(success ? "Success" : message)}");
         }
         finally
@@ -917,6 +1013,7 @@ public class StreakService : Service
     /// <summary>
     /// WebView client for handling page events
     /// </summary>
+    [Microsoft.Maui.Controls.Internals.Preserve(AllMembers = true)]
     private class StreakWebViewClient : WebViewClient
     {
         private readonly StreakService _service;
@@ -952,6 +1049,7 @@ public class StreakService : Service
     /// <summary>
     /// JavaScript interface for communication from WebView
     /// </summary>
+    [Microsoft.Maui.Controls.Internals.Preserve(AllMembers = true)]
     private class StreakJsInterface : Java.Lang.Object
     {
         private readonly StreakService _service;
